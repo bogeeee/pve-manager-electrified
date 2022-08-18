@@ -108,3 +108,6 @@ Provides: vlan, vzdump,
 Breaks: libpve-network-perl (<< 0.5-1),
 Description: Proxmox Virtual Environment Management Tools
  This package contains the Proxmox Virtual Environment management tools.
+ It's a fork of the original one by proxmox (git://git.proxmox.com/git/pve-manager).
+ It brings many nice new features and is intended mainly for the homelabber scene, so we aim for a
+ very fast development of new features and therefore prioritize less on production grade stability.
