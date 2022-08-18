@@ -1,4 +1,4 @@
-PACKAGE=pve-manager
+PACKAGE=pve-manager-electrified
 
 BINDIR=${DESTDIR}/usr/bin
 PERLLIBDIR=${DESTDIR}/usr/share/perl5

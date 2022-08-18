@@ -20,8 +20,8 @@ cfs_register_file(
     sub { PVE::Job::Registry->write_config(@_); },
 );
 
-my $state_dir = "/var/lib/pve-manager/jobs";
-my $lock_dir = "/var/lock/pve-manager";
+my $state_dir = "/var/lib/pve-manager-electrified/jobs";
+my $lock_dir = "/var/lock/pve-manager-electrified";
 
 my $get_state_file = sub {
     my ($jobid, $type) = @_;

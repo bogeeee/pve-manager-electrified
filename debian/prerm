@@ -8,7 +8,7 @@ set -e
 # the package to be removed, upgrade, automatic removal due to conflicts,
 # and deconfiguration due to temporary removal of a depended-on package.
 
-package_name=pve-manager;
+package_name=pve-manager-electrified;
 
 case "$1" in
   remove|deconfigure|failed-upgrade) : ;;

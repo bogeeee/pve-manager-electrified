@@ -1,4 +1,4 @@
-Source: pve-manager
+Source: pve-manager-electrified
 Section: admin
 Priority: optional
 Build-Depends: debhelper-compat (= 13),
@@ -29,9 +29,9 @@ Build-Depends: debhelper-compat (= 13),
                sq,
                unzip,
 Standards-Version: 4.6.1
-Maintainer: Proxmox Support Team <support@proxmox.com>
+Maintainer: TODO
 
-Package: pve-manager
+Package: pve-manager-electrified
 Section: admin
 Priority: optional
 Architecture: all

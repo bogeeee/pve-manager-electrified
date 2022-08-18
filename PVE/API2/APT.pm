@@ -119,7 +119,7 @@ my $assemble_pkginfo = sub {
 };
 
 # we try to cache results
-my $pve_pkgstatus_fn = "/var/lib/pve-manager/pkgupdates";
+my $pve_pkgstatus_fn = "/var/lib/pve-manager-electrified/pkgupdates";
 my $read_cached_pkgstatus = sub {
     my $data = eval { decode_json(PVE::Tools::file_get_contents($pve_pkgstatus_fn, 5*1024*1024)) } // [];
     warn "error reading cached package status in '$pve_pkgstatus_fn' - $@\n" if $@;
@@ -844,7 +844,7 @@ __PACKAGE__->register_method({
 	    $res->{CurrentState} = $p->{CurrentState};
 
 	    # hack: add some useful information (used by 'pveversion -v')
-	    if ($pkgname eq 'pve-manager') {
+	    if ($pkgname eq 'pve-manager-electrified') {
 		$res->{ManagerVersion} = $pvever;
 	    } elsif ($pkgname eq 'proxmox-ve') {
 		$res->{RunningKernel} = $kernel_release;
