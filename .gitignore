@@ -11,3 +11,7 @@ dest/
 /pve-manager-[0-9]*/
 /test/.mocked_*
 /test/*.tmp
+
+.vscode/makefile_extensions/configurationCache.log
+.vscode/makefile_extensions/dryrun.log
+.vscode/makefile_extensions/targets.log
