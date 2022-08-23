@@ -340,11 +340,11 @@ OnlineHelpInfo.js: $(JSSRC) $(WIDGETKIT)
 
 .PHONY: install
 install: OnlineHelpInfo.js
-	rm -rf ${WWWJSDIR}
-	install -d ${WWWJSDIR}
-	rsync -av . "${WWWJSDIR}" --exclude Makefile --exclude node_modules
-	echo "${JSSRC}" > "${WWWJSDIR}/listOfNonModuleScripts"
-	cp OnlineHelpInfo.js "${WWWJSDIR}"
+	rm -rf ${WWWMANAGER6DIR}
+	install -d ${WWWMANAGER6DIR}
+	rsync -av . "${WWWMANAGER6DIR}" --exclude Makefile --exclude node_modules
+	echo "${JSSRC}" > "${WWWMANAGER6DIR}/listOfNonModuleScripts"
+	cp OnlineHelpInfo.js "${WWWMANAGER6DIR}"
 
 .PHONY: clean
 clean:
