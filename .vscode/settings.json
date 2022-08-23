@@ -1,4 +1,4 @@
 {
     "makefile.extensionOutputFolder": ".vscode/makefile_extensions",
-    "editor.accessibilityPageSize": 11
+    "editor.accessibilityPageSize": 11,    
 }
