@@ -1,6 +1,7 @@
 {
+  "type": "module",
   "scripts": {
-    "dev": "nodemon -e ts,js index.ts",
+    "dev": "tsc --watch & nodemon -e ts --exec ts-node index.js",
     "killOldProcesses": "ts-node killOldProcesses"
   },
   "dependencies": {

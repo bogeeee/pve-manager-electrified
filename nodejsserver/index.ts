@@ -1,6 +1,6 @@
-import fs from './util/fsPromises';
+import fs from './util/fsPromises.js';
 import express from 'express'
-import WebBuildProcess, { BuildResult } from './WebBuilder';
+import WebBuildProcess, { BuildResult } from './WebBuilder.js';
 
 class FrontendServer {
   // config:
