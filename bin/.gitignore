@@ -3,4 +3,5 @@ docinfo.xml
 *.adoc
 *.1.pod
 *.8
+*.*-completion
 pvemailforward
