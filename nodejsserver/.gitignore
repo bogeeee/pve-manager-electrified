@@ -2,3 +2,4 @@
 /dist/
 /**/*.js
 /**/*.map
+/tsconfig.tsbuildinfo

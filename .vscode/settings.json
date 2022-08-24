@@ -1,5 +1,10 @@
 {
     "makefile.extensionOutputFolder": ".vscode/makefile_extensions",
     "editor.accessibilityPageSize": 11,
-    
+    "files.exclude": {
+        "**/*.js": {
+            "when": "$(basename).ts"
+        },
+        "**/*.js.map": true
+    }
 }

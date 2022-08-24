@@ -1,8 +1,9 @@
 {
   "type": "module",
   "scripts": {
-    "dev": "tsc --watch & nodemon -e ts --exec ts-node index.js",
-    "killOldProcesses": "ts-node killOldProcesses"
+    "dev_compileAndRun": "tsc --incremental && ts-node killOldProcesses && ts-node index",
+    "dev": "nodemon -e ts --exec npm run dev_compileAndRun",
+    "killOldProcesses": "tsc && ts-node killOldProcesses"
   },
   "dependencies": {
     "execa": "6.1.0",
