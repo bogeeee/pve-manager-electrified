@@ -1,13 +1,14 @@
 {
   "type": "module",
   "scripts": {
-    "dev_compileAndRun": "tsc --incremental && ts-node killOldProcesses && ts-node index",
-    "dev": "nodemon -e ts --exec npm run dev_compileAndRun",
+    "dev_watch": "nodemon -e ts --exec npm run dev_compileAndRunOnce",
+    "dev_compileAndRunOnce": "clear && tsc --incremental && ts-node killOldProcesses && ts-node index",
     "killOldProcesses": "tsc && ts-node killOldProcesses"
   },
   "dependencies": {
     "execa": "6.1.0",
     "express": "^4.17.13",
+    "http-proxy-middleware": "^2.0.6",
     "vite": "^2.7.12"
   },
   "devDependencies": {
@@ -19,5 +20,4 @@
     "nodemon": "2.0.19",
     "ts-node-dev": "2.0.0"
   }
-
 }

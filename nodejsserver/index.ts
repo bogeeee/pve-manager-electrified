@@ -1,12 +1,31 @@
-import fs from './util/fsPromises.js';
 import express from 'express'
-import WebBuildProcess, { BuildResult } from './WebBuilder.js';
+import WebBuildProcess, { BuildOptions, BuildResult, getSafestBuildOptions as getSaferBuildOptions } from './WebBuilder.js';
+import { execa } from "execa";
+import { createProxyMiddleware } from 'http-proxy-middleware';
+import fs from './util/fsPromises.js';
+import { conditionalMiddleware } from './util/util.js';
+import exp from 'constants';
+import { resolve } from 'path';
+import { readFile } from 'fs';
 
-class FrontendServer {
+class AppServer {
   // config:
-  port = 8006;
-  WWWBASEDIR= "/usr/share/pve-manager-electrified"
-  developWwwBaseDir = "/root/proxmox/pve-manager-electrified/www"
+  config = {
+    port: 8006,
+    WWWBASEDIR: "/usr/share/pve-manager-electrified",
+    developWwwBaseDir: "/root/proxmox/pve-manager-electrified/www", // if this exists then they are used from there
+  }
+
+  /**
+   * Dir where the web sources are (except libs whicht are spreaded out across /usr/... )
+   */
+  wwwSourceDir?: string
+
+
+  /**
+   * Dir where the build output is copied to and then served
+   */
+  bundledWWWDir = "/var/lib/pve-manager-electrified/bundledWww"
 
   /**
    * the builder that is currently running
@@ -23,32 +42,69 @@ class FrontendServer {
   /**
    * You can request a new rebuild while the build is still running, so it's result will be discarded and new one is done,s
    */
-  reBuildRequested?: {
-    buildStaticFiles: boolean
-  };
+  reBuildRequested?: BuildOptions;
 
 
 
   constructor() {
     (async () => {
-      const expressServer = express()
-      //await installFrontend(express)
 
-      await this.requestBuild(true);
+      // init fields:
+      this.wwwSourceDir = await fs.exists(this.config.developWwwBaseDir) ? this.config.developWwwBaseDir : this.config.WWWBASEDIR;
 
-      expressServer.listen(this.port)
-      console.log(`Server running at http://localhost:${this.port}`);
+
+      const expressApp = express()
+
+      const buildResult = await this.requestBuild({
+        buildStaticFiles: true,
+        DEBUG_EXT_ALL: false,
+        DEBUG_CHARTS: false
+      });
+
+      await this.activateBuildResult(buildResult);
+
+
+      // Redirect /pve2 to pearl server on port 8005:
+      expressApp.use(
+        '/pve2',
+        createProxyMiddleware({           
+          target: 'https://localhost:8005/pve2',
+          prependPath: false,
+          changeOrigin: false,
+          secure: false,
+
+        })
+      );
+
+
+      // serve some static files from wwwSourceDir:
+      expressApp.use("/", conditionalMiddleware((req) => {
+        return req.url.startsWith("/u2f-api.js")
+      }, express.static(this.wwwSourceDir)));
+
+      // Serve index.html (from bundled filed) with some replacements:      
+      expressApp.get("/", this.handleIndexHtml.bind(this));
+
+        // Serve (non-modified-) bundled files:
+      expressApp.use("/", express.static(this.bundledWWWDir));
+
+      // if request doesnt get handled, send an error:
+      expressApp.use("/", function (req, resp, next) {
+        resp.status(500);
+        resp.send("There is no handler / middleware for this request.");
+      })
+
+
+      expressApp.listen(this.config.port);
+      console.log(`Server running at http://localhost:${this.config.port}`);
     })();
 
   }
 
-  
-  async requestBuild(buildStaticFiles: boolean): Promise<BuildResult> {
+
+  async requestBuild(buildOptions: BuildOptions): Promise<BuildResult> {
     if (this.nextBuild) { // Someone else already promised the next build ?
-      this.reBuildRequested = {buildStaticFiles}
-      if(this.diagnosis_webBuilder?.buildStaticFiles) { // this check is a bit hacky !
-        this.reBuildRequested.buildStaticFiles = true; // build with static files again
-      }
+      this.reBuildRequested = getSaferBuildOptions(buildOptions, this.diagnosis_webBuilder!.buildOptions); // request a rebuild
     }
     else {
       // We have to promise the next build:
@@ -56,16 +112,15 @@ class FrontendServer {
         (async () => {
           // eslint-disable-next-line no-constant-condition
           while (true) { // do a rebuild loop till no build is re-requested anymore:
+
+            if (this.reBuildRequested) { // from a re-request ?
+              buildOptions = getSaferBuildOptions(buildOptions, this.reBuildRequested); // make sure to use the safer ones
+            }
+
             this.reBuildRequested = undefined; // clear flag
             try {
 
-              let wwwSourceDir = this.WWWBASEDIR;
-              if (await this.useWwwDevelopmentSources()) {
-                  wwwSourceDir = this.developWwwBaseDir;
-                  console.log(`Using www development sources from: ${this.developWwwBaseDir}`);
-              }
-
-              const webBuilder = this.diagnosis_webBuilder = new WebBuildProcess(wwwSourceDir, buildStaticFiles);
+              const webBuilder = this.diagnosis_webBuilder = new WebBuildProcess(buildOptions);
               const result = await webBuilder.build();
 
               if (!this.reBuildRequested) {
@@ -92,31 +147,50 @@ class FrontendServer {
   }
 
 
-  private async useWwwDevelopmentSources() {
-    const dirStat = await fs.stat(this.developWwwBaseDir);
-    return dirStat.isDirectory(); 
-  }
 
-  setActiveBuildResult(buildResult: BuildResult) {
+
+  async activateBuildResult(buildResult: BuildResult) {
+    if (!buildResult.staticFilesDir) {
+      throw new Error("Must provide staticFilesDir");
+    }
+
+    await execa("rm", ["-rf", this.bundledWWWDir]); // delete dir
+    //await execa("mkdir", ["-p", this.bundledWWWDir]);
+    await execa("mv", [buildResult.staticFilesDir, this.bundledWWWDir]);
+
     this.activeBuildResult = buildResult;
   }
-  
-}
 
-new FrontendServer(); // start server
+  /**
+   * Serves the index.html (from bundled files) and does some runtime variable replacements there
+   * @param req 
+   * @param res 
+   * @param next 
+   */
+  async handleIndexHtml(req: express.Request, res: express.Response, next: express.NextFunction) {
+    try {
+      const endoding = "utf-8";
+      let indexHtml = await fs.readFile(this.bundledWWWDir + "/index.html", { encoding: endoding });
+      
+      const lang = req.cookies?.["PVELangCookie"] || "en";
+      indexHtml = indexHtml.replace("[% lang %]", lang); // replace language
 
+      //$LANGFILE$:
+      if(await fs.exists(`/usr/share/pve-i18n/pve-lang-${lang}`)) { // Language file exists ?
+        indexHtml = indexHtml.replace("$LANGFILE$", `<script type='text/javascript' src='/pve2/locale/pve-lang-${lang}.js?ver=TODO_BUILDID'/>`);
+      }
+      else {
+        indexHtml = indexHtml.replace("$LANGFILE$", "<script type='text/javascript'>function gettext(buf) { return buf; }</script>");
+      }      
 
-/*
-async function installFrontend(app: any) {
-  if (process.env.NODE_ENV === 'production') {
-    app.use(express.static(`./dist/client`))
-  } else {
-    const vite = await import('vite')
-    const viteDevServer = await vite.createServer({
-      server: { middlewareMode: 'html' }
-    })
-    app.use(viteDevServer.middlewares)
+      res.send(indexHtml)
+    }
+    catch (e: any) {
+      res.status(500);
+      res.send(e?.message || e);
+    }
   }
+
 }
 
-*/
+export const appServer = new AppServer(); // start server

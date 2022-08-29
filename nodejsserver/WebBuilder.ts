@@ -1,23 +1,48 @@
-import fs from './util/fsPromises';
+import fs from './util/fsPromises.js';
+import {build as viteBuild} from "vite";
+import crypto from "crypto"
+import { appServer } from './index.js';
 
 
-export default class WebBuildProcess {
-    wwwSourceDir: string;
+export type BuildOptions = {    
     /**
      * Bundles everything. Use for production (non ViteDevServer)
      */
-    buildStaticFiles: boolean;
+    buildStaticFiles: boolean,
+    DEBUG_EXT_ALL: boolean,
+    DEBUG_CHARTS: boolean,
+}
 
-    constructor(wwwSourceDir: string, buildStaticFiles: boolean) {
-        this.wwwSourceDir =  wwwSourceDir;
-        this.buildStaticFiles = buildStaticFiles;
+/**
+ * If 2 build requests are triggered, then we decide opt for the safest one.
+ * @param a 
+ * @param b 
+ * @returns 
+ */
+export function getSafestBuildOptions(a: BuildOptions, b: BuildOptions): BuildOptions {
+    return {
+        buildStaticFiles: a.buildStaticFiles || b.buildStaticFiles,
+        DEBUG_EXT_ALL: a.DEBUG_EXT_ALL && b.DEBUG_EXT_ALL,
+        DEBUG_CHARTS: a.DEBUG_CHARTS && b.DEBUG_CHARTS
     }
+}
+
+export default class WebBuildProcess {    
+
+    buildOptions: BuildOptions;
+
+    buildId: string;
 
     diagnosis_state?: string
-
         
     done = false;
-    async build(release = true): Promise<BuildResult> {
+
+    constructor(buildOptions: BuildOptions) {
+        this.buildOptions = buildOptions;
+        this.buildId = crypto.randomBytes(16).toString('base64').replace(/\//,'_');
+    }
+    
+    async build(): Promise<BuildResult> {
         if(this.done) {
             throw new Error("Can't reuse the WebBuildProcess object");
         }
@@ -33,14 +58,22 @@ export default class WebBuildProcess {
             // npm prune on all /root/pveme-plugin projects(without triggers)
 
 
-            if(release) {
-                // Build release
+            if(this.buildOptions.buildStaticFiles) {
+                const bundledFilesDir = await this.bundleFiles();
+                
+                return {
+                    buildId: this.buildId, 
+                    staticFilesDir: bundledFilesDir
+                };
+            }
+            else {
+                return {
+                    buildId: this.buildId,
+                }                
             }
 
-            return {
-                buildId: "123", 
-                staticFilesDir: "/tmp"
-            };
+
+            
         }
         finally {
             this.done = true;
@@ -53,7 +86,33 @@ export default class WebBuildProcess {
      */
     async createIndexHtml() {
         this.diagnosis_state = "Create index.html";
-        //const template = await fs.readFile(this.wwwSourceDir + "/index.html.tpl",{encoding: "utf-8"});
+        
+        const wwwSourcesDir = appServer.wwwSourceDir;
+        
+        const templateEncoding = "utf-8";        
+        let templateHtml = await fs.readFile(wwwSourcesDir + "/index.html.tpl",{encoding: templateEncoding});
+        templateHtml = templateHtml.replace("$CACHEBREAKER$", this.buildId);
+        await fs.writeFile(wwwSourcesDir + "/index.html", templateHtml, {encoding:templateEncoding})
+        const i = 0;
+    }
+
+    async bundleFiles() {
+        this.diagnosis_state = "Bundle files";
+        const outDir = `/var/tmp/${this.buildId}`;
+
+        console.log(`bundeling files to ${outDir}`);
+        
+        await viteBuild({            
+            root: appServer.wwwSourceDir,            
+            base: "/",
+            build: {                
+                outDir: outDir,
+                rollupOptions: {
+                }
+            }
+          })
+
+        return outDir;
     }
 
      
@@ -61,5 +120,5 @@ export default class WebBuildProcess {
 
 export type BuildResult = {
     buildId: string,
-    staticFilesDir: string,
+    staticFilesDir?: string,
 };
