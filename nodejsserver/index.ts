@@ -56,9 +56,7 @@ class AppServer {
       const expressApp = express()
 
       const buildResult = await this.requestBuild({
-        buildStaticFiles: true,
-        DEBUG_EXT_ALL: false,
-        DEBUG_CHARTS: false
+        buildStaticFiles: true
       });
 
       await this.activateBuildResult(buildResult);
@@ -66,7 +64,7 @@ class AppServer {
 
       // Redirect /pve2 to pearl server on port 8005:
       expressApp.use(
-        '/pve2',
+        ['/pve2', "/novnc", "/xtermjs", "/pwt", "/api2", "/favicon.ico", "/qrcode.min.js", "/proxmoxlib.js"],
         createProxyMiddleware({           
           target: 'https://localhost:8005/pve2',
           prependPath: false,
@@ -77,16 +75,14 @@ class AppServer {
       );
 
 
-      // serve some static files from wwwSourceDir:
-      expressApp.use("/", conditionalMiddleware((req) => {
-        return req.url.startsWith("/u2f-api.js")
-      }, express.static(this.wwwSourceDir)));
-
       // Serve index.html (from bundled filed) with some replacements:      
-      expressApp.get("/", this.handleIndexHtml.bind(this));
+      expressApp.get("/", this.serveIndexHtml.bind(this));
 
         // Serve (non-modified-) bundled files:
       expressApp.use("/", express.static(this.bundledWWWDir));
+
+      // serve files from wwwSourceDir:
+      expressApp.use("/", express.static(this.wwwSourceDir));
 
       // if request doesnt get handled, send an error:
       expressApp.use("/", function (req, resp, next) {
@@ -167,13 +163,13 @@ class AppServer {
    * @param res 
    * @param next 
    */
-  async handleIndexHtml(req: express.Request, res: express.Response, next: express.NextFunction) {
+  async serveIndexHtml(req: express.Request, res: express.Response, next: express.NextFunction) {
     try {
       const endoding = "utf-8";
       let indexHtml = await fs.readFile(this.bundledWWWDir + "/index.html", { encoding: endoding });
       
-      const lang = req.cookies?.["PVELangCookie"] || "en";
-      indexHtml = indexHtml.replace("[% lang %]", lang); // replace language
+      const lang = req.cookies?.["PVELangCookie"] || "en"; // TODO: fallback to lang in datacenter config
+      indexHtml = indexHtml.replace(/\[% lang %\]/g, lang); // replace language
 
       //$LANGFILE$:
       if(await fs.exists(`/usr/share/pve-i18n/pve-lang-${lang}`)) { // Language file exists ?
@@ -181,7 +177,13 @@ class AppServer {
       }
       else {
         indexHtml = indexHtml.replace("$LANGFILE$", "<script type='text/javascript'>function gettext(buf) { return buf; }</script>");
-      }      
+      }
+      
+      
+      // Debug:
+      const isDebug = req.query?.["debug"] != undefined || await fs.exists(this.config.developWwwBaseDir);
+      indexHtml= indexHtml.replace("$DEBUG_EXT_ALL$", isDebug?"-debug":"");
+      indexHtml= indexHtml.replace("$DEBUG_CHARTS$", isDebug?"-debug":"");
 
       res.send(indexHtml)
     }

@@ -5,8 +5,8 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
     <title>[% nodename %] - Proxmox Virtual Environment</title>
-    <link rel="icon" sizes="128x128" href="www/images/logo-128.png" />
-    <link rel="apple-touch-icon" sizes="128x128" href="www/images/logo-128.png" />
+    <link rel="icon" sizes="128x128" href="images/logo-128.png" />
+    <link rel="apple-touch-icon" sizes="128x128" href="images/logo-128.png" />
     <link rel="stylesheet" type="text/css" href="/usr/share/javascript/extjs/theme-crisp/resources/theme-crisp-all.css" />
     <link rel="stylesheet" type="text/css" href="/usr/share/javascript/extjs/crisp/resources/charts-all.css" />
     <link rel="stylesheet" type="text/css" href="/usr/share/fonts-font-awesome/css/font-awesome.css" />
@@ -23,8 +23,8 @@
 
     $LANGFILE$
 
-    <script type="text/javascript" src="/pve2/ext6/ext-all[% DEBUG_EXT_ALL %].js"></script>
-    <script type="text/javascript" src="/pve2/ext6/charts[% DEBUG_CHARTS %].js"></script>
+    <script type="text/javascript" src="/pve2/ext6/ext-all$DEBUG_EXT_ALL$.js"></script>
+    <script type="text/javascript" src="/pve2/ext6/charts$DEBUG_CHARTS$.js"></script>
 
     <script type="text/javascript" src="/u2f-api.js"></script>
     <script type="text/javascript" src="/qrcode.min.js"></script>
@@ -38,15 +38,12 @@
     };
     </script>
     <script type="text/javascript" src="/proxmoxlib.js?ver=$CACHEBREAKER$"></script>
-    [% INCLUDE_PVEMANAGER_SCRIPTS %]
+    <!-- manager6 nonmodule scripts: -->
+    $INCLUDE_MANAGER6_NONMODULE_SCRIPTS$
 
-    <script type="text/javascript" src="/pve2/ext6/locale/locale-en.js?ver=$CACHEBREAKER$"></script>
-    <!-- todo: stattdessen:-->
-    <script type="text/javascript">
-      // TODO: include  "/pve2/ext6/locale/locale-[% lang %].js?ver=7.0.0" // lang = PVELangCookie
-      // Fallback:  datacenter.cfg->language
-    </script>
+    <script type="text/javascript" src="/manager6/OnlineHelpInfo.js?ver=$CACHEBREAKER$"></script>
 
+    <script type="text/javascript" src="/pve2/ext6/locale/locale-[% lang %].js?ver=$CACHEBREAKER$"></script>
 
 
     <script type="text/javascript">

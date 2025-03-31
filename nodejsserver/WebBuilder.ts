@@ -9,8 +9,6 @@ export type BuildOptions = {
      * Bundles everything. Use for production (non ViteDevServer)
      */
     buildStaticFiles: boolean,
-    DEBUG_EXT_ALL: boolean,
-    DEBUG_CHARTS: boolean,
 }
 
 /**
@@ -21,9 +19,7 @@ export type BuildOptions = {
  */
 export function getSafestBuildOptions(a: BuildOptions, b: BuildOptions): BuildOptions {
     return {
-        buildStaticFiles: a.buildStaticFiles || b.buildStaticFiles,
-        DEBUG_EXT_ALL: a.DEBUG_EXT_ALL && b.DEBUG_EXT_ALL,
-        DEBUG_CHARTS: a.DEBUG_CHARTS && b.DEBUG_CHARTS
+        buildStaticFiles: a.buildStaticFiles || b.buildStaticFiles
     }
 }
 
@@ -83,6 +79,7 @@ export default class WebBuildProcess {
 
     /**
      * Creates the index.html from the template
+     * NOTE, that there are  additional replacements done when served during runtime. See index.ts#serveIndexHtml
      */
     async createIndexHtml() {
         this.diagnosis_state = "Create index.html";
@@ -91,9 +88,15 @@ export default class WebBuildProcess {
         
         const templateEncoding = "utf-8";        
         let templateHtml = await fs.readFile(wwwSourcesDir + "/index.html.tpl",{encoding: templateEncoding});
-        templateHtml = templateHtml.replace("$CACHEBREAKER$", this.buildId);
-        await fs.writeFile(wwwSourcesDir + "/index.html", templateHtml, {encoding:templateEncoding})
-        const i = 0;
+        templateHtml = templateHtml.replace(/$CACHEBREAKER$/g, this.buildId);
+
+        //Include nonmodule scripts ($INCLUDE_MANAGER6_NONMODULE_SCRIPTS$):
+        // TODO: if manager6 scripts were packed into 1 file, use that.
+        const nonModuleScripts = (await fs.readFile("/usr/share/pve-manager-electrified/manager6/listOfNonModuleScripts", {encoding: "utf-8"})).trim().split(" ");
+        const scriptsBlock = nonModuleScripts.map((scriptName) => `<script type="text/javascript" src="/manager6/${scriptName}?ver=${this.buildId}"></script>`).join("\n");
+        templateHtml = templateHtml.replace("$INCLUDE_MANAGER6_NONMODULE_SCRIPTS$", scriptsBlock);
+
+        await fs.writeFile(wwwSourcesDir + "/index.html", templateHtml, {encoding:templateEncoding});
     }
 
     async bundleFiles() {
