@@ -2,7 +2,9 @@
   "type": "module",
   "scripts": {
     "dev_watch": "nodemon -e ts --exec npm run dev_compileAndRunOnce",
-    "dev_compileAndRunOnce": "clear && tsc --incremental && ts-node killOldProcesses && ts-node index",
+    "build": "tsc --build",
+    "clean": "tsc --build --clean",
+    "dev_compileAndRunOnce": "clear && npm run build && ts-node killOldProcesses && ts-node index",
     "killOldProcesses": "tsc && ts-node killOldProcesses"
   },
   "dependencies": {
@@ -13,6 +15,7 @@
     "vite": "^2.7.12"
   },
   "devDependencies": {
+    "typescript": "^4.9.5",
     "@types/express": "^4.17.13",
     "@types/cookie-parser": "^1.4.8",
     "@types/node": "^18.7.11",
