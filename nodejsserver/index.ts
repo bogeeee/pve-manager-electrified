@@ -1,4 +1,5 @@
 import express from 'express'
+import cookieParser from 'cookie-parser';
 import WebBuildProcess, { BuildOptions, BuildResult, getSafestBuildOptions as getSaferBuildOptions } from './WebBuilder.js';
 import { execa } from "execa";
 import { createProxyMiddleware } from 'http-proxy-middleware';
@@ -54,6 +55,7 @@ class AppServer {
 
 
       const expressApp = express()
+      expressApp.use(cookieParser())
 
       const buildResult = await this.requestBuild({
         buildStaticFiles: true
