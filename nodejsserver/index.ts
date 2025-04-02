@@ -1,9 +1,11 @@
 import express from 'express'
 import cookieParser from 'cookie-parser';
+import https from "node:https"
 import WebBuildProcess, { BuildOptions, BuildResult, getSafestBuildOptions as getSaferBuildOptions } from './WebBuilder.js';
 import { execa } from "execa";
 import { createProxyMiddleware } from 'http-proxy-middleware';
-import fs from './util/fsPromises.js';
+import fs from 'node:fs';
+import fsAsync from './util/fsPromises.js';
 import { conditionalMiddleware } from './util/util.js';
 import exp from 'constants';
 import { resolve } from 'path';
@@ -13,6 +15,8 @@ class AppServer {
   // config:
   config = {
     port: 8006,
+    key: "/etc/pve/local/pve-ssl.key",
+    cert: "/etc/pve/local/pve-ssl.pem",
     WWWBASEDIR: "/usr/share/pve-manager-electrified",
     developWwwBaseDir: "/root/proxmox/pve-manager-electrified/www", // if this exists then they are used from there
   }
@@ -51,7 +55,7 @@ class AppServer {
     (async () => {
 
       // init fields:
-      this.wwwSourceDir = await fs.exists(this.config.developWwwBaseDir) ? this.config.developWwwBaseDir : this.config.WWWBASEDIR;
+      this.wwwSourceDir = await fs.existsSync(this.config.developWwwBaseDir) ? this.config.developWwwBaseDir : this.config.WWWBASEDIR;
 
 
       const expressApp = express()
@@ -93,8 +97,14 @@ class AppServer {
       })
 
 
-      expressApp.listen(this.config.port);
-      console.log(`Server running at http://localhost:${this.config.port}`);
+
+      // Create an HTTPS server
+      https.createServer({
+        key: fs.readFileSync(this.config.key),
+        cert: fs.readFileSync(this.config.cert)
+      }, expressApp).listen(this.config.port, () => {
+        console.log(`Server running at http://localhost:${this.config.port}`);
+      });
     })();
 
   }
@@ -168,7 +178,7 @@ class AppServer {
   async serveIndexHtml(req: express.Request, res: express.Response, next: express.NextFunction) {
     try {
       const endoding = "utf-8";
-      let indexHtml = await fs.readFile(this.bundledWWWDir + "/index.html", { encoding: endoding });
+      let indexHtml = await fsAsync.readFile(this.bundledWWWDir + "/index.html", { encoding: endoding });
 
       // For, how variables are orignialy retrieved, see PVE/Service/pveproxy.pm#get_index
 
@@ -192,7 +202,7 @@ class AppServer {
       indexHtml = indexHtml.replace("$THEME$", themeHtml);
 
       //$LANGFILE$:
-      if(await fs.exists(`/usr/share/pve-i18n/pve-lang-${lang}`)) { // Language file exists ?
+      if(await fsAsync.exists(`/usr/share/pve-i18n/pve-lang-${lang}`)) { // Language file exists ?
         indexHtml = indexHtml.replace("$LANGFILE$", `<script type='text/javascript' src='/pve2/locale/pve-lang-${lang}.js?ver=TODO_BUILDID'/>`);
       }
       else {
@@ -201,7 +211,7 @@ class AppServer {
       
       
       // Debug:
-      const isDebug = req.query?.["debug"] != undefined || await fs.exists(this.config.developWwwBaseDir);
+      const isDebug = req.query?.["debug"] != undefined || await fsAsync.exists(this.config.developWwwBaseDir);
       indexHtml= indexHtml.replace("$DEBUG_EXT_ALL$", isDebug?"-debug":"");
       indexHtml= indexHtml.replace("$DEBUG_CHARTS$", isDebug?"-debug":"");
 
