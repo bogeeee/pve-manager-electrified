@@ -169,9 +169,27 @@ class AppServer {
     try {
       const endoding = "utf-8";
       let indexHtml = await fs.readFile(this.bundledWWWDir + "/index.html", { encoding: endoding });
-      
+
+      // For, how variables are orignialy retrieved, see PVE/Service/pveproxy.pm#get_index
+
+      // lang:
       const lang = req.cookies?.["PVELangCookie"] || "en"; // TODO: fallback to lang in datacenter config
       indexHtml = indexHtml.replace(/\[% lang %\]/g, lang); // replace language
+
+      // Theme (logic like in original index.html.tpl):
+      let theme: string | undefined = req.cookies?.["PVEThemeCookie"] || "auto"
+      if(theme === "__default__") {
+        theme = "auto";
+      }
+      let themeHtml = "";
+      if(theme != 'crisp') {
+        if (theme != 'auto') {
+          themeHtml = `<link rel="stylesheet" type="text/css" href="/pwt/themes/theme-${theme}.css?ver=TODO_BUILDID" />`
+        } else {
+          themeHtml = `<link rel="stylesheet" type="text/css" media="(prefers-color-scheme: dark)" href="/pwt/themes/theme-proxmox-dark.css?ver=TODO_BUILDID" />`
+        }
+      }
+      indexHtml = indexHtml.replace("$THEME$", themeHtml);
 
       //$LANGFILE$:
       if(await fs.exists(`/usr/share/pve-i18n/pve-lang-${lang}`)) { // Language file exists ?

@@ -13,13 +13,9 @@
     <link rel="stylesheet" type="text/css" href="/usr/share/fonts-font-logos/fonts/font-logos.css" />
     <link rel="stylesheet" type="text/css" href="/css/ext6-pve.css" />
     <link rel="stylesheet" type="text/css" href="/usr/share/javascript/proxmox-widget-toolkit/css/ext6-pmx.css" />
-    [%- IF theme != 'crisp' %]
-      [%- IF theme != 'auto' %]
-    <link rel="stylesheet" type="text/css" href="/pwt/themes/theme-[% theme %].css?ver=[% wtversion %]" />
-      [%- ELSE %]
-    <link rel="stylesheet" type="text/css" media="(prefers-color-scheme: dark)" href="/pwt/themes/theme-proxmox-dark.css?ver=[% wtversion %]" />
-      [%- END -%]
-    [%- END -%]
+
+    <!-- $...$ are replaced in index.ts#serveIndexHtml -->
+    $THEME$
 
     $LANGFILE$
 
