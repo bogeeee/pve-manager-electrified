@@ -10,7 +10,7 @@
     <link rel="stylesheet" type="text/css" href="/usr/share/javascript/extjs/theme-crisp/resources/theme-crisp-all.css" />
     <link rel="stylesheet" type="text/css" href="/usr/share/javascript/extjs/crisp/resources/charts-all.css" />
     <link rel="stylesheet" type="text/css" href="/usr/share/fonts-font-awesome/css/font-awesome.css" />
-    <link rel="stylesheet" type="text/css" href="/pve2/font-logos/css/font-logos.css" />
+    <link rel="stylesheet" type="text/css" href="/usr/share/fonts-font-logos/fonts/font-logos.css" />
     <link rel="stylesheet" type="text/css" href="/css/ext6-pve.css" />
     <link rel="stylesheet" type="text/css" href="/usr/share/javascript/proxmox-widget-toolkit/css/ext6-pmx.css" />
     [%- IF theme != 'crisp' %]
