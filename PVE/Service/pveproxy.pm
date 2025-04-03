@@ -120,6 +120,7 @@ sub init {
 	# Note: there is no authentication for those pages and dirs!
 	pages => {
 	    '/' => sub { get_index($self->{nodename}, @_) },
+	    '/proxmox_state' => sub { get_proxmox_state($self->{nodename}, @_) },
 	    # avoid authentication when accessing favicon
 	    '/favicon.ico' => {
 		file => "$basedirs->{manager}/images/favicon.ico",
@@ -272,6 +273,88 @@ sub get_index {
     $template->process("$dir/index.html.tpl", $vars, \$page) || die $template->error(), "\n";
 
     my $headers = HTTP::Headers->new(Content_Type => "text/html; charset=utf-8");
+    my $resp = HTTP::Response->new(200, "OK", $headers, $page);
+
+    return $resp;
+}
+
+
+# get things for pve-electrified that it can't retrieve on it's own, like user, language and csrftoken
+# NOTE: Requests to those pages are not authenticated
+# so we must be very careful here
+sub get_proxmox_state {
+    my ($nodename, $server, $r, $args) = @_;
+
+    my $lang;
+    my $username;
+    my $token = 'null';
+    my $theme = "auto";
+
+    if (my $cookie = $r->header('Cookie')) {
+	if (my $newlang = ($cookie =~ /(?:^|\s)PVELangCookie=([^;]*)/)[0]) {
+	    if ($newlang =~ m/^[a-z]{2,3}(_[A-Z]{2,3})?$/) {
+		$lang = $newlang;
+	    }
+	}
+
+	if (my $newtheme = ($cookie =~ /(?:^|\s)PVEThemeCookie=([^;]*)/)[0]) {
+	    # theme names need to be kebab case, with each segment a maximum of 10 characters long
+	    # and at most 6 segments
+	    if ($newtheme =~ m/^[a-z]{1,10}(-[a-z]{1,10}){0,5}$/) {
+		$theme = $newtheme;
+	    }
+	}
+
+	my $ticket = PVE::APIServer::Formatter::extract_auth_value($cookie, $server->{cookie_name});
+	if (($username = PVE::AccessControl::verify_ticket($ticket, 1))) {
+	    $token = PVE::AccessControl::assemble_csrf_prevention_token($username);
+	}
+    }
+
+    if (!$lang) {
+	my $dc_conf = PVE::Cluster::cfs_read_file('datacenter.cfg');
+	$lang = $dc_conf->{language} // 'en';
+    }
+
+    my $mobile = (is_phone($r->header('User-Agent')) && (!defined($args->{mobile}) || $args->{mobile})) || $args->{mobile};
+
+    my $novnc = defined($args->{console}) && $args->{novnc};
+    my $xtermjs = defined($args->{console}) && $args->{xtermjs};
+
+    my $langfile = -f "$basedirs->{i18n}/pve-lang-$lang.js" ? 1 : 0;
+
+    my $version = PVE::pvecfg::version();
+
+    my $wtversionraw = PVE::Tools::file_read_firstline("$basedirs->{widgettoolkit}/proxmoxlib.js");
+    my $wtversion = $wtversionraw =~ m|^// (.*)$| ? $1 : '';
+
+    my $debug = $server->{debug};
+    if (exists $args->{debug}) {
+	$debug = !defined($args->{debug}) || $args->{debug};
+    }
+
+    my $vars = {
+	lang => $lang,
+	langfile => $langfile,
+	username => $username || '',
+	token => $token,
+	console => $args->{console},
+	nodename => $nodename,
+	debug => $debug,
+	version => "$version",
+	wtversion => $wtversion,
+	theme => $theme,
+    };
+
+    # by default, load the normal index
+    my $dir = $basedirs->{manager};
+
+    my $page = '';
+    my $template = Template->new({ABSOLUTE => 1});
+
+    $template->process("$dir/proxmoxState.json.tpl", $vars, \$page) || die $template->error(), "\n";
+
+    my $headers = HTTP::Headers->new(Content_Type => "application/json");
     my $resp = HTTP::Response->new(200, "OK", $headers, $page);
 
     return $resp;

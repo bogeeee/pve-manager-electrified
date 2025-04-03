@@ -25,13 +25,7 @@
     <script type="text/javascript" src="/u2f-api.js"></script>
     <script type="text/javascript" src="/qrcode.min.js"></script>
     <script type="text/javascript">
-    Proxmox = {
-	Setup: { auth_cookie_name: 'PVEAuthCookie' },
-	defaultLang: '[% lang %]',
-	NodeName: '[% nodename %]',
-	UserName: '[% username %]',
-	CSRFPreventionToken: '[% token %]'
-    };
+    Proxmox = $PROXMOXSTATE$;
     </script>
     <script type="text/javascript" src="/proxmoxlib.js?ver=$CACHEBREAKER$"></script>
     <!-- manager6 nonmodule scripts: -->

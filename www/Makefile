@@ -7,6 +7,7 @@ all:
 install:
 	set -e && for i in ${SUBDIRS}; do ${MAKE} -C $$i $@; done
 	install -m 0644 index.html.tpl ${WWWBASEDIR}
+	install -m 0644 proxmoxState.json.tpl ${WWWBASEDIR}
 	install -d ${WWWBASEDIR}
 	install -m 0644 u2f-api.js ${WWWBASEDIR}
 

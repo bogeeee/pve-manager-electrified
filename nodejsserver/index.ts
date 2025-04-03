@@ -6,7 +6,7 @@ import { execa } from "execa";
 import { createProxyMiddleware } from 'http-proxy-middleware';
 import fs from 'node:fs';
 import fsAsync from './util/fsPromises.js';
-import { conditionalMiddleware } from './util/util.js';
+import {conditionalMiddleware, better_fetch, axiosExt, errorToString} from './util/util.js';
 import exp from 'constants';
 import { resolve } from 'path';
 import { readFile } from 'fs';
@@ -14,6 +14,10 @@ import { readFile } from 'fs';
 class AppServer {
   // config:
   config = {
+    /**
+     * This is where the old web is running
+     */
+    origPort: 8005,
     port: 8006,
     key: "/etc/pve/local/pve-ssl.key",
     cert: "/etc/pve/local/pve-ssl.pem",
@@ -72,7 +76,7 @@ class AppServer {
       expressApp.use(
         ['/pve2', "/novnc", "/xtermjs", "/pwt", "/api2", "/favicon.ico", "/qrcode.min.js", "/proxmoxlib.js"],
         createProxyMiddleware({           
-          target: 'https://localhost:8005/pve2',
+          target: `https://localhost:${this.config.origPort}/pve2`,
           prependPath: false,
           changeOrigin: false,
           secure: false,
@@ -180,10 +184,17 @@ class AppServer {
       const endoding = "utf-8";
       let indexHtml = await fsAsync.readFile(this.bundledWWWDir + "/index.html", { encoding: endoding });
 
-      // For, how variables are orignialy retrieved, see PVE/Service/pveproxy.pm#get_index
+      // Fetch the state from original pve-manager:
+      const proxmoxState = (await axiosExt(`https://localhost:${this.config.origPort}/proxmox_state`,{
+        headers: {...req.headers as object}, // Pass original headers (with cookies), so we get the right csrfProtectionToken (and more)
+      })).data as object;
+      if(proxmoxState === null || typeof proxmoxState !== "object") {
+        throw new Error("Invalid result: /proxmox_state is not json.");
+      }
 
-      // lang:
-      const lang = req.cookies?.["PVELangCookie"] || "en"; // TODO: fallback to lang in datacenter config
+      indexHtml = indexHtml.replace("$PROXMOXSTATE$", JSON.stringify(proxmoxState)); // replace $PROXMOXSTATE$
+      indexHtml = indexHtml.replace(/\[% nodename %\]/g, (proxmoxState as any).NodeName as string); // replace nodename
+      const lang = (proxmoxState as any).defaultLang as string;
       indexHtml = indexHtml.replace(/\[% lang %\]/g, lang); // replace language
 
       // Theme (logic like in original index.html.tpl):
@@ -219,7 +230,7 @@ class AppServer {
     }
     catch (e: any) {
       res.status(500);
-      res.send(e?.message || e);
+      res.send(`<pre>${errorToString(e)}</pre>`);
     }
   }
 
