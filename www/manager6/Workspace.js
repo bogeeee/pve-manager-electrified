@@ -208,9 +208,9 @@ Ext.define('PVE.StdWorkspace', {
 
 	if (PVE.VersionInfo) {
 	    let version = PVE.VersionInfo.version;
-	    ui.update('Virtual Environment ' + version);
+	    ui.update('PVE electrified ' + version);
 	} else {
-	    ui.update('Virtual Environment');
+	    ui.update('PVE electrified');
 	}
 	ui.updateLayout();
     },
@@ -325,7 +325,7 @@ Ext.define('PVE.StdWorkspace', {
 		    margin: '2 0 2 5',
 		    items: [
 			{
-			    xtype: 'proxmoxlogo',
+			    html: `<div style="padding-right: 4px; padding-left: 2px"><img class="shakeMe" src="/pve2/images/pve-electrified_logo.png" height="30" style="position: relative; top:2px"></div>`,
 			},
 			{
 			    minWidth: 150,
@@ -335,6 +335,19 @@ Ext.define('PVE.StdWorkspace', {
 				'font-size': '14px',
 				'line-height': '18px',
 			    },
+			},
+			{
+				html: `Powered by`,
+				style: {
+					'font-size': '14px',
+					'line-height': '18px',
+				},
+			},
+			{
+				html: `<div style="height:30px;padding-top: 7px; padding-left: 2px"><img src="/pve2/images/proxmox_logo.png" height="15"/></div>`,
+			},
+			{
+				html: `<div style="width:8px;"/>`, // Some space
 			},
 			{
 			    xtype: 'pveGlobalSearchField',

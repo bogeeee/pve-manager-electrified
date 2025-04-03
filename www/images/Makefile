@@ -57,6 +57,8 @@ IMAGES = $(GNOME_IMAGES)	\
 	memory.png		\
 	processor.png		\
 	proxmox_logo.png	\
+	pve-electrified_logo.png \
+	pve-electrified_logo_30x172.png \
 	network-server-on.png	\
 	network-server-off.png	\
 	lxc-on.png		\

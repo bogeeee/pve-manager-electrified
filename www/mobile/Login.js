@@ -71,7 +71,7 @@ Ext.define('PVE.Login', {
 	items: [
 	    {
 		xtype: 'image',
-		src: '/pve2/images/proxmox_logo.png',
+		src: '/pve2/images/pve-electrified_logo_30x172.png',
 		height: 30,
 		width: 209,
 	    },
