@@ -71,6 +71,9 @@ clean:
 	set -e && for i in $(SUBDIRS); do $(MAKE) -C $$i $@; done
 	rm -f $(PACKAGE)*.tar* country.dat *.deb *.dsc *.build *.buildinfo *.changes
 	rm -rf dest $(PACKAGE)-[0-9]*/
+	rm -rf $(BUILDDIR).tmp
+	rm -rf $(BUILDDIR)
+
 
 .PHONY: dinstall
 dinstall: $(DEB)
