@@ -1,7 +1,7 @@
-pve-manager: mail-transport-agent-dependency-does-not-specify-default-mta *
-pve-manager: no-manual-page [usr/bin/pvebanner]
-pve-manager: no-manual-page [usr/bin/pveupdate]
-pve-manager: non-standard-dir-perm 0700 != 0755 [var/log/pveproxy/]
-pve-manager: systemd-service-file-refers-to-unusual-wantedby-target getty.target [lib/systemd/system/pvebanner.service]
-pve-manager: package-installs-apt-sources [etc/apt/sources.list.d/pve-enterprise.list]
-pve-manager: privacy-breach-generic usr/share/pve-manager/touch/sencha-touch-all-debug.js *
+pve-manager-electrified: mail-transport-agent-dependency-does-not-specify-default-mta *
+pve-manager-electrified: no-manual-page [usr/bin/pvebanner]
+pve-manager-electrified: no-manual-page [usr/bin/pveupdate]
+pve-manager-electrified: non-standard-dir-perm 0700 != 0755 [var/log/pveproxy/]
+pve-manager-electrified: systemd-service-file-refers-to-unusual-wantedby-target getty.target [lib/systemd/system/pvebanner.service]
+pve-manager-electrified: package-installs-apt-sources [etc/apt/sources.list.d/pve-enterprise.list]
+pve-manager-electrified: privacy-breach-generic usr/share/pve-manager/touch/sencha-touch-all-debug.js *

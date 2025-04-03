@@ -29,7 +29,7 @@ Build-Depends: debhelper-compat (= 13),
                sq,
                unzip,
 Standards-Version: 4.6.1
-Maintainer: TODO
+Maintainer: PVE-electrified crew <crew@pve-electrified.org>
 
 Package: pve-manager-electrified
 Section: admin
