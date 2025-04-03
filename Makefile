@@ -25,7 +25,7 @@ GITVERSION:=$(shell git rev-parse --short=16 HEAD)
 $(BUILDDIR):
 	rm -rf $@ $@.tmp
 	mkdir $@.tmp
-	rsync -a * $@.tmp
+	rsync -a --exclude=$@.tmp * $@.tmp
 	echo "git clone git://git.proxmox.com/git/pve-manager.git\\ngit checkout $(GITVERSION)" >  $@.tmp/debian/SOURCE
 	echo "REPOID_GENERATED=$(GITVERSION)" > $@.tmp/debian/rules.env
 	mv $@.tmp $@
