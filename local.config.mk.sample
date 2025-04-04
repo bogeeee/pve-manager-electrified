@@ -1,0 +1,5 @@
+.PHONY: ~/pve-manager-electrified-secrets.config
+include ~/pve-manager-electrified-secrets.config
+
+TARGT_PVE_HOST=pve8dev.local
+REPO_PUBLISH_DESTINATION=pve-electrified.net@pve-electrified.net:httpdocs/debian

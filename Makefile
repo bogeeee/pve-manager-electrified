@@ -1,10 +1,13 @@
 include /usr/share/dpkg/default.mk
 include defines.mk
+.PHONY: local.config.mk
+include local.config.mk
 
 export PVERELEASE = $(shell echo $(DEB_VERSION_UPSTREAM) | cut -d. -f1-2)
 export VERSION = $(DEB_VERSION_UPSTREAM_REVISION)
 
-BUILDDIR = $(PACKAGE)-$(DEB_VERSION_UPSTREAM)
+BUILDDIR = build
+DEBIAN_DISTRIBUTION=bookworm
 
 DSC=$(PACKAGE)_$(DEB_VERSION).dsc
 DEB=$(PACKAGE)_$(DEB_VERSION)_all.deb
@@ -73,8 +76,48 @@ clean:
 	rm -rf dest $(PACKAGE)-[0-9]*/
 	rm -rf $(BUILDDIR).tmp
 	rm -rf $(BUILDDIR)
+	rm -f index.html
 
 
 .PHONY: dinstall
 dinstall: $(DEB)
 	dpkg -i $(DEB)
+
+index.html: readme.md docs/github-pandoc.css /usr/bin/pandoc
+	pandoc --css=docs/github-pandoc.css -s -f markdown -t html --metadata "pagetitle=PVE electrified" readme.md > index.html
+
+###################################################################################
+# IDE_... targets are to be run on the machine where the IDE is (not the pve-host)
+###################################################################################
+.PHONY: IDE_publish_docs_to_website
+IDE_publish_docs_to_website: clean index.html /usr/bin/sshpass
+	@sshpass -p "$(REPO_SERVER_PASSWORD)" rsync  -a index.html pubkey.asc docs pve-electrified.net@pve-electrified.net:httpdocs
+
+# Creates a local aptly repo on the IDE machine (if needed). Aptly offers an easy way, to generate the static files for publishing to a webserver.
+# See also [this blogpost about running an apt repo with aptly](https://perlgeek.de/blog-en/automating-deployments/2016-006-distributing-packages.html)
+.PHONY: IDE_create_aptly_repo
+IDE_create_aptly_repo: /usr/bin/aptly
+	@if ! echo "$$(aptly repo list -raw)" | grep -q "pve-electrified-$(DEBIAN_DISTRIBUTION)"; then \
+  	  echo "** creating aptly repo: pve-electrified-$(DEBIAN_DISTRIBUTION) **"; \
+	  aptly repo create -distribution=$(DEBIAN_DISTRIBUTION) -component=main "pve-electrified-$(DEBIAN_DISTRIBUTION)"; \
+	  aptly publish repo -architectures=amd64 -skip-signing "pve-electrified-$(DEBIAN_DISTRIBUTION)"; \
+	fi
+
+.PHONY: IDE_build_and_publish_package
+IDE_build_and_publish_package: IDE_create_aptly_repo /usr/bin/sshpass /usr/bin/aptly
+	# Build on the pve server:
+	@sshpass -p "$(TARGT_PVE_HOST_ROOTPASSWORD)" ssh root@$(TARGT_PVE_HOST) "cd /root/proxmox/pve-manager-electrified && make clean && make deb"
+	# copy .deb to this machine:
+	@sshpass -p "$(TARGT_PVE_HOST_ROOTPASSWORD)" rsync -a root@$(TARGT_PVE_HOST):/root/proxmox/pve-manager-electrified/$(DEB) .
+	aptly repo add -force-replace "pve-electrified-$(DEBIAN_DISTRIBUTION)" $(DEB)
+	aptly publish update -skip-signing $(DEBIAN_DISTRIBUTION)
+	echo "Uploading to $(REPO_PUBLISH_DESTINATION)"
+	@sshpass -p "$(REPO_SERVER_PASSWORD)" rsync -a /home/user/.aptly/public/* $(REPO_PUBLISH_DESTINATION)
+
+
+/usr/bin/pandoc:
+	apt install -y pandoc
+/usr/bin/aptly:
+	apt install -y aptly
+/usr/bin/sshpass:
+	apt install -y sshpass

@@ -1,6 +1,7 @@
 .idea/
 country.dat
 dest/
+build/
 *.deb
 *.buildinfo
 *.changes
@@ -15,4 +16,6 @@ dest/
 
 .vscode/**/*.log
 .vscode/launch.json
+local.config.mk
 www/index.html
+index.html
