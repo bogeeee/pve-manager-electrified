@@ -12,3 +12,9 @@ This is a modification of the [Proxmox Virtual Environment](https://www.proxmox.
 # todo: add repo
 apt install pve-electrified-manager
 ````
+
+## Uninstall
+
+````bash
+apt install pve-manager-electrified- pve-manager
+````
