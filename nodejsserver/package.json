@@ -1,10 +1,11 @@
 {
   "type": "module",
   "scripts": {
-    "dev_watch": "nodemon -e ts --exec npm run dev_compileAndRunOnce",
+    "dev": "npm prune --ignore-scripts && nodemon -e ts --exec npm run dev_compileAndRunOnce",
     "build": "tsc --build",
     "clean": "tsc --build --clean",
-    "dev_compileAndRunOnce": "clear && npm run build && ts-node killOldProcesses && ts-node index",
+    "check": "tsc --build -noEmit",
+    "dev_compileAndRunOnce": "npm run build && ts-node killOldProcesses && ts-node index",
     "killOldProcesses": "tsc && ts-node killOldProcesses"
   },
   "dependencies": {

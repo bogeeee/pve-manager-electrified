@@ -97,13 +97,20 @@ index.html: readme.md docs/github-pandoc.css /usr/bin/pandoc
 ###################################################################################
 .PHONY: IDE_debug_nodejsserver
 IDE_debug_nodejsserver: IDE_rsync_project_to_targt_pve_host
+	#Quick check, if the .ts files compile:
+	npm --prefix nodejsserver run check
+
 	$(EXEC_SSH_TARGT_PVE_HOST) "\
 	cd /root/proxmox/pve-manager-electrified; \
 	systemctl stop pveproxy.service; \
-	# eventually comment out the following line, if it takes too long: \
+	echo eventually comment out the following line, if it takes too long:; \
     make install; \
     systemctl daemon-reload; \
-    systemctl restart pveproxy.service;"
+    systemctl restart pveproxy.service;\
+	cd nodejsserver; \
+	npm run dev; \
+	";
+
 
 .PHONY: IDE_rsync_project_to_targt_pve_host
 IDE_rsync_project_to_targt_pve_host:

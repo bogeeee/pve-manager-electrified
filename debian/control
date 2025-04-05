@@ -28,6 +28,8 @@ Build-Depends: debhelper-compat (= 13),
                qemu-server (>= 8.0~~),
                sq,
                unzip,
+               nodejs,
+               npm,
 Standards-Version: 4.6.1
 Maintainer: PVE electrified crew <crew@pve-electrified.net>
 
@@ -97,6 +99,8 @@ Depends: apt (>= 1.5~),
          vncterm,
          wget,
          zstd,
+         nodejs,
+         npm,
          ${misc:Depends},
          ${perl:Depends},
 Recommends: proxmox-firewall,
