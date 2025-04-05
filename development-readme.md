@@ -46,6 +46,7 @@ gpg --full-generate-key
 # cd into this project dir
 cd ~/pve-manager-electrified
 gpg --export --armor [the id] > pubkey.asc
+#adjust the config files
 
 # build and publish:
 make IDE_build_and_publish_package

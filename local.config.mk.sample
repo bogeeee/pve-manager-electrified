@@ -3,3 +3,12 @@ include ~/pve-manager-electrified-secrets.config
 
 TARGT_PVE_HOST=pve8dev.local
 REPO_PUBLISH_DESTINATION=pve-electrified.net@pve-electrified.net:httpdocs/debian
+
+##### GPG key for repo signing: Create one with 'gpg --full-generate-key' ####
+# *Either* specify the key id (the long fingerprint from gpg --list-keys):
+REPO_PUBLISH-KEY-ID=
+# *Or*, if REPO_PUBLISH-KEY-ID doesn't work for some reason, specify the following (uncomment):
+# Exported to file with: gpg --export [ID] > public.gpg
+#REPO_PUBLISH-PUBLIC-KEY-FILE=~/public.gpg
+# Exported to file with: gpg --export-secret-keys [ID] > secret.gpg
+#REPO_PUBLISH-SECRET-KEY-FILE=~/secret.gpg
