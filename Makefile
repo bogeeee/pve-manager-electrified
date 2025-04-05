@@ -100,8 +100,12 @@ IDE_create_aptly_repo: /usr/bin/aptly
 	@if ! echo "$$(aptly repo list -raw)" | grep -q "pve-electrified-$(DEBIAN_DISTRIBUTION)"; then \
   	  echo "** creating aptly repo: pve-electrified-$(DEBIAN_DISTRIBUTION) **"; \
 	  aptly repo create -distribution=$(DEBIAN_DISTRIBUTION) -component=main "pve-electrified-$(DEBIAN_DISTRIBUTION)"; \
+	fi
+
+	@if ! echo "$$(aptly publish list -raw)" | grep -q "$(DEBIAN_DISTRIBUTION)"; then \
 	  aptly publish repo -architectures=amd64 -skip-signing "pve-electrified-$(DEBIAN_DISTRIBUTION)"; \
 	fi
+
 
 .PHONY: IDE_build_and_publish_package
 IDE_build_and_publish_package: IDE_create_aptly_repo /usr/bin/sshpass /usr/bin/aptly
