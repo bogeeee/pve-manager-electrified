@@ -6,6 +6,8 @@ include local.config.mk
 export PVERELEASE = $(shell echo $(DEB_VERSION_UPSTREAM) | cut -d. -f1-2)
 export VERSION = $(DEB_VERSION_UPSTREAM_REVISION)
 
+BUILD_TOOLS=/usr/bin/mk-build-deps /usr/bin/sq /usr/share/pve-doc-generator
+
 BUILDDIR = build
 DEBIAN_DISTRIBUTION=bookworm
 
@@ -14,6 +16,14 @@ DEB=$(PACKAGE)_$(DEB_VERSION)_all.deb
 
 DESTDIR=
 SUBDIRS = aplinfo PVE bin www services configs network-hooks test templates
+EXEC_SSH_TARGT_PVE_HOST=@sshpass -p "$(TARGT_PVE_HOST_ROOTPASSWORD)" ssh root@$(TARGT_PVE_HOST)
+
+# Installs the required build tools
+# Note: The /root/proxmox/pve-manager-electrified directory is created by IDE_rsync_project_to_targt_pve_host
+$(BUILD_TOOLS): /root/proxmox/pve-manager-electrified
+	apt-get install -y build-essential git git-email debhelper pve-doc-generator
+	cd /root/proxmox/pve-manager-electrified
+	mk-build-deps --install
 
 all: $(SUBDIRS)
 	set -e && for i in $(SUBDIRS); do $(MAKE) -C $$i; done
@@ -49,13 +59,9 @@ $(DSC): $(BUILDDIR)
 sbuild: $(DSC)
 	sbuild $<
 
-.PHONY: upload
-upload: UPLOAD_DIST ?= $(DEB_DISTRIBUTION)
-upload: $(DEB)
-	tar cf - $(DEB) | ssh -X repoman@repo.proxmox.com upload --product pve --dist $(UPLOAD_DIST)
 
 .PHONY: install
-install: vzdump-hook-script.pl
+install: vzdump-hook-script.pl $(BUILD_TOOLS)
 	install -d -m 0700 -o www-data -g www-data $(DESTDIR)/var/log/pveproxy
 	install -d $(DOCDIR)/examples
 	install -d $(DESTDIR)/var/lib/$(PACKAGE)
@@ -89,6 +95,21 @@ index.html: readme.md docs/github-pandoc.css /usr/bin/pandoc
 ###################################################################################
 # IDE_... targets are to be run on the machine where the IDE is (not the pve-host)
 ###################################################################################
+.PHONY: IDE_debug_nodejsserver
+IDE_debug_nodejsserver: IDE_rsync_project_to_targt_pve_host
+	$(EXEC_SSH_TARGT_PVE_HOST) "\
+	cd /root/proxmox/pve-manager-electrified; \
+	systemctl stop pveproxy.service; \
+	# eventually comment out the following line, if it takes too long: \
+    make install; \
+    systemctl daemon-reload; \
+    systemctl restart pveproxy.service;"
+
+.PHONY: IDE_rsync_project_to_targt_pve_host
+IDE_rsync_project_to_targt_pve_host:
+	$(EXEC_SSH_TARGT_PVE_HOST) mkdir -p /root/proxmox/pve-manager-electrified
+	@sshpass -p "$(TARGT_PVE_HOST_ROOTPASSWORD)" rsync -a --delete --exclude="nodejsserver/node_modules" . root@$(TARGT_PVE_HOST):/root/proxmox/pve-manager-electrified/
+
 .PHONY: IDE_publish_docs_to_website
 IDE_publish_docs_to_website: clean index.html /usr/bin/sshpass
 	@sshpass -p "$(REPO_SERVER_PASSWORD)" rsync  -a index.html pubkey.asc docs pve-electrified.net@pve-electrified.net:httpdocs
@@ -108,9 +129,9 @@ IDE_create_aptly_repo: /usr/bin/aptly
 
 
 .PHONY: IDE_build_and_publish_package
-IDE_build_and_publish_package: IDE_create_aptly_repo /usr/bin/sshpass /usr/bin/aptly
+IDE_build_and_publish_package: IDE_create_aptly_repo /usr/bin/sshpass /usr/bin/aptly IDE_rsync_project_to_targt_pve_host
 	# Build on the pve server:
-	@sshpass -p "$(TARGT_PVE_HOST_ROOTPASSWORD)" ssh root@$(TARGT_PVE_HOST) "cd /root/proxmox/pve-manager-electrified && make clean && make deb"
+	$(EXEC_SSH_TARGT_PVE_HOST) "cd /root/proxmox/pve-manager-electrified && make clean && make deb"
 	# copy .deb to this machine:
 	@sshpass -p "$(TARGT_PVE_HOST_ROOTPASSWORD)" rsync -a root@$(TARGT_PVE_HOST):/root/proxmox/pve-manager-electrified/$(DEB) .
 	aptly repo add -force-replace "pve-electrified-$(DEBIAN_DISTRIBUTION)" $(DEB)
