@@ -36,6 +36,10 @@ TODO: dev_run.sh, lso run the nodejs server
 
 
 #Publish to apt repo
+
+- Specify the new package version by adding an entry into the [changelog](./debian/changelog).
+- Also don't forget to keep the line `Provides: ..., pve-manager (=X.X.X)` in the [control file](./debian/control) up 2 date, reflecting the merged upstream commits from pve-manager. 
+
 ````shell
 # Generate a key for signing. Answer with default options:
 gpg --full-generate-key

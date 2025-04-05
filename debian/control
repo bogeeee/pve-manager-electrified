@@ -29,7 +29,7 @@ Build-Depends: debhelper-compat (= 13),
                sq,
                unzip,
 Standards-Version: 4.6.1
-Maintainer: PVE-electrified crew <crew@pve-electrified.org>
+Maintainer: PVE-electrified crew <crew@pve-electrified.net>
 
 Package: pve-manager-electrified
 Section: admin
@@ -104,8 +104,8 @@ Recommends: proxmox-firewall,
             pve-nvidia-vgpu-helper,
 Conflicts: vlan, vzdump,
 Replaces: vlan, vzdump,
-Provides: vlan, vzdump,
-Breaks: libpve-network-perl (<< 0.5-1),
+Provides: vlan, vzdump, pve-manager (=8.3.5)
+Breaks: libpve-network-perl (<< 0.5-1), pve-manager
 Description: Proxmox Virtual Environment Management Tools
  This package contains the Proxmox Virtual Environment management tools.
  It's a fork of the original one by proxmox (git://git.proxmox.com/git/pve-manager).
