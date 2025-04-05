@@ -1,5 +1,5 @@
 
-DOCDIR=/usr/share/doc/pve-manager-electrified/
+DOCDIR=/usr/share/doc/pve-manager/
 
 TRUSTED_KEYS=				\
 	proxmox-release-6.x.pubkey 	\

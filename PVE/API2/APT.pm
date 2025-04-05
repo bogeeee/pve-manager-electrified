@@ -119,7 +119,7 @@ my $assemble_pkginfo = sub {
 };
 
 # we try to cache results
-my $pve_pkgstatus_fn = "/var/lib/pve-manager-electrified/pkgupdates";
+my $pve_pkgstatus_fn = "/var/lib/pve-manager/pkgupdates";
 my $read_cached_pkgstatus = sub {
     my $data = eval { decode_json(PVE::Tools::file_get_contents($pve_pkgstatus_fn, 5*1024*1024)) } // [];
     warn "error reading cached package status in '$pve_pkgstatus_fn' - $@\n" if $@;

@@ -17,7 +17,7 @@ After=pve-ha-crm.service pve-ha-lrm.service
 
 [Service]
 Environment="PVE_LOG_ID=pve-guests"
-ExecStartPre=-/usr/share/pve-manager-electrified/helpers/pve-startall-delay
+ExecStartPre=-/usr/share/pve-manager/helpers/pve-startall-delay
 ExecStart=/usr/bin/pvesh --nooutput create /nodes/localhost/startall
 ExecStop=-/usr/bin/vzdump -stop
 ExecStop=/usr/bin/pvesh --nooutput create /nodes/localhost/stopall

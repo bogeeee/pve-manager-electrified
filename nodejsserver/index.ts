@@ -21,7 +21,7 @@ class AppServer {
     port: 8006,
     key: "/etc/pve/local/pve-ssl.key",
     cert: "/etc/pve/local/pve-ssl.pem",
-    WWWBASEDIR: "/usr/share/pve-manager-electrified",
+    WWWBASEDIR: "/usr/share/pve-manager",
     developWwwBaseDir: "/root/proxmox/pve-manager-electrified/www", // if this exists then they are used from there
   }
 
@@ -34,7 +34,7 @@ class AppServer {
   /**
    * Dir where the build output is copied to and then served
    */
-  bundledWWWDir = "/var/lib/pve-manager-electrified/bundledWww"
+  bundledWWWDir = "/var/lib/pve-manager/bundledWww"
 
   /**
    * the builder that is currently running

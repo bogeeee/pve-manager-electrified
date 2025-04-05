@@ -12,7 +12,7 @@ install: country.dat vzdump.conf pve-sources.list pve-initramfs.conf pve-blackli
 	install -D -m 0644 pve-blacklist.conf $(DESTDIR)/etc/modprobe.d/pve-blacklist.conf
 	install -D -m 0644 vzdump.conf $(DESTDIR)/etc/vzdump.conf
 	install -D -m 0644 pve-initramfs.conf $(DESTDIR)/etc/initramfs-tools/conf.d/pve-initramfs.conf
-	install -D -m 0644 country.dat $(DESTDIR)/usr/share/$(PACKAGE)/country.dat
+	install -D -m 0644 country.dat $(DESTDIR)/usr/share/pve-manager/country.dat
 	install -D -m 0644 proxmox-ve-default.link $(DESTDIR)/usr/lib/systemd/network/99-default.link.d/proxmox-mac-address-policy.conf
 
 clean:

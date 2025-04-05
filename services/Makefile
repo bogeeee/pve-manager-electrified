@@ -29,7 +29,7 @@ install: $(SERVICES)
 	install -m 0644 ceph-after-pve-cluster.conf $(SERVICEDIR)/ceph-volume@.service.d
 	install -d $(SERVICEDIR)/ceph-mds@.service.d
 	install -m 0644 ceph-after-pve-cluster.conf $(SERVICEDIR)/ceph-mds@.service.d
-	install -d $(DESTDIR)/usr/share/doc/$(PACKAGE)/examples/
+	install -d $(DESTDIR)/usr/share/doc/pve-manager/examples/
 
 .PHONY: clean
 clean:

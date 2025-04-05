@@ -13,7 +13,7 @@ use PVE::Tools qw(run_command);
 use PVE::pvecfg;
 
 my $LOGFILE = "/var/log/pveam.log";
-my $APL_INFO_DIRECTORY = "/var/lib/pve-manager-electrified/apl-info";
+my $APL_INFO_DIRECTORY = "/var/lib/pve-manager/apl-info";
 
 sub logmsg {
     my ($logfd, $msg) = @_;
@@ -165,7 +165,7 @@ sub download_aplinfo {
        die "update failed: unable to unpack '$tmpgz'\n" if $@;
 
 	# verify signature
-	my $trustedkeyring = "/usr/share/doc/pve-manager-electrified/trustedkeys.gpg";
+	my $trustedkeyring = "/usr/share/doc/pve-manager/trustedkeys.gpg";
 	my $cmd = "/usr/bin/gpgv -q --keyring $trustedkeyring $sigfn $tmp";
 
 	my $logfunc = sub { logmsg($logfd, "signature verification: $_[0]"); };

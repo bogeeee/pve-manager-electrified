@@ -92,7 +92,7 @@ export default class WebBuildProcess {
 
         //Include nonmodule scripts ($INCLUDE_MANAGER6_NONMODULE_SCRIPTS$):
         // TODO: if manager6 scripts were packed into 1 file, use that.
-        const nonModuleScripts = (await fs.readFile("/usr/share/pve-manager-electrified/manager6/listOfNonModuleScripts", {encoding: "utf-8"})).trim().split(" ");
+        const nonModuleScripts = (await fs.readFile("/usr/share/pve-manager/manager6/listOfNonModuleScripts", {encoding: "utf-8"})).trim().split(" ");
         const scriptsBlock = nonModuleScripts.map((scriptName) => `<script type="text/javascript" src="/manager6/${scriptName}?ver=${this.buildId}"></script>`).join("\n");
         templateHtml = templateHtml.replace("$INCLUDE_MANAGER6_NONMODULE_SCRIPTS$", scriptsBlock);
 

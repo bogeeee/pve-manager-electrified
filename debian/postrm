@@ -6,7 +6,7 @@ set -e
 case "$1" in
     purge)
 	rm -rf /var/log/pveproxy
-	rm -rf /var/lib/pve-manager-electrified
+	rm -rf /var/lib/pve-manager
     ;;
 
     remove|upgrade|failed-upgrade|abort-install|abort-upgrade|disappear)
