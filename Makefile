@@ -15,7 +15,7 @@ DSC=$(PACKAGE)_$(DEB_VERSION).dsc
 DEB=$(PACKAGE)_$(DEB_VERSION)_all.deb
 
 DESTDIR=
-SUBDIRS = aplinfo PVE bin www services configs network-hooks test templates
+SUBDIRS = aplinfo nodejsserver PVE bin www services configs network-hooks test templates
 EXEC_SSH_TARGT_PVE_HOST=@sshpass -p "$(TARGT_PVE_HOST_ROOTPASSWORD)" ssh root@$(TARGT_PVE_HOST)
 
 # Installs the required build tools
