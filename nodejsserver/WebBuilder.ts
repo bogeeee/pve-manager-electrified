@@ -1,7 +1,7 @@
 import fs from './util/fsPromises.js';
 import {build as viteBuild} from "vite";
 import crypto from "crypto"
-import { appServer } from './index.js';
+import { appServer } from './server.js';
 
 
 export type BuildOptions = {    
