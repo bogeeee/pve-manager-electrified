@@ -140,7 +140,7 @@ IDE_build_and_publish_package: IDE_create_aptly_repo /usr/bin/sshpass /usr/bin/a
 	$(EXEC_SSH_TARGT_PVE_HOST) "cd /root/proxmox/pve-manager-electrified && make clean && make deb"
 	# copy .deb to this machine:
 	@sshpass -p "$(TARGT_PVE_HOST_ROOTPASSWORD)" rsync -a root@$(TARGT_PVE_HOST):/root/proxmox/pve-manager-electrified/$(DEB) .
-	aptly repo add -force-replace "pve-electrified-$(DEBIAN_DISTRIBUTION)" $(DEB)
+	aptly repo add "pve-electrified-$(DEBIAN_DISTRIBUTION)" $(DEB)
 	aptly publish update -gpg-key=$(REPO_PUBLISH-KEY-ID) -keyring=$(REPO_PUBLISH-PUBLIC-KEY-FILE) -secret-keyring=$(REPO_PUBLISH-SECRET-KEY-FILE) $(DEBIAN_DISTRIBUTION)
 	echo "Uploading to $(REPO_PUBLISH_DESTINATION)"
 	@sshpass -p "$(REPO_SERVER_PASSWORD)" rsync -a /home/user/.aptly/public/* $(REPO_PUBLISH_DESTINATION)
