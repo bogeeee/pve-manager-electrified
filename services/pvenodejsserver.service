@@ -1,0 +1,12 @@
+[Unit]
+Description=PVE-electrified server, in front of the (proxmox-maintained-) PVE Proxy Server which serves API and html (pveproxy.service)
+ConditionPathExists=/usr/share/pve-manager-nodejsserver
+Wants=pveproxy.service
+After=pveproxy.service
+
+[Service]
+WorkingDirectory=/usr/share/pve-manager-nodejsserver
+ExecStart=/usr/bin/npm run start
+
+[Install]
+WantedBy=multi-user.target

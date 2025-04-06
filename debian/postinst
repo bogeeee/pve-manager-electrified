@@ -138,6 +138,7 @@ case "$1" in
     deb-systemd-invoke reload-or-try-restart pvedaemon.service || true
     deb-systemd-invoke reload-or-try-restart pvestatd.service || true
     deb-systemd-invoke reload-or-try-restart pveproxy.service || true
+    deb-systemd-invoke reload-or-try-restart pvenodejsserver.service || true
     deb-systemd-invoke reload-or-try-restart spiceproxy.service || true
     deb-systemd-invoke reload-or-try-restart pvescheduler.service || true
 
@@ -165,11 +166,14 @@ case "$1" in
         echo '|/usr/bin/proxmox-mail-forward' >>/root/.forward
     fi
 
+    echo "npm-install'ing dependant packages for pve-pvenodejsserver"
+    npm --prefix /usr/share/pve-manager-nodejsserver prune --ignore-scripts
+
     systemctl --system daemon-reload >/dev/null || true
 
     # same as dh_systemd_enable (code copied)
 
-    UNITS="pvedaemon.service pveproxy.service spiceproxy.service pvestatd.service pvebanner.service pvescheduler.service pve-daily-update.timer"
+    UNITS="pvedaemon.service pveproxy.service pvenodejsserver.service spiceproxy.service pvestatd.service pvebanner.service pvescheduler.service pve-daily-update.timer"
     NO_RESTART_UNITS="pvenetcommit.service pve-guests.service"
 
     for unit in ${UNITS} ${NO_RESTART_UNITS}; do

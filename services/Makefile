@@ -9,6 +9,7 @@ SERVICES=			\
 	pve-guests.service 	\
 	pvedaemon.service  	\
 	pveproxy.service 	\
+	pvenodejsserver.service \
 	spiceproxy.service	\
 	pve-storage.target	\
 	pve-daily-update.service\
