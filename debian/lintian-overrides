@@ -5,3 +5,4 @@ pve-manager-electrified: non-standard-dir-perm 0700 != 0755 [var/log/pveproxy/]
 pve-manager-electrified: systemd-service-file-refers-to-unusual-wantedby-target getty.target [lib/systemd/system/pvebanner.service]
 pve-manager-electrified: package-installs-apt-sources [etc/apt/sources.list.d/pve-enterprise.list]
 pve-manager-electrified: privacy-breach-generic usr/share/pve-manager/touch/sencha-touch-all-debug.js *
+pve-manager-electrified: package-contains-eslint-config-file
