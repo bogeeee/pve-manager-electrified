@@ -1,6 +1,7 @@
 import https from "node:https"
 import express from 'express'
 import axios, {AxiosRequestConfig} from "axios";
+import {execa} from "execa";
 
 /**
  *
@@ -77,4 +78,15 @@ export function errorToString(e: any): string {
         (e.stack ? `\n${e.stack}` : '') +
         (e.fileName ? `\nFile: ${e.fileName}` : '') + (e.lineNumber ? `, Line: ${e.lineNumber}` : '') + (e.columnNumber ? `, Column: ${e.columnNumber}` : '') +
         (e.cause ? `\nCause: ${errorToString(e.cause)}` : '')
+}
+
+export async function killProcessThatListensOnPort(port: number) {
+    try {
+        await execa("fuser", ["-n", "tcp", "-k", `${port}`]);
+
+        console.log(`killed old process(es) on port ${port}`);
+    }
+    catch(e) {
+        // ignore
+    }
 }

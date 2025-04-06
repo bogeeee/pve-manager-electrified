@@ -6,7 +6,13 @@ import { execa } from "execa";
 import { createProxyMiddleware } from 'http-proxy-middleware';
 import fs from 'node:fs';
 import fsAsync from './util/fsPromises.js';
-import {conditionalMiddleware, better_fetch, axiosExt, errorToString} from './util/util.js';
+import {
+  conditionalMiddleware,
+  better_fetch,
+  axiosExt,
+  errorToString,
+  killProcessThatListensOnPort
+} from './util/util.js';
 import exp from 'constants';
 import { resolve } from 'path';
 import { readFile } from 'fs';
@@ -57,6 +63,10 @@ class AppServer {
 
   constructor() {
     (async () => {
+
+      if(process.env.NODE_ENV === "development") {
+        killProcessThatListensOnPort(this.config.port); // Fix: In development on the pve server, sometimes the old process does not terminate properly.
+      }
 
       // init fields:
       this.wwwSourceDir = await fs.existsSync(this.config.developWwwBaseDir) ? this.config.developWwwBaseDir : this.config.WWWBASEDIR;
