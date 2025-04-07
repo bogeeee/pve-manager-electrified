@@ -10,8 +10,8 @@ This is a modification of the [Proxmox Virtual Environment](https://www.proxmox.
 
 ````bash
 wget https://pve-electrified.net/pubkey.asc -O /etc/apt/trusted.gpg.d/pve-electrified.asc
-add-apt-repository -y "deb https://pve-electrified.net/debian bookworm main"
-apt install -y pve-manager-electrified
+echo "deb https://pve-electrified.net/debian bookworm main" >> /etc/apt/sources.list
+apt update && install -y pve-manager-electrified
 ````
 
 ## Uninstall
@@ -21,7 +21,7 @@ apt install -y pve-manager-electrified- pve-manager+
 ````
 
 
-# Architecture
+# Behind the scenes / architecture
 These are the differences to the original pve-manager package from Proxmox: These are mainly intended, to improve the developer experience.
 
 - Backend:
