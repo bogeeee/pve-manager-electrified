@@ -104,16 +104,21 @@ export default class WebBuildProcess {
         const outDir = `/var/tmp/${this.buildId}`;
 
         console.log(`bundeling files to ${outDir}`);
-        
-        await viteBuild({            
-            root: appServer.wwwSourceDir,            
-            base: "/",
-            build: {                
-                outDir: outDir,
-                rollupOptions: {
+
+        const orig_NODE_ENV = process.env.NODE_ENV;
+        try {
+            await viteBuild({
+                root: appServer.wwwSourceDir,
+                base: "/",
+                build: {
+                    outDir: outDir,
+                    rollupOptions: {}
                 }
-            }
-          })
+            })
+        }
+        finally {
+            process.env.NODE_ENV = orig_NODE_ENV; //Bugfix: Restore orig, because viteBuild sets this to "production"
+        }
 
         return outDir;
     }
