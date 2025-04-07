@@ -14,7 +14,7 @@ export default {
         return new Promise((resolve, reject) => {
             fs.readFile(path, (options as any), (err: NodeJS.ErrnoException | null, data: Buffer) => {
                 if (err) {
-                    reject(err);
+                    reject(toError(err));
                 }
                 else {
                     resolve(data as any); // Idk, cast this to a string
@@ -30,7 +30,7 @@ export default {
         return new Promise((resolve, reject) => {
             fs.writeFile(file, data, options, (err: NodeJS.ErrnoException | null) => {
                 if (err) {
-                    reject(err);
+                    reject(toError(err));
                 }
                 else {
                     resolve();
@@ -43,7 +43,7 @@ export default {
         return new Promise((resolve, reject) => {
             fs.stat(path, (err: NodeJS.ErrnoException | null, stats: fs.Stats) => {
                 if (err) {
-                    reject(err);
+                    reject(toError(err));
                 }
                 else {
                     resolve(stats);
@@ -59,4 +59,8 @@ export default {
     },
 
 
+}
+
+function toError(err: NodeJS.ErrnoException) {
+    throw new Error(`${err}`)
 }
