@@ -102,7 +102,6 @@ IDE_debug_nodejsserver: IDE_rsync_project_to_targt_pve_host
 	$(EXEC_SSH_TARGT_PVE_HOST) "\
 	cd /root/proxmox/pve-manager-electrified; \
 	systemctl stop pveproxy.service; \
-	echo eventually comment out the following line, if it takes too long:; \
     make install; \
     systemctl daemon-reload; \
     systemctl restart pveproxy.service;\
