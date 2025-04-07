@@ -5,7 +5,7 @@ import WebBuildProcess, { BuildOptions, BuildResult, getSafestBuildOptions as ge
 import { execa } from "execa";
 import { createProxyMiddleware } from 'http-proxy-middleware';
 import fs from 'node:fs';
-import fsAsync from './util/fsPromises.js';
+import fsAsync from 'node:fs/promises';
 import {
   conditionalMiddleware,
   better_fetch,

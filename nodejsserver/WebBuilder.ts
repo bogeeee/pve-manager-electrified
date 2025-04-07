@@ -1,4 +1,4 @@
-import fs from './util/fsPromises.js';
+import fs from 'node:fs/promises';
 import {build as viteBuild} from "vite";
 import crypto from "crypto"
 import { appServer } from './server.js';
