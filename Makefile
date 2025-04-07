@@ -98,6 +98,7 @@ index.html: readme.md docs/github-pandoc.css /usr/bin/pandoc
 # prepares everything and starts the nodejs server on the pve server in debug mode.
 # Forwards the debugging port, so you can remote debug from the IDE
 # Also forwards the web ports (might be handy)
+# See also the faster alternative below, if this one gives too long roundtrips
 .PHONY: IDE_debug_nodejsserver
 IDE_debug_nodejsserver: IDE_rsync_project_to_targt_pve_host
 	#Quick check, if the .ts files compile:
@@ -109,6 +110,18 @@ IDE_debug_nodejsserver: IDE_rsync_project_to_targt_pve_host
     make install; \
     systemctl daemon-reload; \
     systemctl restart pveproxy.service;\
+	cd nodejsserver; \
+	npm run dev; \
+	";
+
+# Like the above, but skips some steps
+.PHONY: IDE_debug_nodejsserver
+IDE_faster_debug_nodejsserver:
+	#Quick check, if the .ts files compile:
+	npm --prefix nodejsserver run check
+
+	$(EXEC_SSH_TARGT_PVE_HOST) -L 9229:localhost:9229 -L 8006:localhost:8006 -L 8005:localhost:8005 "\
+	cd /root/proxmox/pve-manager-electrified; \
 	cd nodejsserver; \
 	npm run dev; \
 	";
