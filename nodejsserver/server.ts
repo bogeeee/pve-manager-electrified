@@ -11,12 +11,17 @@ import {
   better_fetch,
   axiosExt,
   errorToString,
-  killProcessThatListensOnPort
+  killProcessThatListensOnPort, spawnAsync, fileExists
 } from './util/util.js';
 import exp from 'constants';
 import { resolve } from 'path';
 import { readFile } from 'fs';
 import {ElectrifiedSession} from "./ElectrifiedSession";
+import {ErrorDiagnosis} from './util/util';
+
+// Enable these for better error diagnosis during development:
+//ErrorDiagnosis.keepProcessAlive = (process.env.NODE_ENV === "development");
+//ErrorDiagnosis.record_spawnAsync_stackTrace = (process.env.NODE_ENV === "development");
 
 class AppServer {
   // config:
@@ -63,7 +68,7 @@ class AppServer {
 
 
   constructor() {
-    (async () => {
+    spawnAsync(async () => {
 
       if(process.env.NODE_ENV === "development") {
         killProcessThatListensOnPort(this.config.port); // Fix: In development on the pve server, sometimes the old process does not terminate properly.
@@ -130,7 +135,7 @@ class AppServer {
       }, expressApp).listen(this.config.port, () => {
         console.log(`Server running at http://localhost:${this.config.port}`);
       });
-    })();
+    });
 
   }
 
@@ -142,7 +147,7 @@ class AppServer {
     else {
       // We have to promise the next build:
       this.nextBuild = new Promise((resolve, reject) => {
-        (async () => {
+        spawnAsync( async () => {
           // eslint-disable-next-line no-constant-condition
           while (true) { // do a rebuild loop till no build is re-requested anymore:
 
@@ -170,7 +175,7 @@ class AppServer {
               }
             }
           }
-        })();
+        });
 
       });
 
@@ -234,7 +239,7 @@ class AppServer {
       indexHtml = indexHtml.replace("$THEME$", themeHtml);
 
       //$LANGFILE$:
-      if(await fsAsync.exists(`/usr/share/pve-i18n/pve-lang-${lang}`)) { // Language file exists ?
+      if(await fileExists(`/usr/share/pve-i18n/pve-lang-${lang}`)) { // Language file exists ?
         indexHtml = indexHtml.replace("$LANGFILE$", `<script type='text/javascript' src='/pve2/locale/pve-lang-${lang}.js?ver=TODO_BUILDID'/>`);
       }
       else {
@@ -243,7 +248,7 @@ class AppServer {
       
       
       // Debug:
-      const isDebug = req.query?.["debug"] != undefined || await fsAsync.exists(this.config.developWwwBaseDir);
+      const isDebug = req.query?.["debug"] != undefined || await fileExists(this.config.developWwwBaseDir);
       indexHtml= indexHtml.replace("$DEBUG_EXT_ALL$", isDebug?"-debug":"");
       indexHtml= indexHtml.replace("$DEBUG_CHARTS$", isDebug?"-debug":"");
 
