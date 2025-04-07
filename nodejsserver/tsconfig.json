@@ -11,5 +11,9 @@
     "strict": true,
     "strictNullChecks": true,
     "skipLibCheck": true,
+    "plugins": [
+      { "transform": "restfuncs-transformer",  "transformProgram": true},
+      { "transform": "typia/lib/transform" },
+      { "transform": "typescript-rtti/dist/transformer" } ]
   }
 }

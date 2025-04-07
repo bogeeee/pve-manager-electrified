@@ -16,6 +16,7 @@ import {
 import exp from 'constants';
 import { resolve } from 'path';
 import { readFile } from 'fs';
+import {ElectrifiedSession} from "./ElectrifiedSession";
 
 class AppServer {
   // config:
@@ -81,6 +82,7 @@ class AppServer {
 
       await this.activateBuildResult(buildResult);
 
+      expressApp.use("/electrifiedAPI", ElectrifiedSession.createExpressHandler())
 
       // Redirect /pve2, ... to perl server on port 8005:
       expressApp.use(
