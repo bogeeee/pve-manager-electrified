@@ -18,6 +18,7 @@ import { resolve } from 'path';
 import { readFile } from 'fs';
 import {ElectrifiedSession} from "./ElectrifiedSession";
 import {ErrorDiagnosis} from './util/util';
+import {restfuncsExpress} from "restfuncs-server";
 
 // Enable these for better error diagnosis during development:
 //ErrorDiagnosis.keepProcessAlive = (process.env.NODE_ENV === "development");
@@ -78,7 +79,7 @@ class AppServer {
       this.wwwSourceDir = await fs.existsSync(this.config.developWwwBaseDir) ? this.config.developWwwBaseDir : this.config.WWWBASEDIR;
 
 
-      const expressApp = express()
+      const expressApp = restfuncsExpress()
       expressApp.use(cookieParser())
 
       const buildResult = await this.requestBuild({
@@ -88,6 +89,8 @@ class AppServer {
       await this.activateBuildResult(buildResult);
 
       expressApp.use("/electrifiedAPI", ElectrifiedSession.createExpressHandler())
+
+      //TODO: hand this to websocket: /api2/json/nodes/pveWohnungTest2/lxc/820/vncwebsocket
 
       // Redirect /pve2, ... to perl server on port 8005:
       expressApp.use(
@@ -129,10 +132,14 @@ class AppServer {
 
 
       // Create an HTTPS server
-      https.createServer({
+      const httpsServer = https.createServer({
         key: fs.readFileSync(this.config.key),
         cert: fs.readFileSync(this.config.cert)
-      }, expressApp).listen(this.config.port, () => {
+      }, expressApp);
+
+      expressApp.installEngineIoServer(httpsServer); // Must do this, so that restfuncs can hook and listen for websocket connections
+
+      httpsServer.listen(this.config.port, () => {
         console.log(`Server running at http://localhost:${this.config.port}`);
       });
     });
