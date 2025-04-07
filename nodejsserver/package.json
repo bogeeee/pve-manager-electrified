@@ -3,7 +3,7 @@
   "type": "module",
   "scripts": {
     "dev": "npm prune --ignore-scripts && npm run clean && cross-env NODE_ENV=development tsx watch --inspect=9229 server.ts",
-    "dev_killOldProcesses": "tsc && ts-node killOldProcesses",
+    "dev_playground": "tsx watch devPlayground.ts",
     "clean": "tspc --build --clean",
     "build": "tspc --build --force",
     "check": "tspc --build",
