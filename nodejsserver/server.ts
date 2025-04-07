@@ -82,17 +82,26 @@ class AppServer {
       await this.activateBuildResult(buildResult);
 
 
-      // Redirect /pve2 to pearl server on port 8005:
+      // Redirect /pve2, ... to perl server on port 8005:
       expressApp.use(
         ['/pve2', "/novnc", "/xtermjs", "/pwt", "/api2", "/favicon.ico", "/qrcode.min.js", "/proxmoxlib.js"],
         createProxyMiddleware({           
-          target: `https://localhost:${this.config.origPort}/pve2`,
-          prependPath: false,
+          target: `https://localhost:${this.config.origPort}`,
+          prependPath: true,
           changeOrigin: false,
           secure: false,
 
         })
       );
+
+      // redirect /?console ... to perl server on port 8005:
+      expressApp.use("/", conditionalMiddleware(req => req.url.startsWith("/?console"), createProxyMiddleware({
+        target: `https://localhost:${this.config.origPort}`,
+        prependPath: false,
+        changeOrigin: false,
+        secure: false,
+
+      })));
 
 
       // Serve index.html (from bundled filed) with some replacements:      
