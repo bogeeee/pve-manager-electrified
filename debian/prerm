@@ -11,7 +11,14 @@ set -e
 package_name=pve-manager-electrified;
 
 case "$1" in
-  remove|deconfigure|failed-upgrade) : ;;
+  remove|deconfigure|failed-upgrade)
+    # simply stop all units (that are not critical). We might be here, because the user want to go pack to pve-manager by Proxmox. We can't guarantee, that the reload mechanism will work across this jump, so it's safer to just stop the service)
+    UNITS="pvedaemon.service pveproxy.service pvenodejsserver.service spiceproxy.service pvestatd.service pvebanner.service pvescheduler.service pve-daily-update.timer"
+    for unit in ${UNITS}; do
+      echo "Stopping service $unit"
+      systemctl stop "$unit"
+    done
+    ;;
   upgrade)
     if [ -L /usr/doc/$package_name ]; then
 	rm -f /usr/doc/$package_name
