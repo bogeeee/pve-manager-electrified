@@ -94,12 +94,16 @@ index.html: readme.md docs/github-pandoc.css /usr/bin/pandoc
 ###################################################################################
 # IDE_... targets are to be run on the machine where the IDE is (not the pve-host)
 ###################################################################################
+
+# prepares everything and starts the nodejs server on the pve server in debug mode.
+# Forwards the debugging port, so you can remote debug from the IDE
+# Also forwards the web ports (might be handy)
 .PHONY: IDE_debug_nodejsserver
 IDE_debug_nodejsserver: IDE_rsync_project_to_targt_pve_host
 	#Quick check, if the .ts files compile:
 	npm --prefix nodejsserver run check
 
-	$(EXEC_SSH_TARGT_PVE_HOST) "\
+	$(EXEC_SSH_TARGT_PVE_HOST) -L 9229:localhost:9229 -L 8006:localhost:8006 -L 8005:localhost:8005 "\
 	cd /root/proxmox/pve-manager-electrified; \
 	systemctl stop pveproxy.service; \
     make install; \
