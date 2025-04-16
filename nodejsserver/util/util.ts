@@ -5,7 +5,7 @@ import {execa} from "execa";
 import fsPromises from 'node:fs/promises';
 import {PathLike} from "fs";
 import http from "node:http";
-import {WebSocket, WebSocketServer} from "ws";
+import {WebSocket, WebSocketServer, RawData} from "ws";
 
 /**
  *
@@ -215,18 +215,21 @@ export async function fileExists(filePath: PathLike) {
 
 /**
  * Forwards(=proxies) them to another server
+ * Also forwards the cookie
  * @param httpsServer
- * @param path
+ * @param path undefined = all connections
  * @param targetServerUrl begins with ws:// wss://
  * @param destroyUnhandled false, if there is another on-upgrade handler after this one, that may also want to catch websocket connections
  */
 export function forwardWebsocketConnections(httpsServer: Server<typeof http.IncomingMessage, typeof http.ServerResponse>, path: string | undefined, targetServerUrl:string, destroyUnhandled: boolean) {
-    // WebSocket server setup
+    // Params check:
+    !destroyUnhandled || throwError("destroyUnhandled not yet implemented")
+
     const wss = new WebSocketServer({server: httpsServer, path});
 
-
     wss.on('connection', (clientSocket, req) => {
-        console.log('Client connected');
+
+        let unforwardedMessagesToTarget: RawData[] | undefined= []; // In case, we have already retrieved messages from the client while the targetConnection is not yet open
 
         const headers = {
             cookie: req.headers["cookie"]
@@ -238,34 +241,106 @@ export function forwardWebsocketConnections(httpsServer: Server<typeof http.Inco
             headers
         });
 
+        function fail(e: unknown) {
+            topLevel_withErrorHandling(() => {
+                for(const socket of [targetSocket, clientSocket]) {
+                    if (!(socket.readyState === WebSocket.CLOSED || socket.readyState === WebSocket.CLOSING)) {
+                        socket.close(undefined, errorToString(e));
+                    }
+                }
+            },false);
+        }
+
         // Proxy messages from client to target server
-        clientSocket.on('message', (message: any) => {
-            if (targetSocket.readyState === WebSocket.OPEN) {
-                targetSocket.send(message);
+        clientSocket.on('message', (message: RawData, isBinary) => {
+            try {
+                if (targetSocket.readyState === WebSocket.CONNECTING) {
+                    !(unforwardedMessagesToTarget!.length >= 10) || throwError("Preventing resource exhaustion: Cannot cache more that 10 messages");
+                    unforwardedMessagesToTarget!.push(message);
+                } else if (targetSocket.readyState === WebSocket.OPEN) {
+                    targetSocket.send(message);
+                } else {
+                    throw new Error("Cannot forward message. targetSocket is closed");
+                }
             }
+            catch (e) {
+                fail(e);
+            }
+
         });
 
         // Proxy messages from target server to client
         targetSocket.on('message', (message: any) => {
-            if (clientSocket.readyState === WebSocket.OPEN) {
-                clientSocket.send(message);
+            try {
+                if (clientSocket.readyState === WebSocket.OPEN) {
+                    clientSocket.send(message);
+                } else {
+                    throw new Error("Cannot forward message. clientSocket is closed")
+                }
+            }
+            catch (e) {
+                fail(e);
+            }
+        });
+
+        targetSocket.on("open", ()=> {
+            try {
+                // Send unforwarded messages
+                unforwardedMessagesToTarget!.forEach(m => {
+                    targetSocket.send(m)
+                });
+                unforwardedMessagesToTarget = undefined;
+            }
+            catch (e) {
+                fail(e);
             }
         });
 
         // Handle client disconnection
         clientSocket.on('close', () => {
-            console.log('Client disconnected');
-            targetSocket.close();
+            try {
+                targetSocket.close();
+            }
+            catch (e) {
+                fail(e);
+            }
         });
 
         // Handle target server disconnection
         targetSocket.on('close', () => {
-            console.log('Target server disconnected');
-            clientSocket.close();
+            try {
+                clientSocket.close();
+            }
+            catch (e) {
+                fail(e);
+            }
         });
 
         // Error handling for both sockets
-        clientSocket.on('error', (err: any) => console.error('Client error:', err));
-        targetSocket.on('error', (err: any) => console.error('Target error:', err));
+        clientSocket.on('error', (err: any) => fail(err));
+        targetSocket.on('error', (err: any) => fail(err));
     });
+}
+
+export function throwError(e: string | Error) {
+    if(e !== null && e instanceof Error) {
+        throw e;
+    }
+    throw new Error(e);
+}
+
+export function reThrowWithHint(e: unknown, hint: string) {
+    try {
+        if(e instanceof Error) {
+            // Add hint to error:
+            e.message+= `\n${hint}`;
+        }
+    }
+    catch (x) {
+    }
+    throw e;
+}
+
+export function isObject(value: unknown) {
+    return value !== null && typeof value === "object";
 }

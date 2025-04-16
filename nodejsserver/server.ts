@@ -81,8 +81,7 @@ class AppServer {
       this.wwwSourceDir = await fs.existsSync(this.config.developWwwBaseDir) ? this.config.developWwwBaseDir : this.config.WWWBASEDIR;
 
 
-      const expressApp = restfuncsExpress({engineIoOptions: {destroyUpgrade: false}, installEngineIoServer: false}) // TODO: re-enable
-      expressApp.use(cookieParser())
+      const expressApp = restfuncsExpress({engineIoOptions: {destroyUpgrade: false}, installEngineIoServer: true})
 
       const buildResult = await this.requestBuild({
         buildStaticFiles: true
@@ -139,9 +138,7 @@ class AppServer {
         cert: fs.readFileSync(this.config.cert)
       }, expressApp);
 
-      // forward these paths + more:
-      // wss://pvewohnungtest2.local:8006/api2/json/nodes/pveWohnungTest2/vncwebsocket
-      // wss://pvewohnungtest2.local:8006/api2/json/nodes/pveWohnungTest2/lxc/820/vncwebsocket
+      // Forward the rest of all websocket connections (not handled by Restfuncs)  to the original server (most simple implementation. If there's more special websocket paths, put the handlers **above** here):
       forwardWebsocketConnections(httpsServer, undefined, `wss://localhost:${this.config.origPort}`, false);
 
       httpsServer.listen(this.config.port, () => {
