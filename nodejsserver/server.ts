@@ -1,23 +1,25 @@
 import express from 'express'
 import cookieParser from 'cookie-parser';
 import https from "node:https"
-import WebBuildProcess, { BuildOptions, BuildResult, getSafestBuildOptions as getSaferBuildOptions } from './WebBuilder.js';
-import { execa } from "execa";
-import { createProxyMiddleware } from 'http-proxy-middleware';
+import WebBuildProcess, {
+  BuildOptions,
+  BuildResult,
+  getSafestBuildOptions as getSaferBuildOptions
+} from './WebBuilder.js';
+import {execa} from "execa";
+import {createProxyMiddleware} from 'http-proxy-middleware';
 import fs from 'node:fs';
 import fsAsync from 'node:fs/promises';
 import {
-  conditionalMiddleware,
-  better_fetch,
   axiosExt,
+  conditionalMiddleware,
   errorToString,
-  killProcessThatListensOnPort, spawnAsync, fileExists
+  fileExists,
+  killProcessThatListensOnPort,
+  forwardWebsocketConnections,
+  spawnAsync
 } from './util/util.js';
-import exp from 'constants';
-import { resolve } from 'path';
-import { readFile } from 'fs';
 import {ElectrifiedSession} from "./ElectrifiedSession";
-import {ErrorDiagnosis} from './util/util';
 import {restfuncsExpress} from "restfuncs-server";
 
 // Enable these for better error diagnosis during development:
@@ -79,7 +81,7 @@ class AppServer {
       this.wwwSourceDir = await fs.existsSync(this.config.developWwwBaseDir) ? this.config.developWwwBaseDir : this.config.WWWBASEDIR;
 
 
-      const expressApp = restfuncsExpress()
+      const expressApp = restfuncsExpress({engineIoOptions: {destroyUpgrade: false}, installEngineIoServer: false}) // TODO: re-enable
       expressApp.use(cookieParser())
 
       const buildResult = await this.requestBuild({
@@ -137,7 +139,10 @@ class AppServer {
         cert: fs.readFileSync(this.config.cert)
       }, expressApp);
 
-      expressApp.installEngineIoServer(httpsServer); // Must do this, so that restfuncs can hook and listen for websocket connections
+      // forward these paths + more:
+      // wss://pvewohnungtest2.local:8006/api2/json/nodes/pveWohnungTest2/vncwebsocket
+      // wss://pvewohnungtest2.local:8006/api2/json/nodes/pveWohnungTest2/lxc/820/vncwebsocket
+      forwardWebsocketConnections(httpsServer, undefined, `wss://localhost:${this.config.origPort}`, false);
 
       httpsServer.listen(this.config.port, () => {
         console.log(`Server running at http://localhost:${this.config.port}`);

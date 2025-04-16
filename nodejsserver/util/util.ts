@@ -1,10 +1,11 @@
-import https from "node:https"
+import https, {Server} from "node:https"
 import express from 'express'
 import axios, {AxiosRequestConfig} from "axios";
 import {execa} from "execa";
-import {ErrorWithExtendedInfo} from "restfuncs-server/Util";
 import fsPromises from 'node:fs/promises';
 import {PathLike} from "fs";
+import http from "node:http";
+import {WebSocket, WebSocketServer} from "ws";
 
 /**
  *
@@ -210,4 +211,61 @@ export async function fileExists(filePath: PathLike) {
     } catch (e) {
         return false;
     }
+}
+
+/**
+ * Forwards(=proxies) them to another server
+ * @param httpsServer
+ * @param path
+ * @param targetServerUrl begins with ws:// wss://
+ * @param destroyUnhandled false, if there is another on-upgrade handler after this one, that may also want to catch websocket connections
+ */
+export function forwardWebsocketConnections(httpsServer: Server<typeof http.IncomingMessage, typeof http.ServerResponse>, path: string | undefined, targetServerUrl:string, destroyUnhandled: boolean) {
+    // WebSocket server setup
+    const wss = new WebSocketServer({server: httpsServer, path});
+
+
+    wss.on('connection', (clientSocket, req) => {
+        console.log('Client connected');
+
+        const headers = {
+            cookie: req.headers["cookie"]
+        };
+
+        // Connect to the target server
+        const targetSocket = new WebSocket(`${targetServerUrl}${req.url}`, {
+            rejectUnauthorized: false,
+            headers
+        });
+
+        // Proxy messages from client to target server
+        clientSocket.on('message', (message: any) => {
+            if (targetSocket.readyState === WebSocket.OPEN) {
+                targetSocket.send(message);
+            }
+        });
+
+        // Proxy messages from target server to client
+        targetSocket.on('message', (message: any) => {
+            if (clientSocket.readyState === WebSocket.OPEN) {
+                clientSocket.send(message);
+            }
+        });
+
+        // Handle client disconnection
+        clientSocket.on('close', () => {
+            console.log('Client disconnected');
+            targetSocket.close();
+        });
+
+        // Handle target server disconnection
+        targetSocket.on('close', () => {
+            console.log('Target server disconnected');
+            clientSocket.close();
+        });
+
+        // Error handling for both sockets
+        clientSocket.on('error', (err: any) => console.error('Client error:', err));
+        targetSocket.on('error', (err: any) => console.error('Target error:', err));
+    });
 }
