@@ -89,8 +89,6 @@ class AppServer {
                 buildStaticFiles: true
             });
 
-            await this.activateBuildResult(buildResult);
-
             expressApp.use("/electrifiedAPI", ElectrifiedSession.createExpressHandler())
 
             //TODO: hand this to websocket: /api2/json/nodes/pveWohnungTest2/lxc/820/vncwebsocket
@@ -152,15 +150,19 @@ class AppServer {
     }
 
 
-    async requestBuild(buildOptions: BuildOptions): Promise<BuildResult> {
+    /**
+     * Request a rebuilt and activation of that build. If newer requests come in in the meanwhile, they are also awaited.
+     * @param buildOptions
+     */
+    requestBuild(buildOptions: BuildOptions): Promise<BuildResult> {
         if (this.nextBuild) { // Someone else already promised the next build ?
             this.reBuildRequested = getSaferBuildOptions(buildOptions, this.diagnosis_webBuilder!.buildOptions); // request a rebuild
+            return this.nextBuild;
         } else {
             // We have to promise the next build:
-            this.nextBuild = new Promise((resolve, reject) => {
-                spawnAsync(async () => {
-                    // eslint-disable-next-line no-constant-condition
-                    while (true) { // do a rebuild loop till no build is re-requested anymore:
+            const nextBuild = (async () => {
+                // eslint-disable-next-line no-constant-condition
+                while (true) { // do a rebuild loop till no build is re-requested anymore:
 
                         if (this.reBuildRequested) { // from a re-request ?
                             buildOptions = getSaferBuildOptions(buildOptions, this.reBuildRequested); // make sure to use the safer ones
@@ -171,31 +173,28 @@ class AppServer {
 
                             const webBuilder = this.diagnosis_webBuilder = new WebBuildProcess(buildOptions);
                             const result = await webBuilder.build();
+                            await this.activateBuildResult(result);
 
                             if (!this.reBuildRequested) {
-                                // successfull
-                                resolve(result);
-                                break;
+                                this.nextBuild = undefined;
+                                return result;
                             }
                         } catch (e) {
-                            console.log(e);
                             if (!this.reBuildRequested) {
-                                reject(e);
+                                this.nextBuild = undefined;
                                 throw e;
                             }
                         }
                     }
-                });
-
-            });
+                })();
+            this.nextBuild = nextBuild;
+            return nextBuild;
 
         }
-
-        return this.nextBuild;
     }
 
 
-    async activateBuildResult(buildResult: BuildResult) {
+    protected async activateBuildResult(buildResult: BuildResult) {
         if (!buildResult.staticFilesDir) {
             throw new Error("Must provide staticFilesDir");
         }
