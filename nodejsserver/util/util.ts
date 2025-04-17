@@ -155,7 +155,7 @@ export function topLevel_withErrorHandling(fn: () => void, exitOnError = true) {
  * @param fn
  * @param exitOnError produces an unhandled- rejection which exits the (nodejs) process.
  */
-export function spawnAsync(fn: () => Promise<void>, exitOnError = true) {
+export function spawnAsync(fn: () => Promise<void>, exitOnError:boolean) {
 
     let spawnStack: string | undefined
     if (ErrorDiagnosis.record_spawnAsync_stackTrace) {

@@ -145,7 +145,7 @@ class AppServer {
             httpsServer.listen(this.config.port, () => {
                 console.log(`Server running at http://localhost:${this.config.port}`);
             });
-        });
+        }, true);
 
     }
 
