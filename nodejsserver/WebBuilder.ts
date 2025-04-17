@@ -23,11 +23,13 @@ export function getSafestBuildOptions(a: BuildOptions, b: BuildOptions): BuildOp
     }
 }
 
-export default class WebBuildProcess {    
+export default class WebBuildProcess {
 
     buildOptions: BuildOptions;
 
     buildId: string;
+
+    diagnosis_createdAt = new Date();
 
     diagnosis_state?: string
         
@@ -58,13 +60,17 @@ export default class WebBuildProcess {
                 const bundledFilesDir = await this.bundleFiles();
                 
                 return {
+                    diagnosis_startedAt: this.diagnosis_createdAt,
                     buildId: this.buildId, 
-                    staticFilesDir: bundledFilesDir
+                    staticFilesDir: bundledFilesDir,
+                    diagnosis_buildOptions: this.buildOptions,
                 };
             }
             else {
                 return {
+                    diagnosis_startedAt: this.diagnosis_createdAt,
                     buildId: this.buildId,
+                    diagnosis_buildOptions: this.buildOptions,
                 }                
             }
 
@@ -127,6 +133,8 @@ export default class WebBuildProcess {
 }
 
 export type BuildResult = {
+    diagnosis_startedAt: Date,
     buildId: string,
     staticFilesDir?: string,
+    diagnosis_buildOptions: BuildOptions
 };
