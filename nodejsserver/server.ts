@@ -1,10 +1,11 @@
 import express from 'express'
 import cookieParser from 'cookie-parser';
 import https from "node:https"
-import WebBuildProcess, {
+import WebBuildProgress, {
     BuildOptions,
     BuildResult,
-    getSafestBuildOptions as getSaferBuildOptions
+    getSafestBuildOptions as getSaferBuildOptions,
+    buildWeb, inner_buildWeb
 } from './WebBuilder.js';
 import {execa} from "execa";
 import {createProxyMiddleware} from 'http-proxy-middleware';
@@ -17,7 +18,7 @@ import {
     fileExists,
     killProcessThatListensOnPort,
     forwardWebsocketConnections,
-    spawnAsync, ErrorDiagnosis
+    spawnAsync, ErrorDiagnosis, TaskPromise, taskWithProgress
 } from './util/util.js';
 import {ElectrifiedSession} from "./ElectrifiedSession";
 import {restfuncsExpress} from "restfuncs-server";
@@ -51,29 +52,15 @@ class AppServer {
      */
     bundledWWWDir = "/var/lib/pve-manager/bundledWww"
 
-    /**
-     * the builder that is currently running
-     */
-    diagnosis_webBuilder?: WebBuildProcess;
 
-    /**
-     * The last successfull build result that is currently shown live
-     */
-    activeBuildResult?: BuildResult
-
-    nextBuild?: Promise<BuildResult>;
-
-    /**
-     * You can request a new rebuild while the build is still running, so it's result will be discarded and new one is done,s
-     */
-    reBuildRequested?: BuildOptions;
+    builtWeb!: TaskPromise<BuildResult, WebBuildProgress>
 
 
     constructor() {
         spawnAsync(async () => {
 
             if (process.env.NODE_ENV === "development") {
-                killProcessThatListensOnPort(this.config.port); // Fix: In development on the pve server, sometimes the old process does not terminate properly.
+                await killProcessThatListensOnPort(this.config.port); // Fix: In development on the pve server, sometimes the old process does not terminate properly.
             }
 
             // init fields:
@@ -85,7 +72,7 @@ class AppServer {
                 installEngineIoServer: false
             })
 
-            const buildResult = await this.requestBuild({
+            this.buildWeb({
                 buildStaticFiles: true
             });
 
@@ -153,47 +140,19 @@ class AppServer {
     }
 
 
+
     /**
-     * Request a rebuilt and activation of that build. If newer requests come in in the meanwhile, they are also awaited.
+     * Builds and activates the web
      * @param buildOptions
      */
-    requestBuild(buildOptions: BuildOptions): Promise<BuildResult> {
-        if (this.nextBuild) { // Someone else already promised the next build ?
-            this.reBuildRequested = getSaferBuildOptions(buildOptions, this.diagnosis_webBuilder!.buildOptions); // request a rebuild
-            return this.nextBuild;
-        } else {
-            // We have to promise the next build:
-            const nextBuild = (async () => {
-                // eslint-disable-next-line no-constant-condition
-                while (true) { // do a rebuild loop till no build is re-requested anymore:
-
-                        if (this.reBuildRequested) { // from a re-request ?
-                            buildOptions = getSaferBuildOptions(buildOptions, this.reBuildRequested); // make sure to use the safer ones
-                        }
-
-                        this.reBuildRequested = undefined; // clear flag
-                        try {
-
-                            const webBuilder = this.diagnosis_webBuilder = new WebBuildProcess(buildOptions);
-                            const result = await webBuilder.build();
-                            await this.activateBuildResult(result);
-
-                            if (!this.reBuildRequested) {
-                                this.nextBuild = undefined;
-                                return result;
-                            }
-                        } catch (e) {
-                            if (!this.reBuildRequested) {
-                                this.nextBuild = undefined;
-                                throw e;
-                            }
-                        }
-                    }
-                })();
-            this.nextBuild = nextBuild;
-            return nextBuild;
-
-        }
+    buildWeb(buildOptions: BuildOptions, progressListener?: (progres: WebBuildProgress) => void): TaskPromise<BuildResult, WebBuildProgress> {
+        const progress = new WebBuildProgress(buildOptions);
+        return this.builtWeb = taskWithProgress(async (setProgress) => {
+            const result =  await inner_buildWeb(progress, setProgress);
+            progress.diagnosis_state = "Activating build result"; setProgress(progress);
+            await this.activateBuildResult(result);
+            return result;
+        }, progress, progressListener?[progressListener]:undefined);
     }
 
 
@@ -205,8 +164,6 @@ class AppServer {
         await execa("rm", ["-rf", this.bundledWWWDir]); // delete dir
         //await execa("mkdir", ["-p", this.bundledWWWDir]);
         await execa("mv", [buildResult.staticFilesDir, this.bundledWWWDir]);
-
-        this.activeBuildResult = buildResult;
     }
 
     /**
@@ -297,16 +254,14 @@ class AppServer {
         }
     }
 
-    /**
-     * Whether currently using the vite dev server. Not timely coherent with the setter
-     */
+
     get useViteDevServer() {
-        return this.activeBuildResult === undefined?false:!this.activeBuildResult.diagnosis_buildOptions.buildStaticFiles
+        return !this.builtWeb.progress.buildOptions.buildStaticFiles
     }
 
     set useViteDevServer(value: boolean) {
         if(this.useViteDevServer !== value) {
-            spawnAsync(async () => {await this.requestBuild({buildStaticFiles: !value}) }, false);
+            spawnAsync(async () => {await this.buildWeb({buildStaticFiles: !value}) }, false);
 
         }
     }
