@@ -17,7 +17,7 @@ import {
     fileExists,
     killProcessThatListensOnPort,
     forwardWebsocketConnections,
-    spawnAsync
+    spawnAsync, ErrorDiagnosis
 } from './util/util.js';
 import {ElectrifiedSession} from "./ElectrifiedSession";
 import {restfuncsExpress} from "restfuncs-server";
@@ -118,6 +118,9 @@ class AppServer {
             // Serve index.html (from bundled filed) with some replacements:
             expressApp.get("/", this.serveIndexHtml.bind(this));
 
+            // Serve index.html (from bundled filed) with some replacements:
+            expressApp.get("/webBuild", this.serveWebBuildDiagnosisHtml.bind(this));
+
             // Serve (non-modified-) bundled files:
             expressApp.use("/", express.static(this.bundledWWWDir));
 
@@ -217,13 +220,7 @@ class AppServer {
             const endoding = "utf-8";
             let indexHtml = await fsAsync.readFile(this.bundledWWWDir + "/index.html", {encoding: endoding});
 
-            // Fetch the state from original pve-manager:
-            const proxmoxState = (await axiosExt(`https://localhost:${this.config.origPort}/proxmox_state`, {
-                headers: {...req.headers as object}, // Pass original headers (with cookies), so we get the right csrfProtectionToken (and more)
-            })).data as object;
-            if (proxmoxState === null || typeof proxmoxState !== "object") {
-                throw new Error("Invalid result: /proxmox_state is not json.");
-            }
+            const proxmoxState = await this.fetchProxmoxState(req);
 
             indexHtml = indexHtml.replace("$PROXMOXSTATE$", JSON.stringify(proxmoxState)); // replace $PROXMOXSTATE$
             indexHtml = indexHtml.replace(/\[% nodename %\]/g, (proxmoxState as any).NodeName as string); // replace nodename
@@ -262,6 +259,55 @@ class AppServer {
         } catch (e: any) {
             res.status(500);
             res.send(`<pre>${errorToString(e)}</pre>`);
+        }
+    }
+
+    /**
+     * Fetch the state object from original pve-manager:
+     * @param req
+     * @private
+     */
+    private async fetchProxmoxState(req: express.Request): Promise<object> {
+        const result = (await axiosExt(`https://localhost:${this.config.origPort}/proxmox_state`, {
+            headers: {...req.headers as object}, // Pass original headers (with cookies), so we get the right csrfProtectionToken (and more)
+        })).data as object;
+        if (result === null || typeof result !== "object") {
+            throw new Error("Invalid result: /proxmox_state is not json.");
+        }
+
+        return result;
+    }
+
+    /**
+     * Serves /webBuild
+     * @param req
+     * @param res
+     * @param next
+     */
+    async serveWebBuildDiagnosisHtml(req: express.Request, res: express.Response, next: express.NextFunction) {
+        try {
+            const endoding = "utf-8";
+            const proxmoxState = await this.fetchProxmoxState(req);
+            let html = fs.readFileSync("webBuild.html", {encoding: "utf8"});
+            html = html.replace("$PROXMOXSTATE$", JSON.stringify(proxmoxState)); // replace $PROXMOXSTATE$
+            res.send(html)
+        } catch (e: any) {
+            res.status(500);
+            res.send(`<pre>${errorToString(e)}</pre>`);
+        }
+    }
+
+    /**
+     * Whether currently using the vite dev server. Not timely coherent with the setter
+     */
+    get useViteDevServer() {
+        return this.activeBuildResult === undefined?false:!this.activeBuildResult.diagnosis_buildOptions.buildStaticFiles
+    }
+
+    set useViteDevServer(value: boolean) {
+        if(this.useViteDevServer !== value) {
+            spawnAsync(async () => {await this.requestBuild({buildStaticFiles: !value}) }, false);
+
         }
     }
 
