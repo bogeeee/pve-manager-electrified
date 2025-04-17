@@ -365,57 +365,61 @@ export type TaskPromise<T,P> = Promise<T> & {
  * Creates a better Promise: a TaskPromise, where you can see/subscribe to a progress and query the current state
  * Also, what's different to using normal promises:
  *  - A promise is always created, even if fn fails **immediately** (makes it more consistent)
- *  - Not handling rejections does not result in an unhandled-rejection (exiting the program). It's assumed that this is a legal case, cause you can query the status anyway.
+ *  - By default, not handling rejections does not result in an unhandled-rejection (exiting the program). It's assumed that this is a legal case, cause you can query the status anyway.
  * @param fn
+ * @param initialProgress
+ * @param initialProgressListeners here you have the chance to register such from the beginning on. They are called with initialProgress
+ * @param exitOnUnhandledRejection
  */
-export function taskWithProgress<T,P>(fn: (setProgress: (progress: P) => void) => Promise<T>, initialProgress: P, initialProgressListeners?: ((p:P) => void)[]): TaskPromise<T,P> {
-    let result: TaskPromise<T, P> | undefined = undefined;
+export function taskWithProgress<T,P>(fn: (setProgress: (progress: P) => void) => Promise<T>, initialProgress: P, initialProgressListeners?: ((p:P) => void)[], exitOnUnhandledRejection = false): TaskPromise<T,P> {
+
+    // Create a new promise that is externally resolvable:
+    let resolve: ((value: T) => void) | undefined = undefined;
+    let reject: ((reason?: any) => void) | undefined = undefined;
+    const result = new Promise(async (res, rej) => {
+        resolve = res;
+        reject = rej;
+    }) as TaskPromise<T, P>;
+
+    // Initialize fields on result:
     const progressListeners: ((p:P) => void)[] = initialProgressListeners?[...initialProgressListeners]:[];
-    let progress = initialProgress;
+    //@ts-ignore
+    result.progressListeners = progressListeners; // Just to see these in the debugger
+    result.onProgress = (listener: (progress: P) => void) => progressListeners.push(listener);
+    result.state = "running";
 
     const setProgress = (p: P) => {
-        progress = p;
-        if(result) {
-            result.progress = p;
-        }
+        result.progress = p;
         for (const listener of progressListeners) {
             listener(p);
         }
     };
+    setProgress(initialProgress);
 
-    // Call listeners for initial progress:
-    for (const listener of progressListeners) {
-        listener(initialProgress);
+    // Exec fn:
+    (async () => {
+        try {
+            const promise = fn(setProgress);
+            const t = await promise;
+
+            result.state = "resolved";
+            //@ts-ignore
+            result.result = t;
+            resolve!(t);
+        }
+        catch (e) {
+            result.state = "rejected";
+            //@ts-ignore
+            result.error = e;
+            reject!(e);
+        }
+    })();
+
+    if(!exitOnUnhandledRejection) {
+        // handle rejections:
+        result.catch(e => {
+        })
     }
-
-    try {
-        result = fn(setProgress) as TaskPromise<T, P>; // Exec fn
-    }
-    catch (e) { // immediate error, before the promise even was created?
-        result = new Promise((r,rej) => {rej(e)}) as TaskPromise<T, P>; // create a rejected promise
-    }
-
-    result.then(t => {
-        result!.state = "resolved";
-        //@ts-ignore
-        result.result = t;
-    }).catch(e => {
-        result!.state = "rejected";
-        //@ts-ignore
-        result.error = e;
-    })
-
-    if(!result.state) {
-        //@ts-ignore
-        result.state = "running";
-    }
-
-    result.progress = progress;
-
-    //@ts-ignore
-    result.progressListeners = progressListeners; // Just to see these in the debugger
-
-    result.onProgress = (listener: (progress: P) => void) => progressListeners.push(listener);
 
     return result;
 }
