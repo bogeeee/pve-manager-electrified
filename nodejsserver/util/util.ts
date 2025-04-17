@@ -344,3 +344,83 @@ export function reThrowWithHint(e: unknown, hint: string) {
 export function isObject(value: unknown) {
     return value !== null && typeof value === "object";
 }
+
+/**
+ * Universal better Promise
+ */
+export type TaskPromise<T,P> = Promise<T> & {
+    progress: P,
+    /**
+     * Subscribe to progress changes
+     * @param listener
+     */
+    onProgress: (listener: (progress: P) => void) => void
+} & (
+    {state: "running"} |
+    {state: "resolved", result: T} |
+    {state: "rejected", error: unknown}
+    )
+
+/**
+ * Creates a better Promise: a TaskPromise, where you can see/subscribe to a progress and query the current state
+ * Also, what's different to using normal promises:
+ *  - A promise is always created, even if fn fails **immediately** (makes it more consistent)
+ *  - Not handling rejections does not result in an unhandled-rejection (exiting the program). It's assumed that this is a legal case, cause you can query the status anyway.
+ * @param fn
+ */
+export function taskWithProgress<T,P>(fn: (setProgress: (progress: P) => void) => Promise<T>, initialProgress: P, initialProgressListeners?: ((p:P) => void)[]): TaskPromise<T,P> {
+    let result: TaskPromise<T, P> | undefined = undefined;
+    const progressListeners: ((p:P) => void)[] = initialProgressListeners?[...initialProgressListeners]:[];
+    let progress = initialProgress;
+
+    const setProgress = (p: P) => {
+        progress = p;
+        if(result) {
+            result.progress = p;
+        }
+        for (const listener of progressListeners) {
+            listener(p);
+        }
+    };
+
+    // Call listeners for initial progress:
+    for (const listener of progressListeners) {
+        listener(initialProgress);
+    }
+
+    try {
+        result = fn(setProgress) as TaskPromise<T, P>; // Exec fn
+    }
+    catch (e) { // immediate error, before the promise even was created?
+        result = new Promise((r,rej) => {rej(e)}) as TaskPromise<T, P>; // create a rejected promise
+    }
+
+    result.then(t => {
+        result!.state = "resolved";
+        //@ts-ignore
+        result.result = t;
+    }).catch(e => {
+        result!.state = "rejected";
+        //@ts-ignore
+        result.error = e;
+    })
+
+    if(!result.state) {
+        //@ts-ignore
+        result.state = "running";
+    }
+
+    result.progress = progress;
+
+    //@ts-ignore
+    result.progressListeners = progressListeners; // Just to see these in the debugger
+
+    result.onProgress = (listener: (progress: P) => void) => progressListeners.push(listener);
+
+    return result;
+}
+
+
+export function task<T>(fn: () => Promise<T>): TaskPromise<T,undefined> {
+    return taskWithProgress(fn, undefined);
+}
