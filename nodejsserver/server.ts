@@ -145,6 +145,11 @@ class AppServer {
      * @param buildOptions
      */
     buildWeb(buildOptions: BuildOptions, progressListener?: (progress: WebBuildProgress) => void) {
+        // Cancel old build:
+        if(this.builtWeb?.promiseState.state === "pending") {
+            this.builtWeb.cancel(new Error("Canceled because a new build was made."))
+        }
+
         const me = this;
         class WebBuildAndDeploy extends WebBuildProgress {
             protected async run(): Promise<BuildResult> {
