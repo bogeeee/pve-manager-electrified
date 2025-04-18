@@ -6,6 +6,10 @@
 </head>
 <body>
   <div id="content">Fetching state</div>
+  <hr/>
+  <input id="useViteDevServerCheckbox" type="checkbox" onclick="rebuild({...state.builtWeb.buildOptions, buildStaticFiles: !event.target.checked})"/>Use vite devserver<br/>
+  <button onclick="rebuild(state.builtWeb.buildOptions)">Rebuild</button>
+
   <script type="text/javascript">
       Proxmox = $PROXMOXSTATE$;
 
@@ -26,11 +30,9 @@ ${state.builtWeb.promiseState.state==="resolved"?`
 <b>Build successfull. Served from folder:</b> <i>${escapeHtml(state.bundledWWWDir)}</i>
 `:""}
 ${state.builtWeb.promiseState.state==="rejected"?`<b>Build failed:</b> ${state.builtWeb.promiseState.rejectReason}<br/>`:""}
-
-<hr/>
-<input type="checkbox" ${(!state.builtWeb.buildOptions.buildStaticFiles)?"checked":""} onclick="rebuild({...state.builtWeb.buildOptions, buildStaticFiles: !event.target.checked})"/>Use vite devserver<br/>
-<button onclick="rebuild(state.builtWeb.buildOptions)">Rebuild</button>
 `
+              // Update checkbox:
+              document.getElementById("useViteDevServerCheckbox").checked = !state.builtWeb.buildOptions.buildStaticFiles;
           }
           catch (e) {
               contentHtml = `<i><pre>${escapeHtml(errorToString(e))}</pre></i>`
