@@ -21,6 +21,7 @@ import {
 } from './util/util.js';
 import {ElectrifiedSession} from "./ElectrifiedSession";
 import {restfuncsExpress} from "restfuncs-server";
+import {createServer} from "vite";
 
 // Enable these for better error diagnosis during development:
 //ErrorDiagnosis.keepProcessAlive = (process.env.NODE_ENV === "development");
@@ -72,7 +73,7 @@ class AppServer {
             })
 
             this.buildWeb({
-                buildStaticFiles: true
+                buildStaticFiles: !(process.env.NODE_ENV === "development")
             });
 
             expressApp.use("/electrifiedAPI", ElectrifiedSession.createExpressHandler())
@@ -107,8 +108,18 @@ class AppServer {
             // Serve web-build control panel:
             expressApp.get("/webBuild", this.serveWebBuildDiagnosisHtml.bind(this));
 
-            // Serve (non-modified-) bundled files:
-            expressApp.use("/", express.static(this.bundledWWWDir));
+            // (for vite-dev-server mode), serve web web through vite dev server:
+            const viteDevServer = await createServer({
+                server: {
+                    middlewareMode: true,
+                },
+                root: this.wwwSourceDir,
+                base: "/",
+            });
+            expressApp.use(conditionalMiddleware(() => this.useViteDevServer, viteDevServer.middlewares));
+
+            // (for production mode) Serve (non-modified-) bundled files:
+            expressApp.use("/", conditionalMiddleware(() => !this.useViteDevServer, express.static(this.bundledWWWDir)));
 
             // serve files from wwwSourceDir:
             expressApp.use("/", express.static(this.wwwSourceDir));
@@ -165,13 +176,10 @@ class AppServer {
 
 
     protected async activateBuildResult(buildResult: BuildResult) {
-        if (!buildResult.staticFilesDir) {
-            throw new Error("Must provide staticFilesDir");
+        await execa("rm", ["-rf", this.bundledWWWDir]); // delete old dir
+        if (buildResult.staticFilesDir) {
+            await execa("mv", [buildResult.staticFilesDir, this.bundledWWWDir]);
         }
-
-        await execa("rm", ["-rf", this.bundledWWWDir]); // delete dir
-        //await execa("mkdir", ["-p", this.bundledWWWDir]);
-        await execa("mv", [buildResult.staticFilesDir, this.bundledWWWDir]);
     }
 
     /**
