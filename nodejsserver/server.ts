@@ -5,7 +5,6 @@ import WebBuildProgress, {
     BuildOptions,
     BuildResult,
     getSafestBuildOptions as getSaferBuildOptions,
-    buildWeb, inner_buildWeb
 } from './WebBuilder.js';
 import {execa} from "execa";
 import {createProxyMiddleware} from 'http-proxy-middleware';
@@ -53,7 +52,7 @@ class AppServer {
     bundledWWWDir = "/var/lib/pve-manager/bundledWww"
 
 
-    builtWeb!: TaskPromise<BuildResult, WebBuildProgress>
+    builtWeb!: WebBuildProgress
 
 
     constructor() {
@@ -145,14 +144,18 @@ class AppServer {
      * Builds and activates the web
      * @param buildOptions
      */
-    buildWeb(buildOptions: BuildOptions, progressListener?: (progres: WebBuildProgress) => void): TaskPromise<BuildResult, WebBuildProgress> {
-        const progress = new WebBuildProgress(buildOptions);
-        return this.builtWeb = taskWithProgress(async (setProgress) => {
-            const result =  await inner_buildWeb(progress, setProgress);
-            progress.diagnosis_state = "Activating build result"; setProgress(progress);
-            await this.activateBuildResult(result);
-            return result;
-        }, progress, progressListener?[progressListener]:undefined);
+    buildWeb(buildOptions: BuildOptions, progressListener?: (progress: WebBuildProgress) => void) {
+        const me = this;
+        class WebBuildAndDeploy extends WebBuildProgress {
+            protected async run(): Promise<BuildResult> {
+                const result = await super.run();
+                this.diagnosis_state = "Activating build result"; this.fireProgressChanged();
+                await me.activateBuildResult(result);
+                return result;
+            }
+        }
+
+        return this.builtWeb = WebBuildAndDeploy.create({buildOptions}) as any as WebBuildProgress;
     }
 
 
@@ -256,7 +259,7 @@ class AppServer {
 
 
     get useViteDevServer() {
-        return !this.builtWeb.progress.buildOptions.buildStaticFiles
+        return !this.builtWeb.buildOptions.buildStaticFiles
     }
 
     set useViteDevServer(value: boolean) {

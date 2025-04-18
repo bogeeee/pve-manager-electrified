@@ -22,9 +22,11 @@ export class ElectrifiedSession extends ServerSession {
             wwwSourceDir: appServer.wwwSourceDir,
             bundledWWWDir: appServer.bundledWWWDir,
             builtWeb: {
-                state: appServer.builtWeb.state,
-                errorHtml: appServer.builtWeb.state === "rejected"?errorToHtml(appServer.builtWeb.error):undefined,
-                progress: appServer.builtWeb.progress
+                ...appServer.builtWeb,
+                promiseState: {
+                    state: appServer.builtWeb.promiseState.state,
+                    rejectReason: appServer.builtWeb.promiseState.state === "rejected"?errorToHtml(appServer.builtWeb.promiseState.rejectReason):undefined,
+                },
             }
         };
     }
