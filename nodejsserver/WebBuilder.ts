@@ -31,7 +31,7 @@ export default class WebBuildProgress extends PromiseTask<BuildResult> {
 
     buildOptions!: BuildOptions;
 
-    buildId = crypto.randomBytes(16).toString('base64').replace(/\//,'_');
+    buildId = crypto.randomBytes(16).toString('base64').replace(/\//,'_').replace(/==$/,"");
 
     diagnosis_createdAt = new Date();
 
@@ -74,10 +74,9 @@ export default class WebBuildProgress extends PromiseTask<BuildResult> {
 
         const templateEncoding = "utf-8";
         let templateHtml = await fs.readFile(wwwSourcesDir + "/index.html.tpl",{encoding: templateEncoding});
-        templateHtml = templateHtml.replace(/$CACHEBREAKER$/g, this.buildId);
+        templateHtml = templateHtml.replace(/\$CACHEBREAKER\$/g, this.buildId);
 
         //Include nonmodule scripts ($INCLUDE_MANAGER6_NONMODULE_SCRIPTS$):
-        // TODO: if manager6 scripts were packed into 1 file, use that.
         const nonModuleScripts = (await fs.readFile("/usr/share/pve-manager/manager6/listOfNonModuleScripts", {encoding: "utf-8"})).trim().split(" ");
         const scriptsBlock = nonModuleScripts.map((scriptName) => `<script type="text/javascript" src="/manager6/${scriptName}?ver=${this.buildId}"></script>`).join("\n");
         templateHtml = templateHtml.replace("$INCLUDE_MANAGER6_NONMODULE_SCRIPTS$", scriptsBlock);
