@@ -99,7 +99,10 @@ export default class WebBuildProgress extends PromiseTask<BuildResult> {
                 base: "/",
                 build: {
                     outDir: outDir,
-                    rollupOptions: {}
+                    rollupOptions: {
+                    },
+                    //sourcemap: "inline", //you could enable this, if it is handy
+                    //minify: false, //you could disable this, if it is handy
                 }
             })
         }
