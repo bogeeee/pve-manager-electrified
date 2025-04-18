@@ -23,11 +23,11 @@
               contentHtml = `
 <h2>Web build</h2>
 <b>Source directory:</b> <i>${escapeHtml(state.wwwSourceDir)}</i><br/>
-<i>Id: ${escapeHtml(state.builtWeb.buildId)}</i><br/>
-${state.builtWeb.promiseState.state==="pending"?`<b>${loadingSpinnerHtml} Building web</b>: ${escapeHtml(state.builtWeb.diagnosis_state)}<br/>`:""}
+<i>Build Id: ${escapeHtml(state.builtWeb.buildId)}</i><br/>
 Started ${escapeHtml(state.builtWeb.diagnosis_createdAt)}<br/>
+${state.builtWeb.promiseState.state==="pending"?`<b>${loadingSpinnerHtml} Building web</b>: ${escapeHtml(state.builtWeb.diagnosis_state)}<br/>`:""}
 ${state.builtWeb.promiseState.state==="resolved"?`
-<b>Build successfull. Served from folder:</b> <i>${escapeHtml(state.bundledWWWDir)}</i>
+<b>Build successfull. Now serving from folder:</b> <i>${escapeHtml(state.bundledWWWDir)}</i>
 `:""}
 ${state.builtWeb.promiseState.state==="rejected"?`<b>Build failed:</b> ${state.builtWeb.promiseState.rejectReason}<br/>`:""}
 `
