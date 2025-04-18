@@ -188,8 +188,11 @@ class AppServer {
             const endoding = "utf-8";
             let indexHtml = (await axiosExt(`https://localhost:${this.config.port}/index.html`, {})).data; // Request from this server. It may either be served as a static file, or through the vite-dev-server
 
-            const proxmoxState = await this.fetchProxmoxState(req);
+            // Remove absolute-url prefixes:
+            indexHtml = indexHtml.replaceAll("https://remove_this_prefix","");
 
+            // proxmoxState related:
+            const proxmoxState = await this.fetchProxmoxState(req);
             indexHtml = indexHtml.replace("$PROXMOXSTATE$", JSON.stringify(proxmoxState)); // replace $PROXMOXSTATE$
             indexHtml = indexHtml.replace(/\[% nodename %\]/g, (proxmoxState as any).NodeName as string); // replace nodename
             const lang = (proxmoxState as any).defaultLang as string;
