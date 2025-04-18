@@ -101,7 +101,7 @@ class AppServer {
             })));
 
 
-            // Serve index.html (from bundled filed) with some replacements:
+            // Serve a modified index.html (from https:/localhost:8006/index.html - request from this server) with some replacements:
             expressApp.get("/", this.serveIndexHtml.bind(this));
 
             // Serve web-build control panel:
@@ -175,7 +175,7 @@ class AppServer {
     }
 
     /**
-     * Serves the index.html (from bundled files) and does some runtime variable replacements there
+     * Serves a modified index.html (requested from this server) and does some runtime variable replacements there
      * @param req
      * @param res
      * @param next
@@ -186,7 +186,7 @@ class AppServer {
         }
         try {
             const endoding = "utf-8";
-            let indexHtml = await fsAsync.readFile(this.bundledWWWDir + "/index.html", {encoding: endoding});
+            let indexHtml = (await axiosExt(`https://localhost:${this.config.port}/index.html`, {})).data; // Request from this server. It may either be served as a static file, or through the vite-dev-server
 
             const proxmoxState = await this.fetchProxmoxState(req);
 
