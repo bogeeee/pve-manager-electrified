@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Web build control</title>
+    <title>PVE electrified web build</title>
 </head>
 <body>
   <div id="content">Fetching state</div>
@@ -32,7 +32,7 @@
               state = await (await better_fetch("electrifiedAPI/webBuildState")).json();
               contentHtml = `
 ${isWebBuildControlPage?`
-    <h2>Web build</h2>
+    <h2>Web build control panel</h2>
     <b>Source directory:</b> <i>${escapeHtml(state.wwwSourceDir)}</i><br/>
     <i>Build Id: ${escapeHtml(state.builtWeb.buildId)}</i><br/>
     Started ${escapeHtml(state.builtWeb.diagnosis_createdAt)}<br/>
@@ -44,6 +44,7 @@ ${state.builtWeb.promiseState.state==="resolved"?`
 ${state.builtWeb.promiseState.state==="rejected"?`<b>Build failed:</b> ${state.builtWeb.promiseState.rejectReason}<br/>`:""}
 `
               if(isWebBuildControlPage) {
+                  document.title = "Web build control panel"
                   // Update form:
                   document.getElementById("interactiveForm").style.display="block"
                   // Update checkbox:
