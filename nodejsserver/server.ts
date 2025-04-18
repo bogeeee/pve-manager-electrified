@@ -104,7 +104,7 @@ class AppServer {
             // Serve index.html (from bundled filed) with some replacements:
             expressApp.get("/", this.serveIndexHtml.bind(this));
 
-            // Serve index.html (from bundled filed) with some replacements:
+            // Serve web-build control panel:
             expressApp.get("/webBuild", this.serveWebBuildDiagnosisHtml.bind(this));
 
             // Serve (non-modified-) bundled files:
@@ -181,6 +181,9 @@ class AppServer {
      * @param next
      */
     async serveIndexHtml(req: express.Request, res: express.Response, next: express.NextFunction) {
+        if(this.builtWeb.promiseState.state !== "resolved") { // Build not finished ?
+            return await this.serveWebBuildDiagnosisHtml(req, res, next); // Show build loader / diagnosis
+        }
         try {
             const endoding = "utf-8";
             let indexHtml = await fsAsync.readFile(this.bundledWWWDir + "/index.html", {encoding: endoding});
@@ -244,7 +247,7 @@ class AppServer {
     }
 
     /**
-     * Serves /webBuild
+     * Serves the /webBuild control panel, or a simpler page with a loading spinner, when the url is not /webBuild
      * @param req
      * @param res
      * @param next

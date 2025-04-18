@@ -6,9 +6,14 @@
 </head>
 <body>
   <div id="content">Fetching state</div>
+  <div id="forNonWebBuildControlPage" style="display: none;margin-top:16px">
+      <i>For developers:</i> <a href="/webBuild" target="webBuild">Open web build control panel</a>
+  </div>
+  <form id="interactiveForm" style="display: none" onsubmit="event.preventDefault()">
   <hr/>
   <input id="useViteDevServerCheckbox" type="checkbox" onclick="rebuild({...state.builtWeb.buildOptions, buildStaticFiles: !event.target.checked})"/>Use vite devserver<br/>
   <button onclick="rebuild(state.builtWeb.buildOptions)">Rebuild</button>
+  </form>
 
   <script type="text/javascript">
       Proxmox = $PROXMOXSTATE$;
@@ -19,28 +24,43 @@
       async function fetchAndUpdateContent() {
           let contentHtml
           try {
+              const isWebBuildControlPage = window.location.pathname.indexOf("/webBuild") === 0;
+              if(!isWebBuildControlPage) {
+                  document.getElementById("forNonWebBuildControlPage").style.display = "block";
+              }
+
               state = await (await better_fetch("electrifiedAPI/webBuildState")).json();
               contentHtml = `
-<h2>Web build</h2>
-<b>Source directory:</b> <i>${escapeHtml(state.wwwSourceDir)}</i><br/>
-<i>Build Id: ${escapeHtml(state.builtWeb.buildId)}</i><br/>
-Started ${escapeHtml(state.builtWeb.diagnosis_createdAt)}<br/>
-${state.builtWeb.promiseState.state==="pending"?`<b>${loadingSpinnerHtml} Building web</b>: ${escapeHtml(state.builtWeb.diagnosis_state)}<br/>`:""}
+${isWebBuildControlPage?`
+    <h2>Web build</h2>
+    <b>Source directory:</b> <i>${escapeHtml(state.wwwSourceDir)}</i><br/>
+    <i>Build Id: ${escapeHtml(state.builtWeb.buildId)}</i><br/>
+    Started ${escapeHtml(state.builtWeb.diagnosis_createdAt)}<br/>
+`:""}
+${state.builtWeb.promiseState.state==="pending"?`${loadingSpinnerHtml} ${isWebBuildControlPage?"<b>Building web:</b>":"<b>Building the web-ui for PVE-electrified. Please be patient.</b> Progress:"}</b> ${escapeHtml(state.builtWeb.diagnosis_state)}<br/>`:""}
 ${state.builtWeb.promiseState.state==="resolved"?`
 <b>Build successfull. Now serving from folder:</b> <i>${escapeHtml(state.bundledWWWDir)}</i>
 `:""}
 ${state.builtWeb.promiseState.state==="rejected"?`<b>Build failed:</b> ${state.builtWeb.promiseState.rejectReason}<br/>`:""}
 `
-              // Update checkbox:
-              document.getElementById("useViteDevServerCheckbox").checked = !state.builtWeb.buildOptions.buildStaticFiles;
+              if(isWebBuildControlPage) {
+                  // Update form:
+                  document.getElementById("interactiveForm").style.display="block"
+                  // Update checkbox:
+                  document.getElementById("useViteDevServerCheckbox").checked = !state.builtWeb.buildOptions.buildStaticFiles;
+              }
+              else {
+                  if(state.builtWeb.promiseState.state==="resolved") { // Build was successful?
+                      window.location.reload();
+                  }
+              }
           }
           catch (e) {
               contentHtml = `<i><pre>${escapeHtml(errorToString(e))}</pre></i>`
           }
           document.getElementById("content").innerHTML = contentHtml;
       }
-      setInterval(fetchAndUpdateContent, 500);
-
+      setInterval(fetchAndUpdateContent, 500); fetchAndUpdateContent();
 
       function rebuild(options) {
           better_fetch("electrifiedAPI/rebuildWeb", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify([options])})
