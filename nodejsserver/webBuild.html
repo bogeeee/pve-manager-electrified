@@ -39,7 +39,7 @@ ${isWebBuildControlPage?`
 `:""}
 ${state.builtWeb.promiseState.state==="pending"?`${loadingSpinnerHtml} ${isWebBuildControlPage?"<b>Building web:</b>":"<b>Building the web-ui for PVE-electrified. Please be patient.</b> Progress:"}</b> ${escapeHtml(state.builtWeb.diagnosis_state)}<br/>`:""}
 ${state.builtWeb.promiseState.state==="resolved"?`
-<b>Build successfull. Now serving from folder:</b> <i>${escapeHtml(state.bundledWWWDir)}</i>
+<b>Build successfull.</b> ${state.builtWeb.buildOptions.buildStaticFiles?`Now serving from folder: <i>${escapeHtml(state.bundledWWWDir)}</i>`: `Serving with the vite devserver`}
 `:""}
 ${state.builtWeb.promiseState.state==="rejected"?`<b>Build failed:</b> ${state.builtWeb.promiseState.rejectReason}<br/>`:""}
 `
