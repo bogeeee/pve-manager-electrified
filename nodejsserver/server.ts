@@ -21,7 +21,7 @@ import {
 } from './util/util.js';
 import {ElectrifiedSession} from "./ElectrifiedSession";
 import {restfuncsExpress} from "restfuncs-server";
-import {createServer} from "vite";
+import {createServer, ViteDevServer} from "vite";
 
 // Enable these for better error diagnosis during development:
 //ErrorDiagnosis.keepProcessAlive = (process.env.NODE_ENV === "development");
@@ -54,6 +54,8 @@ class AppServer {
 
 
     builtWeb!: WebBuildProgress
+
+    protected viteDevServer!: ViteDevServer;
 
 
     constructor() {
@@ -102,21 +104,21 @@ class AppServer {
             })));
 
 
-            // Serve a modified index.html (from https:/localhost:8006/index.html - request from this server) with some replacements:
+            // Serve index.html (from bundled filed) with some replacements:
             expressApp.get("/", this.serveIndexHtml.bind(this));
 
             // Serve web-build control panel:
             expressApp.get("/webBuild", this.serveWebBuildDiagnosisHtml.bind(this));
 
             // (for vite-dev-server mode), serve web web through vite dev server:
-            const viteDevServer = await createServer({
+            this.viteDevServer = await createServer({
                 server: {
                     middlewareMode: true,
                 },
                 root: this.wwwSourceDir,
                 base: "/",
             });
-            expressApp.use(conditionalMiddleware(() => this.useViteDevServer, viteDevServer.middlewares));
+            expressApp.use(conditionalMiddleware(() => this.useViteDevServer, this.viteDevServer.middlewares));
 
             // (for production mode) Serve (non-modified-) bundled files:
             expressApp.use("/", conditionalMiddleware(() => !this.useViteDevServer, express.static(this.bundledWWWDir)));
@@ -183,7 +185,7 @@ class AppServer {
     }
 
     /**
-     * Serves a modified index.html (requested from this server) and does some runtime variable replacements there
+     * Serves the index.html (from bundled files) and does some runtime variable replacements there
      * @param req
      * @param res
      * @param next
@@ -194,7 +196,7 @@ class AppServer {
         }
         try {
             const endoding = "utf-8";
-            let indexHtml = (await axiosExt(`https://localhost:${this.config.port}/index.html`, {})).data; // Request from this server. It may either be served as a static file, or through the vite-dev-server
+            let indexHtml = await fsAsync.readFile(this.wwwSourceDir + "/index.html", {encoding: endoding});
 
             // Remove absolute-url prefixes:
             indexHtml = indexHtml.replaceAll("https://remove_this_prefix","");
@@ -233,6 +235,8 @@ class AppServer {
             const isDebug = req.query?.["debug"] != undefined || await fileExists(this.config.developWwwBaseDir);
             indexHtml = indexHtml.replace("$DEBUG_EXT_ALL$", isDebug ? "-debug" : "");
             indexHtml = indexHtml.replace("$DEBUG_CHARTS$", isDebug ? "-debug" : "");
+
+            indexHtml = await this.viteDevServer.transformIndexHtml(req.url, indexHtml)
 
             res.send(indexHtml)
         } catch (e: any) {
