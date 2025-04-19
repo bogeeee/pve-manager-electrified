@@ -114,6 +114,7 @@ class AppServer {
             this.viteDevServer = await createServer({
                 server: {
                     middlewareMode: true,
+                    allowedHosts: true // Allow all hosts. TODO: security: restrict only to users, logged in a as root.
                 },
                 root: this.wwwSourceDir,
                 base: "/",
