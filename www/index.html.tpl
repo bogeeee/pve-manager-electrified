@@ -9,7 +9,7 @@
     <link rel="apple-touch-icon" sizes="128x128" href="images/logo-128.png" />
     <!-- Urls, not under this www directory, are prefixed with 'https://remove_this_prefix', so the bundler will not touch them and not complain. The server.ts#serveIndexHtml method later removes the prefix when serving -->
     <link rel="stylesheet" type="text/css" href="https://remove_this_prefix/pve2/ext6/theme-crisp/resources/theme-crisp-all.css?ver=$CACHEBREAKER$" />
-    <link rel="stylesheet" type="text/css" href="https://remove_this_prefix/pve2/crisp/resources/charts-all.css?ver=$CACHEBREAKER$" />
+    <link rel="stylesheet" type="text/css" href="https://remove_this_prefix/pve2/ext6/crisp/resources/charts-all.css?ver=$CACHEBREAKER$" />
     <link rel="stylesheet" type="text/css" href="https://remove_this_prefix/pve2/fa/css/font-awesome.css" />
     <link rel="stylesheet" type="text/css" href="https://remove_this_prefix/pve2/font-logos/css/font-logos.css" />
     <link rel="stylesheet" type="text/css" href="https://remove_this_prefix/pve2/css/ext6-pve.css?ver=$CACHEBREAKER$" />
