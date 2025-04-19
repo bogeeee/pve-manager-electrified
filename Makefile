@@ -24,6 +24,9 @@ $(BUILD_TOOLS):
 	apt-get install -y build-essential git git-email debhelper pve-doc-generator
 	mk-build-deps --install
 
+# Default = with delete
+RSYNC_PARAMS=--delete
+
 all: $(SUBDIRS)
 	set -e && for i in $(SUBDIRS); do $(MAKE) -C $$i; done
 
@@ -117,6 +120,7 @@ IDE_debug_nodejsserver: IDE_rsync_project_to_targt_pve_host
 # Like the above, but skips some steps
 .PHONY: IDE_debug_nodejsserver
 IDE_faster_debug_nodejsserver:
+	$(MAKE) IDE_rsync_project_to_targt_pve_host RSYNC_PARAMS=
 	#Quick check, if the .ts files compile:
 	npm --prefix nodejsserver run check
 
@@ -130,7 +134,7 @@ IDE_faster_debug_nodejsserver:
 .PHONY: IDE_rsync_project_to_targt_pve_host
 IDE_rsync_project_to_targt_pve_host:
 	$(EXEC_SSH_TARGT_PVE_HOST) mkdir -p /root/proxmox/pve-manager-electrified
-	@sshpass -p "$(TARGT_PVE_HOST_ROOTPASSWORD)" rsync -a --delete --exclude="nodejsserver/node_modules" . root@$(TARGT_PVE_HOST):/root/proxmox/pve-manager-electrified/
+	@sshpass -p "$(TARGT_PVE_HOST_ROOTPASSWORD)" rsync -a $(RSYNC_PARAMS) --exclude="nodejsserver/node_modules" . root@$(TARGT_PVE_HOST):/root/proxmox/pve-manager-electrified/
 
 .PHONY: IDE_publish_docs_to_website
 IDE_publish_docs_to_website: clean index.html /usr/bin/sshpass
