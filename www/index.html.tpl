@@ -36,6 +36,7 @@
 
     <script type="text/javascript" src="/pve2/ext6/locale/locale-[% lang %].js?ver=$CACHEBREAKER$"></script>
 
+    <script type="module" src="./electrified/Application.ts"></script>
 
     <script type="text/javascript">
     if (typeof(PVE) === 'undefined') PVE = {};
