@@ -4,9 +4,8 @@ import axios, {AxiosRequestConfig} from "axios";
 import {execa} from "execa";
 import fsPromises from 'node:fs/promises';
 import {PathLike} from "fs";
-import http from "node:http";
+import  {IncomingMessage, ServerResponse} from "node:http";
 import {WebSocket, WebSocketServer, RawData} from "ws";
-
 /**
  *
  * execute a conditional function, to decide for each request whether the (express-) middleware should be executed or not
@@ -217,29 +216,20 @@ export async function fileExists(filePath: PathLike) {
  * Forwards(=proxies) them to another server
  * Also forwards the cookie
  * @param httpsServer
- * @param path undefined = all connections
- * @param targetServerUrl begins with ws:// wss://
+ * @param connectorFn connects to the target websocket server
  * @param destroyUnhandled false, if there is another on-upgrade handler after this one, that may also want to catch websocket connections
  */
-export function forwardWebsocketConnections(httpsServer: Server<typeof http.IncomingMessage, typeof http.ServerResponse>, path: string | undefined, targetServerUrl:string, destroyUnhandled: boolean) {
+export function forwardWebsocketConnections(httpsServer: Server<typeof IncomingMessage, typeof ServerResponse>, connectorFn: (req: IncomingMessage) => WebSocket, destroyUnhandled: boolean) {
     // Params check:
     !destroyUnhandled || throwError("destroyUnhandled not yet implemented")
 
-    const wss = new WebSocketServer({server: httpsServer, path});
+    const wss = new WebSocketServer({server: httpsServer});
 
     wss.on('connection', (clientSocket, req) => {
 
         let unforwardedMessagesToTarget: RawData[] | undefined= []; // In case, we have already retrieved messages from the client while the targetConnection is not yet open
 
-        const headers = {
-            cookie: req.headers["cookie"]
-        };
-
-        // Connect to the target server
-        const targetSocket = new WebSocket(`${targetServerUrl}${req.url}`, {
-            rejectUnauthorized: false,
-            headers
-        });
+        const targetSocket = connectorFn(req);
 
         function fail(e: unknown) {
             topLevel_withErrorHandling(() => {
@@ -258,7 +248,7 @@ export function forwardWebsocketConnections(httpsServer: Server<typeof http.Inco
                     !(unforwardedMessagesToTarget!.length >= 10) || throwError("Preventing resource exhaustion: Cannot cache more that 10 messages");
                     unforwardedMessagesToTarget!.push(message);
                 } else if (targetSocket.readyState === WebSocket.OPEN) {
-                    targetSocket.send(message);
+                    targetSocket.send(message, {binary: isBinary});
                 } else {
                     throw new Error("Cannot forward message. targetSocket is closed");
                 }

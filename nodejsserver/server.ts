@@ -22,6 +22,7 @@ import {
 import {ElectrifiedSession} from "./ElectrifiedSession";
 import {restfuncsExpress} from "restfuncs-server";
 import {createServer, ViteDevServer} from "vite";
+import {WebSocket} from "ws";
 
 // Enable these for better error diagnosis during development:
 //ErrorDiagnosis.keepProcessAlive = (process.env.NODE_ENV === "development");
@@ -152,11 +153,20 @@ class AppServer {
 
             expressApp.installEngineIoServer(httpsServer);
 
-            // Forward websocket connection to vite dev server
-            forwardWebsocketConnections(httpsServer, "/viteHmr", `ws://localhost:${this.config.internalViteHmrPort}`, false);
-
-            // Forward the rest of all websocket connections (not handled by Restfuncs)  to the original server (most simple implementation. If there's more special websocket paths, put the handlers **above** here):
-            forwardWebsocketConnections(httpsServer, undefined, `wss://localhost:${this.config.origPort}`, false);
+            // Forward vite dev server websocket connections + the rest of all websocket connections (not handled by Restfuncs)  to the original server (most simple implementation. If there's more special websocket paths, put the handlers **above** here):
+            forwardWebsocketConnections(httpsServer, (req) => {
+                if(req.url?.startsWith("/viteHmr")) { // For vite ?
+                    return new WebSocket(`ws://localhost:${this.config.internalViteHmrPort}${req.url}`);
+                }
+                else {
+                    return new WebSocket(`wss://localhost:${this.config.origPort}${req.url}`, {
+                        rejectUnauthorized: false,
+                        headers: {
+                            cookie: req.headers["cookie"]
+                        }
+                    });
+                }
+            }, false);
 
             httpsServer.listen(this.config.port, () => {
                 console.log(`Server running at http://localhost:${this.config.port}`);
