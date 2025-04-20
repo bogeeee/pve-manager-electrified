@@ -220,7 +220,7 @@ class AppServer {
         }
         try {
             const endoding = "utf-8";
-            let indexHtml = await fsAsync.readFile(this.wwwSourceDir + "/index.html", {encoding: endoding});
+            let indexHtml = await fsAsync.readFile(`${this.useViteDevServer?this.wwwSourceDir:this.bundledWWWDir}/index.html`, {encoding: endoding});
 
             // Remove absolute-url prefixes:
             indexHtml = indexHtml.replaceAll("https://remove_this_prefix","");
