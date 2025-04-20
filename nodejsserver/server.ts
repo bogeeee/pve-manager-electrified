@@ -17,7 +17,7 @@ import {
     fileExists,
     killProcessThatListensOnPort,
     forwardWebsocketConnections,
-    spawnAsync, ErrorDiagnosis, TaskPromise, taskWithProgress
+    spawnAsync, ErrorDiagnosis
 } from './util/util.js';
 import {ElectrifiedSession} from "./ElectrifiedSession";
 import {restfuncsExpress} from "restfuncs-server";
