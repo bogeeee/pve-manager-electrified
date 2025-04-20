@@ -6,7 +6,7 @@
     "dev_playground": "tsx watch devPlayground.ts",
     "clean": "tspc --build --clean",
     "build": "tspc --build --force",
-    "check": "tspc --build",
+    "check": "tspc --noemit",
     "start": "cross-env NODE_ENV=production node --enable-source-maps server.js"
   },
   "dependencies": {
