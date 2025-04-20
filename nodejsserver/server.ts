@@ -260,7 +260,9 @@ class AppServer {
             indexHtml = indexHtml.replace("$DEBUG_EXT_ALL$", isDebug ? "-debug" : "");
             indexHtml = indexHtml.replace("$DEBUG_CHARTS$", isDebug ? "-debug" : "");
 
-            indexHtml = await this.viteDevServer.transformIndexHtml(req.url, indexHtml)
+            if(this.useViteDevServer) {
+                indexHtml = await this.viteDevServer.transformIndexHtml(req.url, indexHtml)
+            }
 
             res.send(indexHtml)
         } catch (e: any) {
