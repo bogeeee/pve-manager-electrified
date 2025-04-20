@@ -35,6 +35,11 @@ class AppServer {
          */
         origPort: 8005,
         port: 8006,
+
+        /**
+         * Port where the vite evserver is listening for websocket connections. Thy will be forwarded to there.
+         */
+        internalViteHmrPort: 8055,
         key: "/etc/pve/local/pve-ssl.key",
         cert: "/etc/pve/local/pve-ssl.pem",
         WWWBASEDIR: "/usr/share/pve-manager",
@@ -114,6 +119,11 @@ class AppServer {
             this.viteDevServer = await createServer({
                 server: {
                     middlewareMode: true,
+                    hmr: {
+                        path: "viteHmr",
+                        port: this.config.internalViteHmrPort,
+                        clientPort: this.config.port,
+                    },
                     allowedHosts: true // Allow all hosts. TODO: security: restrict only to users, logged in a as root.
                 },
                 root: this.wwwSourceDir,
@@ -141,6 +151,9 @@ class AppServer {
             }, expressApp);
 
             expressApp.installEngineIoServer(httpsServer);
+
+            // Forward websocket connection to vite dev server
+            forwardWebsocketConnections(httpsServer, "/viteHmr", `ws://localhost:${this.config.internalViteHmrPort}`, false);
 
             // Forward the rest of all websocket connections (not handled by Restfuncs)  to the original server (most simple implementation. If there's more special websocket paths, put the handlers **above** here):
             forwardWebsocketConnections(httpsServer, undefined, `wss://localhost:${this.config.origPort}`, false);

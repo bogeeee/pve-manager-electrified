@@ -270,10 +270,10 @@ export function forwardWebsocketConnections(httpsServer: Server<typeof http.Inco
         });
 
         // Proxy messages from target server to client
-        targetSocket.on('message', (message: any) => {
+        targetSocket.on('message', (data: RawData, isBinary: boolean) => {
             try {
                 if (clientSocket.readyState === WebSocket.OPEN) {
-                    clientSocket.send(message);
+                    clientSocket.send(data,{binary: isBinary});
                 } else {
                     throw new Error("Cannot forward message. clientSocket is closed")
                 }
