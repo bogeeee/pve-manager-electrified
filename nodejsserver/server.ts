@@ -156,6 +156,9 @@ class AppServer {
             // Forward vite dev server websocket connections + the rest of all websocket connections (not handled by Restfuncs)  to the original server (most simple implementation. If there's more special websocket paths, put the handlers **above** here):
             forwardWebsocketConnections(httpsServer, (req) => {
                 if(req.url?.startsWith("/viteHmr")) { // For vite ?
+                    if(!this.useViteDevServer) {
+                        return undefined; // Don't allow
+                    }
                     return new WebSocket(`ws://localhost:${this.config.internalViteHmrPort}${req.url}`);
                 }
                 else {

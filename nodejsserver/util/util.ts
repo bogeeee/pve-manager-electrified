@@ -219,7 +219,7 @@ export async function fileExists(filePath: PathLike) {
  * @param connectorFn connects to the target websocket server
  * @param destroyUnhandled false, if there is another on-upgrade handler after this one, that may also want to catch websocket connections
  */
-export function forwardWebsocketConnections(httpsServer: Server<typeof IncomingMessage, typeof ServerResponse>, connectorFn: (req: IncomingMessage) => WebSocket, destroyUnhandled: boolean) {
+export function forwardWebsocketConnections(httpsServer: Server<typeof IncomingMessage, typeof ServerResponse>, connectorFn: (req: IncomingMessage) => WebSocket | undefined, destroyUnhandled: boolean) {
     // Params check:
     !destroyUnhandled || throwError("destroyUnhandled not yet implemented")
 
@@ -230,11 +230,15 @@ export function forwardWebsocketConnections(httpsServer: Server<typeof IncomingM
         let unforwardedMessagesToTarget: RawData[] | undefined= []; // In case, we have already retrieved messages from the client while the targetConnection is not yet open
 
         const targetSocket = connectorFn(req);
+        if(!targetSocket) {
+            fail("No handled / url not allowed");
+            return;
+        }
 
         function fail(e: unknown) {
             topLevel_withErrorHandling(() => {
                 for(const socket of [targetSocket, clientSocket]) {
-                    if (!(socket.readyState === WebSocket.CLOSED || socket.readyState === WebSocket.CLOSING)) {
+                    if (socket && !(socket.readyState === WebSocket.CLOSED || socket.readyState === WebSocket.CLOSING)) {
                         socket.close(undefined, errorToString(e));
                     }
                 }
