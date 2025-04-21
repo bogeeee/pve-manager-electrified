@@ -6,7 +6,9 @@ build/
 *.buildinfo
 *.changes
 
+/www/node_modules/
 /www/manager6/OnlineHelpInfo.js
+/www/index.html
 /www/manager6/pvemanagerlib.js
 /www/mobile/pvemanager-mobile.js
 /www/touch/touch-[0-9]*/
@@ -17,5 +19,4 @@ build/
 .vscode/**/*.log
 .vscode/launch.json
 local.config.mk
-www/index.html
 index.html
