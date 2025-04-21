@@ -71,7 +71,7 @@ sub init {
 	die "unable to open lock file '${accept_lock_fn}' - $!\n";
 
     my $listen_ip = $proxyconf->{LISTEN_IP};
-    my $socket = $self->create_reusable_socket(8005, $listen_ip);
+    my $socket = $self->create_reusable_socket(8005, "127.0.0.1");
 
     my $dirs = {};
 
