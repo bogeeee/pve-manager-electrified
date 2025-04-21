@@ -11,7 +11,7 @@ The goal is also, to provide a plugin system and give plugin authors the tools t
 ````bash
 wget https://pve-electrified.net/pubkey.asc -O /etc/apt/trusted.gpg.d/pve-electrified.asc
 echo "deb https://pve-electrified.net/debian bookworm main" >> /etc/apt/sources.list
-apt update && install -y pve-manager-electrified
+apt update && apt install -y pve-manager-electrified
 ````
 
 ## Uninstall
