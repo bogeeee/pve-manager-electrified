@@ -1,8 +1,8 @@
 import {ServerSession} from "restfuncs-server";
 import {remote} from "restfuncs-server";
 import {ServerSessionOptions} from "restfuncs-server";
-import {appServer} from "./server";
-import {BuildOptions} from "./WebBuilder";
+import {appServer} from "./server.js";
+import {BuildOptions} from "./WebBuilder.js";
 import {errorToHtml} from "./util/util.js";
 
 export class ElectrifiedSession extends ServerSession {

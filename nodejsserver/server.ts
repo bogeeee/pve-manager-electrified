@@ -19,7 +19,7 @@ import {
     forwardWebsocketConnections,
     spawnAsync, ErrorDiagnosis
 } from './util/util.js';
-import {ElectrifiedSession} from "./ElectrifiedSession";
+import {ElectrifiedSession} from "./ElectrifiedSession.js";
 import {restfuncsExpress} from "restfuncs-server";
 import {createServer, ViteDevServer} from "vite";
 import {WebSocket} from "ws";
