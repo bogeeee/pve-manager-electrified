@@ -56,7 +56,7 @@ export async function better_fetch(...args: Parameters<typeof fetch>) {
  * @param url
  * @param config
  */
-export async function axiosExt(url: string, config?: AxiosRequestConfig) {
+export async function axiosExt(url: string, config?: any): Promise<any> { /* Bug workaround: using any, because typescript-rtti emits wrong js code when following the axios imports */
     return axios.request({
         url,
         // Disable cert check:
