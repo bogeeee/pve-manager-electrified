@@ -37,7 +37,7 @@ These are the differences to the original pve-manager package from Proxmox: Thes
   Vite can also run in **dev server** mode. Then it watches the files and gives you fast reloading. Under `/webBuild`, There's control panel, where you can switch modes.
 
 # Security consideration when using it in an enterprise
-Read [here](https://github.com/bogeeee/pve-manager-electrified/docs/security.md)
+Read [here](https://github.com/bogeeee/pve-manager-electrified/blob/main/docs/security.md)
   
 # Source code / license
 

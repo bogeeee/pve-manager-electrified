@@ -1,13 +1,13 @@
 # Security
 
-PVE electrified's main goal is to allow faster coding of new features. That's why it uses a different architecture for serving the web, based on nodejs.
+PVE electrified's main goal is to allow faster coding of new features. That's why it uses a different architecture for serving the web, based on Node.js.
 So here are the things listed, that are different to the original proxmox's pve-manager in terms of security, so you can revise it.
 
 # Supply chain
 
-- `apt install pve-manager-electrified` adds ~470 additional debian packages
-- For the nodejsserver, After install, there are ~300 nodes-js packages installed. You can find them under `/usr/share/pve-manager-nodejsserver/node_modules`
-- For the client/web, there are TODO:how-many packages installed. You can find them under: `/var/lib/pve-manager/bundledWww/node_modules`
+- `apt install pve-manager-electrified` adds ~470 additional debian packages for Node.js and npm
+- For the nodejsserver code, after install, there are ~300 Node.js packages installed. You can find them under `/usr/share/pve-manager-nodejsserver/node_modules`
+- For the client/web, there are TODO:how-many Node.js packages installed. You can find them under: `/var/lib/pve-manager/bundledWww/node_modules`
 - Npm is run for the server and web packages **with the --ignore-scripts argument**, for some extra security. A lot of code paths are not used in reality and even complete packages are often listed but not actually used. So this doesn't give them a hook upfront. 
 
 # CSRF protection
