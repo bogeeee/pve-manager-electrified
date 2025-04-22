@@ -6,6 +6,8 @@ import fsPromises from 'node:fs/promises';
 import {PathLike} from "fs";
 import  {IncomingMessage, ServerResponse} from "node:http";
 import {WebSocket, WebSocketServer, RawData} from "ws";
+import escapeHtml from "escape-html";
+
 /**
  *
  * execute a conditional function, to decide for each request whether the (express-) middleware should be executed or not
@@ -81,6 +83,24 @@ export function errorToString(e: any): string {
         (e.stack ? `\n${e.stack}` : '') +
         (e.fileName ? `\nFile: ${e.fileName}` : '') + (e.lineNumber ? `, Line: ${e.lineNumber}` : '') + (e.columnNumber ? `, Column: ${e.columnNumber}` : '') +
         (e.cause ? `\nCause: ${errorToString(e.cause)}` : '')
+}
+
+export function errorToHtml(e: any): string {
+    // Handle other types:
+    if(!e || typeof e !== "object") {
+        return `<pre>${escapeHtml(String(e))}</pre>`;
+    }
+    if(!e.message) { // e is not an ErrorWithExtendedInfo ?
+        return `<pre>${escapeHtml(JSON.stringify(e))}</pre>`;
+    }
+    e = e as Error;
+
+    let title= (e.name ? `${e.name}: `: "") + (e.message || String(e))
+
+    return `<b><pre>${escapeHtml( title)}</pre></b>` +
+        (e.stack ? `\n<pre>${escapeHtml(e.stack)}</pre>` : '') +
+        (e.fileName ? `<br/>\nFile: ${escapeHtml(e.fileName)}` : '') + (e.lineNumber ? `, Line: ${escapeHtml(e.lineNumber)}` : '') + (e.columnNumber ? `, Column: ${escapeHtml(e.columnNumber)}` : '') +
+        (e.cause ? `<br/>\nCause:<br/>\n${errorToHtml(e.cause)}` : '')
 }
 
 export async function killProcessThatListensOnPort(port: number) {
