@@ -38,7 +38,7 @@ class AppServer {
         port: 8006,
 
         /**
-         * Port where the vite evserver is listening for websocket connections. Thy will be forwarded to there.
+         * Port where the vite devserver is listening for websocket connections. Thy will be forwarded to there.
          */
         internalViteHmrPort: 8055,
         key: "/etc/pve/local/pve-ssl.key",
@@ -123,12 +123,25 @@ class AppServer {
                     hmr: {
                         path: "viteHmr",
                         port: this.config.internalViteHmrPort,
+                        host: "127.0.0.1", // Security: bind the internal server to loopback interface only
                         clientPort: this.config.port,
                     },
                     allowedHosts: true // Allow all hosts. TODO: security: restrict only to users, logged in a as root.
                 },
                 root: this.wwwSourceDir,
                 base: "/",
+                plugins: [
+                    // Workaround: Setting host: "127.0.0.1" (see above) make the client try to connect to 127.0.0.1. So we modify the script that's sent to the client, as described here https://github.com/vitejs/vite/issues/8666#issuecomment-1315694497
+                    {
+                        name: "modify-client-host",
+                        transform(code, id) {
+                            if ( id.endsWith("dist/client/client.mjs") || id.endsWith("dist/client/env.mjs") ) {
+                                return code.replace("__HMR_HOSTNAME__", "window.location.hostname");
+                            }
+                            return code;
+                        },
+                    },
+                ],
             });
             expressApp.use(conditionalMiddleware(() => this.useViteDevServer, this.viteDevServer.middlewares));
 
