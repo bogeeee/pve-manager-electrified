@@ -16,8 +16,7 @@
     "express": "^4.17.13",
     "http-proxy-middleware": "^2.0.6",
     "vite": "^6.3.2",
-    "restfuncs-server": "^3.2.1",
-    "restfuncs-client": "^2.2.0",
+    "restfuncs-server": "^3.3.3",
     "ws": "^8.18.1",
     "escape-html": "=1.0.3"
   },
