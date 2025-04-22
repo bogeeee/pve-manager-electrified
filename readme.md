@@ -35,6 +35,9 @@ These are the differences to the original pve-manager package from Proxmox: Thes
   .js files are also served. But instead of all in a non-debugging-friendly bigfile, they are listed as individually (Vite can still bundle them internally but then we have proper source mapping).
   React components are used in the mix with the old ExtJS 6 components.  
   Vite can also run in **dev server** mode. Then it watches the files and gives you fast reloading. Under `/webBuild`, There's control panel, where you can switch modes.
+
+# Security consideration when using it in an enterprise
+Read [here](https://github.com/bogeeee/pve-manager-electrified/docs/security.md)
   
 # Source code / license
 
