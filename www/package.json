@@ -1,5 +1,6 @@
 {
-  "name": "pve-manager-ui",
+  "name": "pveme-ui",
+  "description": "PVE manager electrified user interface",
   "version": "1.0.0",
   "scripts": {
     "check": "tsc --noemit"
