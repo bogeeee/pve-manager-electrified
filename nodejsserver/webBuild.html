@@ -12,7 +12,8 @@
   <form id="interactiveForm" style="display: none" onsubmit="event.preventDefault()">
   <hr/>
   <input id="useViteDevServerCheckbox" type="checkbox" onclick="rebuild({...state.builtWeb.buildOptions, buildStaticFiles: !event.target.checked})"/>Use vite devserver<br/>
-  <button onclick="rebuild(state.builtWeb.buildOptions)">Rebuild</button>
+  <button onclick="rebuild(state.builtWeb.buildOptions)">Rebuild web</button>
+  <button onclick="(async() => { await execElectrifiedApiMethod('resetNode_modules',[]);})()">Reset package-lock and node_modules</button>
   </form>
 
   <script type="text/javascript">
@@ -63,8 +64,12 @@ ${state.builtWeb.promiseState.state==="rejected"?`<b>Build failed:</b> ${state.b
       }
       setInterval(fetchAndUpdateContent, 500); fetchAndUpdateContent();
 
-      function rebuild(options) {
-          better_fetch("electrifiedAPI/rebuildWeb", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify([options])})
+      async function rebuild(options) {
+          await execElectrifiedApiMethod("rebuildWeb", [options]);
+      }
+
+      async function execElectrifiedApiMethod(methodName, args) {
+          await better_fetch(`electrifiedAPI/${methodName}`, {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(args)})
       }
 
       // *** UTIL Functions ***

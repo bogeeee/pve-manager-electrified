@@ -3,7 +3,8 @@ import {remote} from "restfuncs-server";
 import {ServerSessionOptions} from "restfuncs-server";
 import {appServer} from "./server.js";
 import {BuildOptions} from "./WebBuilder.js";
-import {errorToHtml} from "./util/util.js";
+import {deleteDir, errorToHtml} from "./util/util.js";
+import {rmSync} from "fs";
 
 export class ElectrifiedSession extends ServerSession {
     static options: ServerSessionOptions = {
@@ -33,5 +34,15 @@ export class ElectrifiedSession extends ServerSession {
     @remote()
     async rebuildWeb(buildOptions: BuildOptions) {
         await appServer.buildWeb(buildOptions);
+    }
+
+    /**
+     * Clears all node_modules and resets the package-lock.json to the original, how is was published by the pve-manager-electrified debian package
+     */
+    @remote()
+    async resetNode_modules() {
+        await deleteDir(`${appServer.wwwSourceDir}/node_modules`, true);
+        rmSync(`${appServer.wwwSourceDir}/package-lock.json`, {force: true});
+        // TODO: copy original
     }
 }

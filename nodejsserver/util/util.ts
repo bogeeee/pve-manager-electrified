@@ -7,6 +7,7 @@ import {PathLike} from "fs";
 import  {IncomingMessage, ServerResponse} from "node:http";
 import {WebSocket, WebSocketServer, RawData} from "ws";
 import escapeHtml from "escape-html";
+import fs from "node:fs";
 
 /**
  *
@@ -516,3 +517,12 @@ export function isObject(value: unknown) {
 
 }
 
+export async function deleteDir(dir: string, ignoreNonExisting=false) {
+     if(!fs.existsSync(dir)) {
+         if(ignoreNonExisting) {
+             return;
+         }
+         throw new Error(`Directory ${dir} does not exist`);
+     }
+    await execa("rm", ["-rf", dir]);
+}

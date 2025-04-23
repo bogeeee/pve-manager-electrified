@@ -17,7 +17,7 @@ import {
     fileExists,
     killProcessThatListensOnPort,
     forwardWebsocketConnections,
-    spawnAsync, ErrorDiagnosis
+    spawnAsync, ErrorDiagnosis, deleteDir
 } from './util/util.js';
 import {ElectrifiedSession} from "./ElectrifiedSession.js";
 import {restfuncsExpress} from "restfuncs-server";
@@ -218,7 +218,7 @@ class AppServer {
 
 
     protected async activateBuildResult(buildResult: BuildResult) {
-        await execa("rm", ["-rf", this.bundledWWWDir]); // delete old dir
+        await deleteDir(this.bundledWWWDir, true); // delete old dir
         if (buildResult.staticFilesDir) {
             await execa("mv", [buildResult.staticFilesDir, this.bundledWWWDir]);
         }
