@@ -3,6 +3,8 @@ import {build as viteBuild} from "vite";
 import crypto from "crypto"
 import { appServer } from './server.js';
 import {PromiseTask} from "./util/util.js";
+import {execa} from "execa";
+import {Buffer} from "node:buffer"
 
 
 export type BuildOptions = {
@@ -41,8 +43,8 @@ export default class WebBuildProgress extends PromiseTask<BuildResult> {
         await this.createIndexHtml();
         // copy & modify package.json to enable/disable plugins
         // create listPlugins.js
-        // npm prune (without triggers)
-        // npm prune on all /root/pveme-plugin projects(without triggers)
+        await this.npmInstall();
+        await this.typeCheck();
 
 
         if (this.buildOptions.buildStaticFiles) {
@@ -82,6 +84,29 @@ export default class WebBuildProgress extends PromiseTask<BuildResult> {
         templateHtml = templateHtml.replace("$INCLUDE_MANAGER6_NONMODULE_SCRIPTS$", scriptsBlock);
 
         await fs.writeFile(wwwSourcesDir + "/index.html", templateHtml, {encoding:templateEncoding});
+    }
+
+    /**
+     * Installs npm packages
+     */
+    async npmInstall() {
+        const headline = "NPM-installing packages";
+        this.diagnosis_state = headline;
+
+        const wwwSourcesDir = appServer.wwwSourceDir;
+        const process = execa("npm", ["install", "--ignore-scripts"], {cwd: wwwSourcesDir})
+        // Display progress:
+        process.stdout?.on("data", (data: Buffer) => {
+            this.diagnosis_state = `${headline}: ${data.toString()}`
+        })
+
+        await process
+    }
+
+    async typeCheck() {
+        this.diagnosis_state = "Type checking with tsc";
+        const wwwSourcesDir = appServer.wwwSourceDir;
+        await execa("npm", ["run", "check"], {cwd: wwwSourcesDir})
     }
 
     async bundleFiles() {
