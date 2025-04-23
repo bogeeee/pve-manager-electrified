@@ -1,5 +1,5 @@
 import {RestfuncsClient} from "restfuncs-client";
-import type {ElectrifiedSession} from "../../nodejsserver/ElectrifiedSession"
+import type {ElectrifiedSession} from "pveme-nodejsserver"
 import {spawnAsync} from "./util/util"; // Import to have types
 
 class Application {

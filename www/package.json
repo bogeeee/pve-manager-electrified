@@ -5,6 +5,7 @@
     "check": "tsc --noemit"
   },
   "dependencies": {
+    "pveme-nodejsserver": "^1.0.0",
     "restfuncs-client": "^2.2.0",
     "react": "^19.1.0",
     "typescript": "=5.1.6"
