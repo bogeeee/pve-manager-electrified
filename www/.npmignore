@@ -1,0 +1,6 @@
+/**/tsconfig.*
+/**/*.test.*
+/__tests__
+/**/*
+touch/touch-2.4.2/examples/watchlist/README.md
+!/**/*.ts

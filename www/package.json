@@ -1,11 +1,15 @@
 {
   "name": "pveme-ui",
-  "description": "PVE manager electrified user interface",
-  "version": "1.0.0",
+  "description": "PVE manager electrified user interface. The npm-published version is for the plugin dev's IDE and contains only the .ts files",
+  "type": "module",
+  "version": "1.0.1",
   "scripts": {
     "IDE:link_nodejsserver_dir": "npm install --save false --ignore-scripts ../nodejsserver ",
     "check": "tsc --noemit",
-    "postinstall": "npm run IDE:link_nodejsserver_dir"
+    "postinstall": "npm run IDE:link_nodejsserver_dir",
+    "prepublish": "npm run check",
+    "publish:npmlogin": "npm login",
+    "publish:publish": "npm run prepublish && npm publish"
   },
   "dependencies": {
     "pveme-nodejsserver": "^1.0.0",
