@@ -23,6 +23,8 @@ import {ElectrifiedSession} from "./ElectrifiedSession.js";
 import {restfuncsExpress} from "restfuncs-server";
 import {createServer, ViteDevServer} from "vite";
 import {WebSocket} from "ws";
+import {fileURLToPath} from "node:url";
+import path from "node:path";
 
 // Enable these for better error diagnosis during development:
 //ErrorDiagnosis.keepProcessAlive = (process.env.NODE_ENV === "development");
@@ -46,6 +48,8 @@ class AppServer {
         WWWBASEDIR: "/usr/share/pve-manager",
         developWwwBaseDir: "/root/proxmox/pve-manager-electrified/www", // if this exists then they are used from there
     }
+
+    thisNodejsServerDir = path.dirname(fileURLToPath(import.meta.url));
 
     /**
      * Dir where the web sources are (except libs whicht are spreaded out across /usr/... )

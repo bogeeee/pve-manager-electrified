@@ -3,7 +3,9 @@
   "description": "PVE manager electrified user interface",
   "version": "1.0.0",
   "scripts": {
-    "check": "tsc --noemit"
+    "IDE:link_nodejsserver_dir": "npm install --save false --ignore-scripts ../nodejsserver ",
+    "check": "tsc --noemit",
+    "postinstall": "npm run IDE:link_nodejsserver_dir"
   },
   "dependencies": {
     "pveme-nodejsserver": "^1.0.0",

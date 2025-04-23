@@ -3,7 +3,7 @@ import {build as viteBuild} from "vite";
 import crypto from "crypto"
 import { appServer } from './server.js';
 import {PromiseTask} from "./util/util.js";
-import {execa} from "execa";
+import {execa, Options} from "execa";
 import {Buffer} from "node:buffer"
 
 
@@ -94,12 +94,27 @@ export default class WebBuildProgress extends PromiseTask<BuildResult> {
         this.diagnosis_state = headline;
 
         const wwwSourcesDir = appServer.wwwSourceDir;
-        const process = execa("npm", ["install", "--ignore-scripts"], {cwd: wwwSourcesDir})
+
+        await this.execa_withProgressReport(headline, "npm", ["install", "--ignore-scripts"], {cwd: wwwSourcesDir})
+
+        // Link the pveme-nodejsserver package: This works, no matter of what's declared inside the package-lock.json from the development machine
+        await this.execa_withProgressReport(`${headline} > linking local packages`, "npm", ["install", "--ignore-scripts", "--save", "false", appServer.thisNodejsServerDir], {cwd: wwwSourcesDir})
+    }
+
+    /**
+     * Like execa, but reports stdout to the diagnosis_state
+     * @param prefix
+     * @param execa_args
+     */
+    async execa_withProgressReport(prefix: string, file: string, args: readonly string[], options?: Options) {
+        this.diagnosis_state = `${prefix}`;this.fireProgressChanged();
+
+        const process = execa(file, args, options);
         // Display progress:
         process.stdout?.on("data", (data: Buffer) => {
-            this.diagnosis_state = `${headline}: ${data.toString()}`
+            this.diagnosis_state = `${prefix}: ${data.toString()}`;
+            this.fireProgressChanged();
         })
-
         await process
     }
 
