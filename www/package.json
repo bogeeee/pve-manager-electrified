@@ -9,7 +9,7 @@
     "postinstall": "npm run IDE:link_nodejsserver_dir",
     "prepublish": "npm run check",
     "publish:npmlogin": "npm login",
-    "publish:publish": "npm run prepublish && npm publish"
+    "publish:publish_to_npm": "npm run prepublish && npm publish"
   },
   "dependencies": {
     "pveme-nodejsserver": "^1.0.0",

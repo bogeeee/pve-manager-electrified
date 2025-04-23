@@ -1,5 +1,6 @@
 {
   "name": "pveme-nodejsserver",
+  "description": "PVE manager electrified nodejsserver. The npm-published version is for the plugin dev's IDE and contains only the .ts files",
   "version": "1.0.0",
   "type": "module",
   "scripts": {
@@ -8,7 +9,10 @@
     "clean": "tspc --build --clean",
     "build": "tspc --build --force",
     "check": "tspc --noemit",
-    "start": "cross-env NODE_ENV=production node --enable-source-maps server.js"
+    "start": "cross-env NODE_ENV=production node --enable-source-maps server.js",
+    "prepublish": "npm run check",
+    "publish:npmlogin": "npm login",
+    "publish:publish_to_npm": "npm run prepublish && npm publish"
   },
   "dependencies": {
     "axios": "^1.8.4",
