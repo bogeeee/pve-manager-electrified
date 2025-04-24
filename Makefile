@@ -134,7 +134,7 @@ IDE_faster_debug_nodejsserver:
 .PHONY: IDE_rsync_project_to_targt_pve_host
 IDE_rsync_project_to_targt_pve_host:
 	$(EXEC_SSH_TARGT_PVE_HOST) mkdir -p /root/proxmox/pve-manager-electrified
-	@sshpass -p "$(TARGT_PVE_HOST_ROOTPASSWORD)" rsync -a $(RSYNC_PARAMS) --exclude="nodejsserver/node_modules" . root@$(TARGT_PVE_HOST):/root/proxmox/pve-manager-electrified/
+	@sshpass -p "$(TARGT_PVE_HOST_ROOTPASSWORD)" rsync -a $(RSYNC_PARAMS) --exclude="**/node_modules" . root@$(TARGT_PVE_HOST):/root/proxmox/pve-manager-electrified/
 
 .PHONY: IDE_publish_docs_to_website
 IDE_publish_docs_to_website: clean index.html /usr/bin/sshpass
