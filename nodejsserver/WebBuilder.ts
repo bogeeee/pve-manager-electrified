@@ -115,7 +115,7 @@ export default class WebBuildProgress extends PromiseTask<BuildResult> {
 
         // Symlink node_modules/pveme-ui -> wwwSourceDir, so that plugin source projects which have a node_modules linked to wwwSourceDir/node_modules also find the "pveme-ui" package:
         fs.rmSync(`${wwwSourcesDir}/node_modules/pveme-ui`, {force:true, recursive: true}); // remove old
-        fs.symlinkSync(`${wwwSourcesDir}/node_modules/pveme-ui`, wwwSourcesDir);
+        fs.symlinkSync(wwwSourcesDir,`${wwwSourcesDir}/node_modules/pveme-ui`);
     }
 
     /**
