@@ -14,4 +14,11 @@ export class Plugin {
     getPackage() {
 
     }
+
+    /**
+     * Fired, when the ui is loaded and displayed (i.e. the login screen or main window is displayed)
+     */
+    onUiReady() {
+
+    }
 }
