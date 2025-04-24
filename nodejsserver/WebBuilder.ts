@@ -7,6 +7,7 @@ import {PromiseTask} from "./util/util.js";
 import {execa, Options} from "execa";
 import {Buffer} from "node:buffer"
 import path from "node:path";
+import semver from "semver/preload";
 
 
 export type BuildOptions = {
@@ -173,6 +174,8 @@ export default class WebBuildProgress extends PromiseTask<BuildResult> {
      * ... + fixes the name in package.json
      */
     static getUiPluginSourceProjects_fixed() {
+        const pvemeUiPackageVersion = WebBuildProgress.getPvemeUiPackage().version as string;
+
         const baseDir = appServer.config.pluginSourceProjectsDir;
         const dirs = fs.readdirSync(baseDir, {encoding:"utf8"});
         return dirs.filter(dirName => fs.statSync(`${baseDir}/${dirName}`).isDirectory()).map(dirName => {
@@ -194,12 +197,28 @@ export default class WebBuildProgress extends PromiseTask<BuildResult> {
             catch (e) {
                 throw new Error(`Error, parsing ${packageJson}: ${(e as any)?.message}`, {cause: e});
             }
-            
-            // Fix package:
+
+
+            // *** Check / fix package settings ***
+            let needsWrite = false;
+            // Fix package name:
             if(pkg.name !== name) {
                 pkg.name = name;
-
-                // write:
+                needsWrite = true;
+            }
+            //C heck and fix declared pveme-ui peerDependency:
+            let peerDepVersion: string | undefined = pkg.peerDependencies?.["pveme-ui"];
+            if(peerDepVersion) {
+                if(!semver.satisfies(pvemeUiPackageVersion, peerDepVersion, {includePrerelease: true})) {
+                    throw new Error(`The ${name} plugin declares, that it's not compatible with this PVE (pve-me-ui package) version: ${pvemeUiPackageVersion}'. Instead, it wants '${peerDepVersion}'. Please check the value in ${packageJson}#peerDependencies#pveme-ui`)
+                }
+            }
+            else {
+                pkg.peerDependencies = {...(pkg.peerDependencies||{}), "pveme-ui": `^${pvemeUiPackageVersion}`}
+                needsWrite = true;
+            }
+            // write:
+            if(needsWrite) {
                 fs.writeFileSync(packageJson, JSON.stringify(pkg, undefined, 4),{encoding: "utf8"});
             }
 
@@ -208,6 +227,10 @@ export default class WebBuildProgress extends PromiseTask<BuildResult> {
                 pkg
             }
         });
+    }
+
+    static getPvemeUiPackage() {
+        return JSON.parse(fs.readFileSync(`${appServer.wwwSourceDir}/package.json`, {encoding: "utf8"}));
     }
 }
 
