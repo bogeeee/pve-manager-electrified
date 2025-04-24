@@ -182,9 +182,7 @@ class AppServer {
                 else {
                     return new WebSocket(`wss://localhost:${this.config.origPort}${req.url}`, {
                         rejectUnauthorized: false,
-                        headers: {
-                            cookie: req.headers["cookie"]
-                        }
+                        headers: req.headers["cookie"]?{cookie: req.headers["cookie"]}:{} // forward cookie header
                     });
                 }
             }, false);
