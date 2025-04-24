@@ -47,6 +47,7 @@ class AppServer {
         cert: "/etc/pve/local/pve-ssl.pem",
         WWWBASEDIR: "/usr/share/pve-manager",
         developWwwBaseDir: "/root/proxmox/pve-manager-electrified/www", // if this exists then they are used from there
+        pluginSourceProjectsDir: "/root/pveme-plugin-source-projects",
     }
 
     thisNodejsServerDir = path.dirname(fileURLToPath(import.meta.url));

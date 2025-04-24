@@ -10,10 +10,11 @@
       <i>For developers:</i> <a href="/webBuild" target="webBuild">Open web build control panel</a>
   </div>
   <form id="interactiveForm" style="display: none" onsubmit="event.preventDefault()">
-  <hr/>
-  <input id="useViteDevServerCheckbox" type="checkbox" onclick="rebuild({...state.builtWeb.buildOptions, buildStaticFiles: !event.target.checked})"/>Use vite devserver<br/>
-  <button onclick="rebuild(state.builtWeb.buildOptions)">Rebuild web</button>
-  <button onclick="(async() => { await execElectrifiedApiMethod('resetNode_modules',[]);})()">Reset package-lock and node_modules</button>
+      <hr/>
+      <input id="useViteDevServerCheckbox" type="checkbox" onclick="rebuild({...state.builtWeb.buildOptions, buildStaticFiles: !event.target.checked})"/>Use vite devserver<br/>
+      <button onclick="rebuild(state.builtWeb.buildOptions)">Rebuild web</button>
+      <button onclick="(async() => { await execElectrifiedApiMethod('resetNode_modules',[]);})()">Reset package-lock and node_modules</button>
+      <button id="createExamplePluginProjectButton" onclick="(async() => { await execElectrifiedApiMethod('createUiPluginProject',['example']);await rebuild({...state.builtWeb.buildOptions, buildStaticFiles: false});})()">Create example ui plugin project</button>
   </form>
 
   <script type="text/javascript">
@@ -35,6 +36,7 @@
 ${isWebBuildControlPage?`
     <h2>Web build control panel</h2>
     <b>Source directory:</b> <i>${escapeHtml(state.wwwSourceDir)}</i><br/>
+    ${Array.isArray(state.pluginSourceProjects)?state.pluginSourceProjects.map(p => `<b>Plugin source directory:</b> <i>${escapeHtml(p.dir)}</i><br/>`): `<b>Plugin source directory(s):</b> Error: ${escapeHtml(state.pluginSourceProjects)}<br/>`}
     <i>Build Id: ${escapeHtml(state.builtWeb.buildId)}</i><br/>
     Started ${escapeHtml(state.builtWeb.diagnosis_createdAt)}<br/>
 `:""}
@@ -50,6 +52,8 @@ ${state.builtWeb.promiseState.state==="rejected"?`<b>Build failed:</b> ${state.b
                   document.getElementById("interactiveForm").style.display="block"
                   // Update checkbox:
                   document.getElementById("useViteDevServerCheckbox").checked = !state.builtWeb.buildOptions.buildStaticFiles;
+
+                  document.getElementById("createExamplePluginProjectButton").disabled = state.exampleUiPluginProjectExist
               }
               else {
                   if(state.builtWeb.promiseState.state==="resolved") { // Build was successful?

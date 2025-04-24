@@ -72,6 +72,8 @@ install: vzdump-hook-script.pl $(BUILD_TOOLS)
 	install -d $(DESTDIR)/var/lib/vz/template/iso
 	install -m 0644 vzdump-hook-script.pl $(DOCDIR)/examples/vzdump-hook-script.pl
 	install -m 0644 spice-example-sh $(DOCDIR)/examples/spice-example-sh
+	install -d ${UIPLUGINEXAMPLEDIR}
+	install -m 0644 ui-plugin-example/* ${UIPLUGINEXAMPLEDIR}
 	set -e && for i in $(SUBDIRS); do $(MAKE) -C $$i $@; done
 
 .PHONY: distclean

@@ -1,0 +1,12 @@
+{
+  "name_hint": "Don't change the name directly. Instead, rename the project directory and pveme will then automatically change the name.",
+  "name": "pveme-ui-plugin-example",
+  "version": "1.0.0",
+  "type": "module",
+  "dependencies": {
+
+  },
+  "peerDependencies": {
+    "pveme-ui": "^1.0.0"
+  }
+}

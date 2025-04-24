@@ -5,6 +5,7 @@ import { appServer } from './server.js';
 import {PromiseTask} from "./util/util.js";
 import {execa, Options} from "execa";
 import {Buffer} from "node:buffer"
+import path from "node:path";
 
 
 export type BuildOptions = {
@@ -95,6 +96,8 @@ export default class WebBuildProgress extends PromiseTask<BuildResult> {
 
         const wwwSourcesDir = appServer.wwwSourceDir;
 
+        WebBuildProgress.getUiPluginSourceProjects_fixed()
+
         await this.execa_withProgressReport(headline, "npm", ["install", "--ignore-scripts"], {cwd: wwwSourcesDir})
 
         // Link the pveme-nodejsserver package: This works, no matter of what's declared inside the package-lock.json from the development machine
@@ -150,6 +153,47 @@ export default class WebBuildProgress extends PromiseTask<BuildResult> {
         }
 
         return outDir;
+    }
+
+    /**
+     * ... + fixes the name in package.json
+     */
+    static getUiPluginSourceProjects_fixed() {
+        const baseDir = appServer.config.pluginSourceProjectsDir;
+        const dirs = fs.readdirSync(baseDir, {encoding:"utf8"});
+        return dirs.filter(dirName => fs.statSync(`${baseDir}/${dirName}`).isDirectory()).map(dirName => {
+            const dir = `${baseDir}/${dirName}`;
+
+            // Check dirname:
+            const PKG_NAME_REGEX = /^[a-z0-9-]+$/;
+            if(!dirName.match(PKG_NAME_REGEX)) {
+                throw new Error(`Invalid directory name: ${dir}. It must only consist characters that are allowed in an npm package name`);
+            }
+
+            const name = `pveme-ui-plugin-${dirName}`;
+
+            const packageJson = `${dir}/package.json`;
+            let pkg: any;
+            try {
+                pkg = JSON.parse(fs.readFileSync(packageJson, {encoding: "utf8"}));
+            }
+            catch (e) {
+                throw new Error(`Error, parsing ${packageJson}: ${(e as any)?.message}`, {cause: e});
+            }
+            
+            // Fix package:
+            if(pkg.name !== name) {
+                pkg.name = name;
+
+                // write:
+                fs.writeFileSync(packageJson, JSON.stringify(pkg, undefined, 4),{encoding: "utf8"});
+            }
+
+            return {
+                dir,
+                pkg
+            }
+        });
     }
 }
 

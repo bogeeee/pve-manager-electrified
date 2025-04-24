@@ -2,9 +2,11 @@ import {ServerSession} from "restfuncs-server";
 import {remote} from "restfuncs-server";
 import {ServerSessionOptions} from "restfuncs-server";
 import {appServer} from "./server.js";
-import {BuildOptions} from "./WebBuilder.js";
+import WebBuildProgress, {BuildOptions} from "./WebBuilder.js";
 import {deleteDir, errorToHtml} from "./util/util.js";
 import {rmSync} from "fs";
+import fs from "node:fs";
+import {execa} from "execa";
 
 export class ElectrifiedSession extends ServerSession {
     static options: ServerSessionOptions = {
@@ -17,10 +19,22 @@ export class ElectrifiedSession extends ServerSession {
     @remote({isSafe: true})
     getWebBuildState() {
         // TODO: check auth
+
+        // Determine pluginSourceProjects:
+        let pluginSourceProjects: any;
+        try {
+            pluginSourceProjects = WebBuildProgress.getUiPluginSourceProjects_fixed();
+        }
+        catch (e) {
+            pluginSourceProjects = (e as any)?.message; // expose quick error message here. The full error will be available when doing the build anyway
+        }
+
         return {
             developWwwBaseDir: appServer.config.developWwwBaseDir,
             wwwSourceDir: appServer.wwwSourceDir,
             bundledWWWDir: appServer.bundledWWWDir,
+            exampleUiPluginProjectExist: fs.existsSync(`${appServer.config.pluginSourceProjectsDir}/example`),
+            pluginSourceProjects,
             builtWeb: {
                 ...appServer.builtWeb,
                 promiseState: {
@@ -44,5 +58,20 @@ export class ElectrifiedSession extends ServerSession {
         await deleteDir(`${appServer.wwwSourceDir}/node_modules`, true);
         rmSync(`${appServer.wwwSourceDir}/package-lock.json`, {force: true});
         // TODO: copy original
+    }
+
+    /**
+     * Copies the files into /root/pveme-plugin-source-projects/example
+     */
+    @remote
+    async createUiPluginProject(name: string) {
+        const targetDir = `${appServer.config.pluginSourceProjectsDir}/${name}`
+        if(fs.existsSync(targetDir)) {
+            return;
+        }
+        await execa("mkdir", ["-p", targetDir]);
+        await execa("cp", ["-r", "-a", "/usr/share/pve-manager-ui-plugin-example/.", targetDir])
+
+        WebBuildProgress.getUiPluginSourceProjects_fixed(); // Fix the name in package.json
     }
 }
