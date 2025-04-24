@@ -55,7 +55,7 @@ class AppServer {
     /**
      * Dir where the web sources are (except libs whicht are spreaded out across /usr/... )
      */
-    wwwSourceDir?: string
+    wwwSourceDir!: string
 
 
     /**
