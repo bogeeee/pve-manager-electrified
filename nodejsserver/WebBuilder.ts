@@ -1,4 +1,5 @@
-import fs from 'node:fs/promises';
+import fsPromises from 'node:fs/promises';
+import fs from 'node:fs';
 import {build as viteBuild} from "vite";
 import crypto from "crypto"
 import { appServer } from './server.js';
@@ -76,15 +77,15 @@ export default class WebBuildProgress extends PromiseTask<BuildResult> {
         const wwwSourcesDir = appServer.wwwSourceDir;
 
         const templateEncoding = "utf-8";
-        let templateHtml = await fs.readFile(wwwSourcesDir + "/index.html.tpl",{encoding: templateEncoding});
+        let templateHtml = await fsPromises.readFile(wwwSourcesDir + "/index.html.tpl",{encoding: templateEncoding});
         templateHtml = templateHtml.replace(/\$CACHEBREAKER\$/g, this.buildId);
 
         //Include nonmodule scripts ($INCLUDE_MANAGER6_NONMODULE_SCRIPTS$):
-        const nonModuleScripts = (await fs.readFile("/usr/share/pve-manager/manager6/listOfNonModuleScripts", {encoding: "utf-8"})).trim().split(" ");
+        const nonModuleScripts = (await fsPromises.readFile("/usr/share/pve-manager/manager6/listOfNonModuleScripts", {encoding: "utf-8"})).trim().split(" ");
         const scriptsBlock = nonModuleScripts.map((scriptName) => `<script type="text/javascript" src="/manager6/${scriptName}?ver=${this.buildId}"></script>`).join("\n");
         templateHtml = templateHtml.replace("$INCLUDE_MANAGER6_NONMODULE_SCRIPTS$", scriptsBlock);
 
-        await fs.writeFile(wwwSourcesDir + "/index.html", templateHtml, {encoding:templateEncoding});
+        await fsPromises.writeFile(wwwSourcesDir + "/index.html", templateHtml, {encoding:templateEncoding});
     }
 
     /**
