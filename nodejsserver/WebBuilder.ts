@@ -100,13 +100,14 @@ export default class WebBuildProgress extends PromiseTask<BuildResult> {
 
         WebBuildProgress.getUiPluginSourceProjects_fixed()
 
-        const localPackageDirs = [appServer.thisNodejsServerDir, "/root/pveme-plugin-source-projects/example"];
+        const localSourcePackageDirs = WebBuildProgress.getUiPluginSourceProjects_fixed().map(p => p.dir);
+        const localPackageDirs = [appServer.thisNodejsServerDir, ...localSourcePackageDirs];
         const npmPluginPackageNames: string[] = []
 
         // Install npm packages + those from localPackageDirs + npm plugins and all their dependencies. This **copies** the local packages
         await this.execa_withProgressReport(`${headline}`, "npm", ["install", "--ignore-scripts", "--save", "false", ...localPackageDirs, ...npmPluginPackageNames], {cwd: wwwSourcesDir})
 
-        // Create symlinks to the local packages (instead of copies), be
+        // Create symlinks to the local source packages (instead of copies)
         this.diagnosis_state = `${headline} > creating symlinks to local packages`
         localPackageDirs.forEach(dir => {
             const pkg = JSON.parse(fs.readFileSync(`${dir}/package.json`, {encoding: "utf8"}));
@@ -117,6 +118,12 @@ export default class WebBuildProgress extends PromiseTask<BuildResult> {
         // Symlink node_modules/pveme-ui -> wwwSourceDir, so that plugin source projects which have a node_modules linked to wwwSourceDir/node_modules also find the "pveme-ui" package:
         fs.rmSync(`${wwwSourcesDir}/node_modules/pveme-ui`, {force:true, recursive: true}); // remove old
         fs.symlinkSync(wwwSourcesDir,`${wwwSourcesDir}/node_modules/pveme-ui`);
+
+        // Symlink all source package's node_modules -> wwwSourceDir/node_modules:
+        localSourcePackageDirs.forEach(dir => {
+            fs.rmSync(`${dir}/node_modules`, {force:true, recursive: true}); // remove old
+            fs.symlinkSync(`${wwwSourcesDir}/node_modules`,`${dir}/node_modules`);
+        });
     }
 
     /**
