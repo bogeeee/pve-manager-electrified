@@ -131,7 +131,10 @@ class AppServer {
                         host: "127.0.0.1", // Security: bind the internal server to loopback interface only
                         clientPort: this.config.port,
                     },
-                    allowedHosts: true // Allow all hosts. TODO: security: restrict only to users, logged in a as root.
+                    allowedHosts: true, // Allow all hosts. TODO: security: restrict only to users, logged in a as root.
+                    watch: {
+                        followSymlinks: true
+                    }
                 },
                 root: this.wwwSourceDir,
                 base: "/",
