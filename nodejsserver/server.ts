@@ -209,6 +209,7 @@ class AppServer {
         const me = this;
         class WebBuildAndDeploy extends WebBuildProgress {
             protected async run(): Promise<BuildResult> {
+                await me.viteDevServer?.close(); // For stability. There was strange behaviour seen, whe it was running while everything is rebuilt under it
                 const result = await super.run();
                 this.diagnosis_state = "Activating build result"; this.fireProgressChanged();
                 await me.activateBuildResult(result);
@@ -225,6 +226,7 @@ class AppServer {
         if (buildResult.staticFilesDir) {
             await execa("mv", [buildResult.staticFilesDir, this.bundledWWWDir]);
         }
+        await this.viteDevServer?.restart();
     }
 
     /**
