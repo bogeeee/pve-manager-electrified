@@ -115,8 +115,9 @@ export default class WebBuildProgress extends PromiseTask<BuildResult> {
             fs.symlinkSync(dir, `${wwwSourcesDir}/node_modules/${pkg.name}`); // create link
         })
 
+        // The following works only with tsc but not with esbuild sadly. So we can only "import type" + do dependency injection to communicate with the plugin:
         // Symlink node_modules/pveme-ui -> wwwSourceDir, so that plugin source projects which have a node_modules linked to wwwSourceDir/node_modules also find the "pveme-ui" package:
-        fs.rmSync(`${wwwSourcesDir}/node_modules/pveme-ui`, {force:true, recursive: true}); // remove old
+        fs.rmSync(`${wwwSourcesDir}/node_modules/pveme-ui`, {force:true, recursive: true}); // remove old, which npm has falsely installed as a copy (still leave this line)
         fs.symlinkSync(wwwSourcesDir,`${wwwSourcesDir}/node_modules/pveme-ui`);
 
         // Symlink all source package's node_modules -> wwwSourceDir/node_modules:
