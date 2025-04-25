@@ -13,9 +13,10 @@ class Application {
         // Create plugin instances
         this.plugins = pluginClasses.map(pluginClazz => new pluginClazz())
 
+        this.plugins.forEach(p => p.onUiReady())
+
         spawnAsync(async () => {
             console.log(`Web build state: ${JSON.stringify(await this.remoteSession.getWebBuildState())}`)
-            this.plugins.forEach(p => p.onUiReady())
         });
     }
 }
