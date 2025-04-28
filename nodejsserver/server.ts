@@ -342,6 +342,14 @@ class AppServer {
         }
     }
 
+    /**
+     * Names of all enabled npm plugins. Does not include those with a source project
+     * @see WebBuildProgress#getUiPluginSourceProjects_fixed
+     */
+    getUiPluginPackageNames() {
+        return []; // TODO
+    }
+
 }
 
 export const appServer = new AppServer(); // start server

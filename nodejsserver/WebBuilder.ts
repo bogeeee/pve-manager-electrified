@@ -44,6 +44,7 @@ export default class WebBuildProgress extends PromiseTask<BuildResult> {
 
     protected async run(): Promise<BuildResult> {
         await this.createIndexHtml();
+        await this.createPluginList();
         // copy & modify package.json to enable/disable plugins
         // create listPlugins.js
         await this.npmInstall();
@@ -90,6 +91,26 @@ export default class WebBuildProgress extends PromiseTask<BuildResult> {
     }
 
     /**
+     * Creates the _generated_pluginList.ts file
+     */
+    async createPluginList() {
+        this.diagnosis_state = "Create plugin list"; this.fireProgressChanged();
+
+        const wwwSourcesDir = appServer.wwwSourceDir;
+        const pckInfo: {name: string, diagnosis_dir?: string}[] = [
+            ...WebBuildProgress.getUiPluginSourceProjects_fixed().map(p => {return {name: p.pkg.name, diagnosis_dir: p.dir}}),
+            ...appServer.getUiPluginPackageNames().map(p => {return {name: p}})
+        ];
+        let index = -1;
+        const tsContent = `// this files was generated during the web build, by the createPluginList() method.
+import {PluginList} from "./electrified/Plugin"
+export const generated_pluginList: PluginList = [];
+${pckInfo.map(pkgInfo => `import {default as plugin${++index}} from ${JSON.stringify(`${pkgInfo.name}/Plugin`)}; generated_pluginList.push({pluginClass: plugin${index}, diagnosis_packageName: ${JSON.stringify(pkgInfo.name)}, diagnosis_sourceDir: ${JSON.stringify(pkgInfo.diagnosis_dir)}});`).join("\n")}
+`
+        fs.writeFileSync(`${wwwSourcesDir}/_generated_pluginList.ts`, tsContent, {encoding: "utf8"});
+    }
+
+    /**
      * Installs npm packages
      */
     async npmInstall() {
@@ -98,11 +119,9 @@ export default class WebBuildProgress extends PromiseTask<BuildResult> {
 
         const wwwSourcesDir = appServer.wwwSourceDir;
 
-        WebBuildProgress.getUiPluginSourceProjects_fixed()
-
         const localSourcePackageDirs = WebBuildProgress.getUiPluginSourceProjects_fixed().map(p => p.dir);
         const localPackageDirs = [appServer.thisNodejsServerDir, ...localSourcePackageDirs];
-        const npmPluginPackageNames: string[] = []
+        const npmPluginPackageNames: string[] = appServer.getUiPluginPackageNames();
 
         // Install npm packages + those from localPackageDirs + npm plugins and all their dependencies. This **copies** the local packages
         await this.execa_withProgressReport(`${headline}`, "npm", ["install", "--ignore-scripts", "--save", "false", ...npmPluginPackageNames, ...localPackageDirs], {cwd: wwwSourcesDir})
