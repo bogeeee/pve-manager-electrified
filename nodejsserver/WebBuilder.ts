@@ -43,12 +43,17 @@ export default class WebBuildProgress extends PromiseTask<BuildResult> {
     diagnosis_state?: string
 
     protected async run(): Promise<BuildResult> {
+        this.checkCanceled();
+        console.log("Building web: " + this.buildId);
         await this.createIndexHtml();
+        this.checkCanceled();
         await this.createPluginList();
         // copy & modify package.json to enable/disable plugins
         // create listPlugins.js
         await this.npmInstall();
+        this.checkCanceled();
         await this.typeCheck();
+        this.checkCanceled();
 
 
         if (this.buildOptions.buildStaticFiles) {

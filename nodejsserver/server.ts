@@ -206,13 +206,26 @@ class AppServer {
      */
     buildWeb(buildOptions: BuildOptions, progressListener?: (progress: WebBuildProgress) => void) {
         // Cancel old build:
-        if(this.builtWeb?.promiseState.state === "pending") {
-            this.builtWeb.cancel(new Error("Canceled because a new build was made."))
+        const oldBuild = this.builtWeb;
+        if(oldBuild?.promiseState.state === "pending") {
+            oldBuild.cancel(new Error("Canceled because a new build was made."))
         }
 
         const me = this;
         class WebBuildAndDeploy extends WebBuildProgress {
             protected async run(): Promise<BuildResult> {
+                // Wait for old build, til it's canceled/finshed to not run builds simultaneously:
+                if(oldBuild) {
+                    this.diagnosis_state = "Waiting for old build to get canceled";
+                    try {
+                        await oldBuild
+                    }
+                    catch (e) {
+
+                    }
+                }
+                this.checkCanceled();
+
                 await me.viteDevServer?.close(); // For stability. There was strange behaviour seen, whe it was running while everything is rebuilt under it
                 const result = await super.run();
                 this.diagnosis_state = "Activating build result"; this.fireProgressChanged();
