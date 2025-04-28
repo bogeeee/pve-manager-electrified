@@ -25,6 +25,7 @@ import {createServer, ViteDevServer} from "vite";
 import {WebSocket} from "ws";
 import {fileURLToPath} from "node:url";
 import path from "node:path";
+import chokidar from 'chokidar';
 
 // Enable these for better error diagnosis during development:
 //ErrorDiagnosis.keepProcessAlive = (process.env.NODE_ENV === "development");
@@ -89,6 +90,7 @@ class AppServer {
             this.buildWeb({
                 buildStaticFiles: !(process.env.NODE_ENV === "development")
             });
+            this.startListeningForChangedPluginSetup();
 
             expressApp.use("/electrifiedAPI", ElectrifiedSession.createExpressHandler())
 
@@ -362,6 +364,59 @@ class AppServer {
      */
     getUiPluginPackageNames() {
         return []; // TODO
+    }
+
+    /**
+     * Listens for every file/dir changes that needs an automatic rebuild of the web
+     */
+    async startListeningForChangedPluginSetup() {
+
+        const handleChange = () => {
+            this.buildWeb(structuredClone(this.builtWeb!.buildOptions)); // Rebuild web with the same options
+        }
+
+        // Watch this.config.pluginSourceProjectsDir for creation of itsself, new project dirs and their package.json:
+        watchInner(this.config.pluginSourceProjectsDir, (filePath) => {
+            if (filePath === this.config.pluginSourceProjectsDir) { // Directly under dir
+                return true;
+            }
+            if (path.dirname(filePath) == this.config.pluginSourceProjectsDir) { // Directory one level below ?
+                return true;
+            }
+            if (filePath.endsWith("package.json")) {
+                return true;
+            }
+            return false;
+        });
+
+        // Watch this.config.clusterPackagesBaseDir for creation of itsself, new project dirs and their package.json:
+        watchInner(this.config.clusterPackagesBaseDir, (filePath) => {
+            return filePath.startsWith(this.config.clusterPackagesBaseDir)// Deep under dir ?
+        });
+
+        /**
+         * Watches targetDir for creation and changes to paths where includeFn returns true
+         * @param targetDir
+         * @param includeFn
+         */
+        function watchInner(targetDir: string, includeFn:(filePath: string) =>  boolean) {
+            const watcher = chokidar.watch(path.dirname(targetDir), {
+                persistent: false, atomic: true,
+                ignored: (filePath, stats) => {
+                    if (targetDir.startsWith(filePath)) { // Directory directly above ?
+                        return false; // watch it, so we can track the creation of targetDir
+                    }
+                    return !includeFn(filePath);
+                },
+                ignoreInitial: true
+            });
+            ['add', 'change', 'unlink', 'addDir', 'unlinkDir'].forEach(eventName => {
+                (watcher as any).on(eventName, (path?: any) => {
+                    //console.log(`Path: ${eventName} ${path}`);
+                    handleChange()
+                });
+            });
+        }
     }
 
 }
