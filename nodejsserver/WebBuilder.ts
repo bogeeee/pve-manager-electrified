@@ -105,7 +105,7 @@ export default class WebBuildProgress extends PromiseTask<BuildResult> {
         const npmPluginPackageNames: string[] = []
 
         // Install npm packages + those from localPackageDirs + npm plugins and all their dependencies. This **copies** the local packages
-        await this.execa_withProgressReport(`${headline}`, "npm", ["install", "--ignore-scripts", "--save", "false", ...localPackageDirs, ...npmPluginPackageNames], {cwd: wwwSourcesDir})
+        await this.execa_withProgressReport(`${headline}`, "npm", ["install", "--ignore-scripts", "--save", "false", ...npmPluginPackageNames, ...localPackageDirs], {cwd: wwwSourcesDir})
 
         // Create symlinks to the local source packages (instead of copies)
         this.diagnosis_state = `${headline} > creating symlinks to local packages`
