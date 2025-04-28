@@ -526,3 +526,18 @@ export async function deleteDir(dir: string, ignoreNonExisting=false) {
      }
     await execa("rm", ["-rf", dir]);
 }
+
+
+/**
+ * Lists subdirs as full path
+ */
+export function listSubDirs(baseDir: string, ignoreNonExisting=false): string[] {
+    if(!fs.existsSync(baseDir)) {
+        if(!ignoreNonExisting) {
+            throw new Error(`Directory does not exist: ${baseDir}`);
+        }
+        return [];
+    }
+    const dirs = fs.readdirSync(baseDir, {encoding: "utf8"})
+    return dirs.filter(dirName => fs.statSync(`${baseDir}/${dirName}`).isDirectory()).map(dirName => `${baseDir}/${dirName}`);
+}

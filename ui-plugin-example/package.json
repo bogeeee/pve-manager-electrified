@@ -1,10 +1,18 @@
 {
-    "name_hint": "Don't change the name directly. Instead, rename the project directory and pveme will then automatically change the name.",
+    "name_hint": "**Don't change the name directly**. Instead, rename the project directory and pveme will then automatically change the name.",
     "name": "pveme-ui-plugin-example",
     "version": "1.0.0",
     "type": "module",
+    "scripts": {
+        "check": "tsc --noemit",
+        "publish_to_npm:description": "### share your plugin to other internet users: Creating your self an NPM account, adjust package name and version, and run the following scripts",
+        "publish_to_npm:login": "npm login",
+        "publish_to_npm:publish": "npm run check && npm publish",
+        "publish_to_all_nodes_in_cluster:description": "### Here' a quick way to publish it to all nodes in your cluster. When running from a remote ide machine, adjust the rsync destination to: username@host:/etc/pve/...",
+        "publish_to_all_nodes_in_cluster": "npm run check && mkdir -p /etc/pve/pveme-plugin-packages && rsync -r --exclude='node_modules' ./ /etc/pve/pveme-plugin-packages/$(basename $(pwd))"
+    },
     "dependencies": {
-
+        "typescript": "=5.1.6"
     },
     "peerDependencies": {
         "pveme-ui": "^1.0.5"

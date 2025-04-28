@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import {build as viteBuild} from "vite";
 import crypto from "crypto"
 import { appServer } from './server.js';
-import {PromiseTask} from "./util/util.js";
+import {listSubDirs, PromiseTask} from "./util/util.js";
 import {execa, Options} from "execa";
 import {Buffer} from "node:buffer"
 import path from "node:path";
@@ -96,9 +96,18 @@ export default class WebBuildProgress extends PromiseTask<BuildResult> {
     async createPluginList() {
         this.diagnosis_state = "Create plugin list"; this.fireProgressChanged();
 
+        // Compatibility check:
+        WebBuildProgress.getClusterPackages().forEach(entry => {
+            if(!this.packageIsCompatible(entry.dir)) {
+                throw new Error(`The ${entry.pkg.name} plugin is not compatible with this PVE (pve-me-ui package) version. Plugin dir: ${entry.dir}`);
+            }
+        })
+
         const wwwSourcesDir = appServer.wwwSourceDir;
+        // note: Duplicates can be here but will be filtered out later by Application.ts#registerPlugin
         const pckInfo: {name: string, diagnosis_dir?: string}[] = [
             ...WebBuildProgress.getUiPluginSourceProjects_fixed().map(p => {return {name: p.pkg.name, diagnosis_dir: p.dir}}),
+            ...WebBuildProgress.getClusterPackages().map(p => {return {name: p.pkg.name, diagnosis_dir: p.dir}}),
             ...appServer.getUiPluginPackageNames().map(p => {return {name: p}})
         ];
         let index = -1;
@@ -120,7 +129,7 @@ ${pckInfo.map(pkgInfo => `import {default as plugin${++index}} from ${JSON.strin
         const wwwSourcesDir = appServer.wwwSourceDir;
 
         const localSourcePackageDirs = WebBuildProgress.getUiPluginSourceProjects_fixed().map(p => p.dir);
-        const localPackageDirs = [appServer.thisNodejsServerDir, ...localSourcePackageDirs];
+        const localPackageDirs = [appServer.thisNodejsServerDir, ...listSubDirs(appServer.config.clusterPackagesBaseDir, true), ...localSourcePackageDirs];
         const npmPluginPackageNames: string[] = appServer.getUiPluginPackageNames();
 
         // Install npm packages + those from localPackageDirs + npm plugins and all their dependencies. This **copies** the local packages
@@ -197,6 +206,29 @@ ${pckInfo.map(pkgInfo => `import {default as plugin${++index}} from ${JSON.strin
         return outDir;
     }
 
+    packageIsCompatible(packageDir: string) {
+        const pvemeUiPackageVersion = WebBuildProgress.getPvemeUiPackage().version as string;
+
+        const packageJson = `${packageDir}/package.json`;
+        let pkg: any;
+        try {
+            pkg = JSON.parse(fs.readFileSync(packageJson, {encoding: "utf8"}));
+        }
+        catch (e) {
+            throw new Error(`Error, parsing ${packageJson}: ${(e as any)?.message}`, {cause: e});
+        }
+
+        let peerDepVersion: string | undefined = pkg.peerDependencies?.["pveme-ui"];
+        if(!peerDepVersion) {
+            throw new Error(`Plugin package ${pkg.name} does not declare the pveme-ui peerDependency in ${packageJson}#peerDependencies#pveme-ui`);
+        }
+
+        return semver.satisfies(pvemeUiPackageVersion, peerDepVersion, {includePrerelease: true});
+    }
+
+
+
+
     /**
      * ... + fixes the name in package.json
      */
@@ -233,7 +265,7 @@ ${pckInfo.map(pkgInfo => `import {default as plugin${++index}} from ${JSON.strin
                 pkg.name = name;
                 needsWrite = true;
             }
-            //C heck and fix declared pveme-ui peerDependency:
+            //Check and fix declared pveme-ui peerDependency:
             let peerDepVersion: string | undefined = pkg.peerDependencies?.["pveme-ui"];
             if(peerDepVersion) {
                 if(!semver.satisfies(pvemeUiPackageVersion, peerDepVersion, {includePrerelease: true})) {
@@ -256,17 +288,28 @@ ${pckInfo.map(pkgInfo => `import {default as plugin${++index}} from ${JSON.strin
         });
     }
 
+    static getClusterPackages() {
+        return listSubDirs(appServer.config.clusterPackagesBaseDir, true).map(dir => {
+            const packageJson = `${dir}/package.json`;
+            let pkg: any;
+            try {
+                pkg = JSON.parse(fs.readFileSync(packageJson, {encoding: "utf8"}));
+            }
+            catch (e) {
+                throw new Error(`Error, parsing ${packageJson}: ${(e as any)?.message}`, {cause: e});
+            }
+
+            return {
+                dir,
+                pkg
+            }
+        })
+    }
+
     static getPvemeUiPackage() {
         return JSON.parse(fs.readFileSync(`${appServer.wwwSourceDir}/package.json`, {encoding: "utf8"}));
     }
 }
-
-
-
-
-
-
-
 
 export type BuildResult = {
     diagnosis_startedAt: Date,
