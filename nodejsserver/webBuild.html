@@ -36,7 +36,7 @@
 ${isWebBuildControlPage?`
     <h2>Web build control panel</h2>
     <b>Source directory:</b> <i>${escapeHtml(state.wwwSourceDir)}</i><br/>
-    ${Array.isArray(state.pluginSourceProjects)?state.pluginSourceProjects.map(p => `<b>Plugin source directory:</b> <i>${escapeHtml(p.dir)}</i><br/>`): `<b>Plugin source directory(s):</b> Error: ${escapeHtml(state.pluginSourceProjects)}<br/>`}
+    ${Array.isArray(state.pluginSourceProjects)?state.pluginSourceProjects.map(p => `<b>Plugin source directory:</b> <i>${escapeHtml(p.dir)}</i><br/>`).join("\n"): `<b>Plugin source directory(s):</b> Error: ${escapeHtml(state.pluginSourceProjects)}<br/>`}
     <i>Build Id: ${escapeHtml(state.builtWeb.buildId)}</i><br/>
     Started ${escapeHtml(state.builtWeb.diagnosis_createdAt)}<br/>
 `:""}
