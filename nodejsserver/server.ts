@@ -203,10 +203,12 @@ class AppServer {
 
 
     /**
-     * Builds and activates the web
+     * Builds and activates the web. Cancels any old, currently running build.
      * @param buildOptions
+     * @param progressListener
+     * @param delayMs when specified, it waits this amount of milliseconds before starting the build. This can be useful to counteract bursts of build triggers, i.e by watched file changes.
      */
-    buildWeb(buildOptions: BuildOptions, progressListener?: (progress: WebBuildProgress) => void) {
+    buildWeb(buildOptions: BuildOptions, progressListener?: (progress: WebBuildProgress) => void, delayMs?: number) {
         // Cancel old build:
         const oldBuild = this.builtWeb;
         if(oldBuild?.promiseState.state === "pending") {
@@ -227,6 +229,10 @@ class AppServer {
                     }
                 }
                 this.checkCanceled();
+
+                if(delayMs) {
+                    await this.sleep(delayMs);
+                }
 
                 await me.viteDevServer?.close(); // For stability. There was strange behaviour seen, whe it was running while everything is rebuilt under it
                 const result = await super.run();
@@ -371,7 +377,8 @@ class AppServer {
     async startListeningForChangedPluginSetup() {
 
         const handleChange = () => {
-            this.buildWeb(structuredClone(this.builtWeb!.buildOptions)); // Rebuild web with the same options
+            const delay = 200; // Hacky bug workaround: It was observed with phpstorm 2021 with file sync to a remote pve server, that the watcher was fired when the package.json was incomplete but not again after it was completely written.
+            this.buildWeb(structuredClone(this.builtWeb!.buildOptions), undefined, delay ); // Rebuild web with the same options
         }
 
         // Watch this.config.pluginSourceProjectsDir for creation of itsself, new project dirs and their package.json:
