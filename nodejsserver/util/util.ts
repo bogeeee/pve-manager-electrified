@@ -406,6 +406,7 @@ export function isObject(value: unknown) {
     promiseState: {state: "pending", cancelRequested?: unknown} | {state: "resolved", resolvedValue: T} | {state: "rejected", rejectReason: any};
 
     public progressListeners: ((p:this) => void)[];
+    public cancelListeners: Set<((reason:unknown) => void)>;
 
     private _resolve!: ((value: T) => void);
     private _reject!: ((reason?: any) => void);
@@ -437,6 +438,7 @@ export function isObject(value: unknown) {
         this.exitOnUnhandledRejection = false;
         this.promiseState = {state: "pending", cancelRequested: false};
         this.progressListeners = [];
+        this.cancelListeners = new Set<any>();
     }
 
     static create<C extends PromiseTask<any>>(this: new () => C, options?: Partial<C>): C {
@@ -504,6 +506,27 @@ export function isObject(value: unknown) {
 
         reason = reason || new Error("Task was cancelled")
         this.promiseState.cancelRequested = reason;
+
+        // Inform listeners:
+        this.cancelListeners.forEach(l => l(reason));
+    }
+
+    /**
+     * Adds a cancel listener
+     * @param listener
+     */
+    onCancel(listener: (reason:unknown ) => void) {
+        this.cancelListeners.add(listener);
+        return this;
+    }
+
+    /**
+     * Removes a cancel listener
+     * @param listener
+     */
+    offCancel(listener: (reason:unknown ) => void) {
+        this.cancelListeners.delete(listener);
+        return this;
     }
 
     /**
@@ -513,6 +536,30 @@ export function isObject(value: unknown) {
         if(this.promiseState.state === "pending" && this.promiseState.cancelRequested) {
             throw this.promiseState.cancelRequested;
         }
+    }
+
+    /**
+     * Sleeps for the specified amount of time, while it support cancelling by {@see #cancel}.
+     * @param ms
+     */
+    async sleep(ms: number) {
+        const me  = this;
+        return new Promise<void>((resolve, reject) => {
+            let sleepWasRejeted = false;
+            const cancelListener = (reason:unknown) => {
+                reject(reason);
+                sleepWasRejeted = true;
+            }
+            me.onCancel(cancelListener);
+
+            setTimeout(() => {
+                me.offCancel(cancelListener); // Unregister
+
+                if(!sleepWasRejeted) {
+                    resolve();
+                }
+            }, ms);
+        })
     }
 
 }
