@@ -19,18 +19,6 @@ export type BuildOptions = {
     buildStaticFiles: boolean,
 }
 
-/**
- * If 2 build requests are triggered, then we decide opt for the safest one.
- * @param a 
- * @param b 
- * @returns 
- */
-export function getSafestBuildOptions(a: BuildOptions, b: BuildOptions): BuildOptions {
-    return {
-        buildStaticFiles: a.buildStaticFiles || b.buildStaticFiles
-    }
-}
-
 export default class WebBuildProgress extends PromiseTask<BuildResult> {
     // Warning: All fields are exposed to the public non-logged-on user:
 

@@ -4,7 +4,6 @@ import https from "node:https"
 import WebBuildProgress, {
     BuildOptions,
     BuildResult,
-    getSafestBuildOptions as getSaferBuildOptions,
 } from './WebBuilder.js';
 import {execa} from "execa";
 import {createProxyMiddleware} from 'http-proxy-middleware';
