@@ -16,7 +16,7 @@ export class ElectrifiedSession extends ServerSession {
         devDisableSecurity: (process.env.NODE_ENV === "development") // Set to a fix value because the vite build changes this to "production" during runtime)
     }
 
-    @remote({isSafe: true})
+    @remote({isSafe: true, validateResult: false})
     getWebBuildState() {
         // TODO: check auth
 
