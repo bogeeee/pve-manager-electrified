@@ -87,7 +87,8 @@ class AppServer {
             })
 
             this.buildWeb({
-                buildStaticFiles: !(process.env.NODE_ENV === "development")
+                buildStaticFiles: !(process.env.NODE_ENV === "development"),
+                enablePlugins: true,
             });
             this.startListeningForChangedPluginSetup();
 
@@ -352,8 +353,7 @@ class AppServer {
 
     set useViteDevServer(value: boolean) {
         if(this.useViteDevServer !== value) {
-            spawnAsync(async () => {await this.buildWeb({buildStaticFiles: !value}) }, false);
-
+            this.buildWeb({...this.builtWeb!.buildOptions , buildStaticFiles: !value});
         }
     }
 

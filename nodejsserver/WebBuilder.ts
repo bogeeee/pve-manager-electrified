@@ -17,6 +17,8 @@ export type BuildOptions = {
      * Bundles everything. Use for production (non ViteDevServer)
      */
     buildStaticFiles: boolean,
+
+    enablePlugins: boolean
 }
 
 export default class WebBuildProgress extends PromiseTask<BuildResult> {
@@ -89,25 +91,33 @@ export default class WebBuildProgress extends PromiseTask<BuildResult> {
     async createPluginList() {
         this.diagnosis_state = "Create plugin list"; this.fireProgressChanged();
 
-        // Compatibility check:
-        WebBuildProgress.getClusterPackages().forEach(entry => {
-            if(!this.packageIsCompatible(entry.dir)) {
-                throw new Error(`The ${entry.pkg.name} plugin is not compatible with this PVE (pve-me-ui package) version. Plugin dir: ${entry.dir}`);
-            }
-        })
-
         const wwwSourcesDir = appServer.wwwSourceDir;
-        // note: Duplicates can be here but will be filtered out later by Application.ts#registerPlugin
-        const pckInfo: {name: string, diagnosis_dir?: string}[] = [
-            ...WebBuildProgress.getUiPluginSourceProjects_fixed().map(p => {return {name: p.pkg.name, diagnosis_dir: p.dir}}),
-            ...WebBuildProgress.getClusterPackages().map(p => {return {name: p.pkg.name, diagnosis_dir: p.dir}}),
-            ...appServer.getUiPluginPackageNames().map(p => {return {name: p}})
-        ];
+
+        // Create package list:
+        let packages: {name: string, diagnosis_dir?: string}[] = [];
+        if(this.buildOptions.enablePlugins) {
+            // Compatibility check:
+            WebBuildProgress.getClusterPackages().forEach(entry => {
+                if(!this.packageIsCompatible(entry.dir)) {
+                    throw new Error(`The ${entry.pkg.name} plugin is not compatible with this PVE (pve-me-ui package) version. Plugin dir: ${entry.dir}`);
+                }
+            })
+
+
+            // note: Duplicates can be here but will be filtered out later by Application.ts#registerPlugin
+            const pckInfo: {name: string, diagnosis_dir?: string}[] = [
+                ...WebBuildProgress.getUiPluginSourceProjects_fixed().map(p => {return {name: p.pkg.name, diagnosis_dir: p.dir}}),
+                ...WebBuildProgress.getClusterPackages().map(p => {return {name: p.pkg.name, diagnosis_dir: p.dir}}),
+                ...appServer.getUiPluginPackageNames().map(p => {return {name: p}})
+            ];
+        }
+
+        // Write .ts:
         let index = -1;
         const tsContent = `// this files was generated during the web build, by the createPluginList() method.
 import {PluginList} from "./electrified/Plugin"
 export const generated_pluginList: PluginList = [];
-${pckInfo.map(pkgInfo => `import {default as plugin${++index}} from ${JSON.stringify(`${pkgInfo.name}/Plugin`)}; generated_pluginList.push({pluginClass: plugin${index}, diagnosis_packageName: ${JSON.stringify(pkgInfo.name)}, diagnosis_sourceDir: ${JSON.stringify(pkgInfo.diagnosis_dir)}});`).join("\n")}
+${packages.map(pkgInfo => `import {default as plugin${++index}} from ${JSON.stringify(`${pkgInfo.name}/Plugin`)}; generated_pluginList.push({pluginClass: plugin${index}, diagnosis_packageName: ${JSON.stringify(pkgInfo.name)}, diagnosis_sourceDir: ${JSON.stringify(pkgInfo.diagnosis_dir)}});`).join("\n")}
 `
         fs.writeFileSync(`${wwwSourcesDir}/_generated_pluginList.ts`, tsContent, {encoding: "utf8"});
     }
@@ -125,27 +135,33 @@ ${pckInfo.map(pkgInfo => `import {default as plugin${++index}} from ${JSON.strin
         const localPackageDirs = [appServer.thisNodejsServerDir, ...listSubDirs(appServer.config.clusterPackagesBaseDir, true), ...localSourcePackageDirs];
         const npmPluginPackageNames: string[] = appServer.getUiPluginPackageNames();
 
-        // Install npm packages + those from localPackageDirs + npm plugins and all their dependencies. This **copies** the local packages
-        await this.execa_withProgressReport(`${headline}`, "npm", ["install", "--ignore-scripts", "--save", "false", ...npmPluginPackageNames, ...localPackageDirs], {cwd: wwwSourcesDir})
+        if(this.buildOptions.enablePlugins) {
+            // Install npm packages + those from localPackageDirs + npm plugins and all their dependencies. This **copies** the local packages
+            await this.execa_withProgressReport(`${headline}`, "npm", ["install", "--ignore-scripts", "--save", "false", ...npmPluginPackageNames, ...localPackageDirs], {cwd: wwwSourcesDir})
 
-        // Create symlinks to the local source packages (instead of copies)
-        this.diagnosis_state = `${headline} > creating symlinks to local packages`
-        localPackageDirs.forEach(dir => {
-            const pkg = JSON.parse(fs.readFileSync(`${dir}/package.json`, {encoding: "utf8"}));
-            fs.rmSync(`${wwwSourcesDir}/node_modules/${pkg.name}`, {recursive: true}); // remove existing folder
-            fs.symlinkSync(dir, `${wwwSourcesDir}/node_modules/${pkg.name}`); // create link
-        })
+            // Create symlinks to the local packages (instead of copies)
+            this.diagnosis_state = `${headline} > creating symlinks to local packages`
+            localPackageDirs.forEach(dir => {
+                const pkg = JSON.parse(fs.readFileSync(`${dir}/package.json`, {encoding: "utf8"}));
+                fs.rmSync(`${wwwSourcesDir}/node_modules/${pkg.name}`, {recursive: true}); // remove existing folder
+                fs.symlinkSync(dir, `${wwwSourcesDir}/node_modules/${pkg.name}`); // create link
+            })
 
-        // The following works only with tsc but not with esbuild sadly. So we can only "import type" + do dependency injection to communicate with the plugin:
-        // Symlink node_modules/pveme-ui -> wwwSourceDir, so that plugin source projects which have a node_modules linked to wwwSourceDir/node_modules also find the "pveme-ui" package:
-        fs.rmSync(`${wwwSourcesDir}/node_modules/pveme-ui`, {force:true, recursive: true}); // remove old, which npm has falsely installed as a copy (still leave this line)
-        fs.symlinkSync(wwwSourcesDir,`${wwwSourcesDir}/node_modules/pveme-ui`);
+            // The following works only with tsc but not with esbuild sadly. So we can only "import type" + do dependency injection to communicate with the plugin:
+            // Symlink node_modules/pveme-ui -> wwwSourceDir, so that plugin source projects which have a node_modules linked to wwwSourceDir/node_modules also find the "pveme-ui" package:
+            fs.rmSync(`${wwwSourcesDir}/node_modules/pveme-ui`, {force:true, recursive: true}); // remove old, which npm has falsely installed as a copy (still leave this line)
+            fs.symlinkSync(wwwSourcesDir,`${wwwSourcesDir}/node_modules/pveme-ui`);
 
-        // Symlink all source package's node_modules -> wwwSourceDir/node_modules:
-        localSourcePackageDirs.forEach(dir => {
-            fs.rmSync(`${dir}/node_modules`, {force:true, recursive: true}); // remove old
-            fs.symlinkSync(`${wwwSourcesDir}/node_modules`,`${dir}/node_modules`);
-        });
+            // Symlink all source package's node_modules -> wwwSourceDir/node_modules:
+            localSourcePackageDirs.forEach(dir => {
+                fs.rmSync(`${dir}/node_modules`, {force:true, recursive: true}); // remove old
+                fs.symlinkSync(`${wwwSourcesDir}/node_modules`,`${dir}/node_modules`);
+            });
+        }
+        else {
+            // Install npm packages (only):
+            await this.execa_withProgressReport(`${headline}`, "npm", ["install", "--ignore-scripts"], {cwd: wwwSourcesDir})
+        }
     }
 
     /**

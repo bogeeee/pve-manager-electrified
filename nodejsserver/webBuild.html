@@ -12,6 +12,7 @@
   <form id="interactiveForm" style="display: none" onsubmit="event.preventDefault()">
       <hr/>
       <input id="useViteDevServerCheckbox" type="checkbox" onclick="rebuild({...state.builtWeb.buildOptions, buildStaticFiles: !event.target.checked})"/>Use vite devserver<br/>
+      <input id="enablePlugins" type="checkbox" onclick="rebuild({...state.builtWeb.buildOptions, enablePlugins: event.target.checked})"/>Enable plugins<br/>
       <button onclick="rebuild(state.builtWeb.buildOptions)">Rebuild web</button>
       <button onclick="(async() => { await execElectrifiedApiMethod('resetNode_modules',[]);})()">Reset package-lock and node_modules</button>
       <button id="createExamplePluginProjectButton" onclick="(async() => { await execElectrifiedApiMethod('createUiPluginProject',['example']);await rebuild({...state.builtWeb.buildOptions, buildStaticFiles: false});})()">Create example ui plugin project</button>
@@ -50,8 +51,9 @@ ${state.builtWeb.promiseState.state==="rejected"?`<b>Build failed:</b> ${state.b
                   document.title = "Web build control panel"
                   // Update form:
                   document.getElementById("interactiveForm").style.display="block"
-                  // Update checkbox:
+                  // Update checkboxes :
                   document.getElementById("useViteDevServerCheckbox").checked = !state.builtWeb.buildOptions.buildStaticFiles;
+                  document.getElementById("enablePlugins").checked = state.builtWeb.buildOptions.enablePlugins;
 
                   document.getElementById("createExamplePluginProjectButton").disabled = state.exampleUiPluginProjectExist
               }
