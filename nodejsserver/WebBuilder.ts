@@ -160,7 +160,7 @@ ${packages.map(pkgInfo => `import {default as plugin${++index}} from ${JSON.stri
         }
         else {
             // Install npm packages (only):
-            await this.execa_withProgressReport(`${headline}`, "npm", ["install", "--ignore-scripts"], {cwd: wwwSourcesDir})
+            await this.execa_withProgressReport(`${headline}`, "npm", ["install", "--ignore-scripts", "--save", "false"], {cwd: wwwSourcesDir}) // --save false = also don't ater package-lock.json
         }
     }
 

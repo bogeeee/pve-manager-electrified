@@ -14,7 +14,7 @@
       <input id="useViteDevServerCheckbox" type="checkbox" onclick="rebuild({...state.builtWeb.buildOptions, buildStaticFiles: !event.target.checked})"/>Use vite devserver<br/>
       <input id="enablePlugins" type="checkbox" onclick="rebuild({...state.builtWeb.buildOptions, enablePlugins: event.target.checked})"/>Enable plugins<br/>
       <button onclick="rebuild(state.builtWeb.buildOptions)">Rebuild web</button>
-      <button onclick="(async() => { await execElectrifiedApiMethod('resetNode_modules',[]);})()">Reset package-lock and node_modules</button>
+      <button onclick="(async() => { await execElectrifiedApiMethod('resetNode_modules',[]);})()">Reset node_modules</button>
       <button id="createExamplePluginProjectButton" onclick="(async() => { await execElectrifiedApiMethod('createUiPluginProject',['example']);await rebuild({...state.builtWeb.buildOptions, buildStaticFiles: false});})()">Create example ui plugin project</button>
   </form>
 

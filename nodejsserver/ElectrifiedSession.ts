@@ -56,8 +56,7 @@ export class ElectrifiedSession extends ServerSession {
     @remote()
     async resetNode_modules() {
         await deleteDir(`${appServer.wwwSourceDir}/node_modules`, true);
-        rmSync(`${appServer.wwwSourceDir}/package-lock.json`, {force: true});
-        // TODO: copy original
+        //rmSync(`${appServer.wwwSourceDir}/package-lock.json`, {force: true}); // no need to delete, because it always stays the original
     }
 
     /**
