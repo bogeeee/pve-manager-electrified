@@ -131,11 +131,11 @@ ${packages.map(pkgInfo => `import {default as plugin${++index}} from ${JSON.stri
 
         const wwwSourcesDir = appServer.wwwSourceDir;
 
-        const localSourcePackageDirs = WebBuildProgress.getUiPluginSourceProjects_fixed().map(p => p.dir);
-        const localPackageDirs = [appServer.thisNodejsServerDir, ...listSubDirs(appServer.config.clusterPackagesBaseDir, true), ...localSourcePackageDirs];
-        const npmPluginPackageNames: string[] = appServer.getUiPluginPackageNames();
-
         if(this.buildOptions.enablePlugins) {
+            const localSourcePackageDirs = WebBuildProgress.getUiPluginSourceProjects_fixed().map(p => p.dir);
+            const localPackageDirs = [appServer.thisNodejsServerDir, ...listSubDirs(appServer.config.clusterPackagesBaseDir, true), ...localSourcePackageDirs];
+            const npmPluginPackageNames: string[] = appServer.getUiPluginPackageNames();
+
             // Install npm packages + those from localPackageDirs + npm plugins and all their dependencies. This **copies** the local packages
             await this.execa_withProgressReport(`${headline}`, "npm", ["install", "--ignore-scripts", "--save", "false", ...npmPluginPackageNames, ...localPackageDirs], {cwd: wwwSourcesDir})
 
