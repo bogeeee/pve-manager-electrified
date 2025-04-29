@@ -167,9 +167,11 @@ ${packages.map(pkgInfo => `import {default as plugin${++index}} from ${JSON.stri
     /**
      * Like execa, but reports stdout to the diagnosis_state
      * @param prefix
-     * @param execa_args
+     * @param file
+     * @param args
+     * @param options type is: import {options} from "execa"
      */
-    async execa_withProgressReport(prefix: string, file: string, args: readonly string[], options?: Options) {
+    async execa_withProgressReport(prefix: string, file: string, args: readonly string[], options?: any /* Bug workaround: using any, because typescript-rtti emits wrong "import" code */ ) {
         this.diagnosis_state = `${prefix}`;this.fireProgressChanged();
 
         const process = execa(file, args, options);
