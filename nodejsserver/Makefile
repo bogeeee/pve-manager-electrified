@@ -9,4 +9,4 @@ build:
 
 .PHONY: install
 install: build
-	find . -type f ! -path "*/node_modules/*" -exec	install -m 0644 -D "{}" "$(NODEJSSERVERDIR)/{}" \;
+	find . -type f ! -path "*/node_modules/*" ! -name ".gitignore" ! -name ".npmignore" -exec install -m 0644 -D "{}" "$(NODEJSSERVERDIR)/{}" \;

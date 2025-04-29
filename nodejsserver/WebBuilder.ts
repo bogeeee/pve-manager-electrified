@@ -7,7 +7,7 @@ import {listSubDirs, PromiseTask} from "./util/util.js";
 import {execa, Options} from "execa";
 import {Buffer} from "node:buffer"
 import path from "node:path";
-import semver from "semver/preload";
+import semver from "semver";
 
 
 export type BuildOptions = {
