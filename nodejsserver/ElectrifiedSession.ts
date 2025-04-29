@@ -79,4 +79,14 @@ export class ElectrifiedSession extends ServerSession {
 
         WebBuildProgress.getUiPluginSourceProjects_fixed(); // Fix the name in package.json
     }
+
+    /**
+     * Uninstalls this pve-manager-electrified debian package
+     */
+    @remote
+    async uninstallPveme() {
+        execa("/bin/sh", ["-c", "apt install -y pve-manager-electrified- pve-manager+"],{
+            detached: true,
+        });
+    }
 }

@@ -17,6 +17,7 @@
       <button onclick="rebuild(state.builtWeb.buildOptions)">Rebuild web</button>
       <button onclick="(async() => { await execElectrifiedApiMethod('resetNode_modules',[]);})()">Reset node_modules</button>
       <button id="createExamplePluginProjectButton" onclick="(async() => { await execElectrifiedApiMethod('createUiPluginProject',['example']);await rebuild({...state.builtWeb.buildOptions, buildStaticFiles: false});})()">Create example ui plugin project</button>
+      <button onclick="(async() => { if(confirm('This will uninstall it and install the original pve-manager by Proxmox. Sure?')) { await execElectrifiedApiMethod('uninstallPveme',[]);}})()">Uninstall pve-manager-electrified</button>
   </form>
 
   <script type="text/javascript">
