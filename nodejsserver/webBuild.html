@@ -7,6 +7,7 @@
 <body>
   <div id="content">Fetching state</div>
   <div id="forNonWebBuildControlPage" style="display: none;margin-top:16px">
+      <div id="cleanRebuildButtonPanel" style="display: none;margin-bottom: 8px">Troubleshoot: <button onclick="(async() => { await execElectrifiedApiMethod('disablePluginsAndRebuildClean',[]);})()">Disable all plugins and do a clean rebuild</button></div>
       <i>For developers:</i> <a href="/webBuild" target="webBuild">Open web build control panel</a>
   </div>
   <form id="interactiveForm" style="display: none" onsubmit="event.preventDefault()">
@@ -58,6 +59,9 @@ ${state.builtWeb.promiseState.state==="rejected"?`<b>Build failed:</b> ${state.b
                   document.getElementById("createExamplePluginProjectButton").disabled = state.exampleUiPluginProjectExist
               }
               else {
+                  if(state.builtWeb.promiseState.state==="rejected") {
+                      document.getElementById("cleanRebuildButtonPanel").style.display="block";
+                  }
                   if(state.builtWeb.promiseState.state==="resolved") { // Build was successful?
                       window.location.reload();
                   }

@@ -59,6 +59,12 @@ export class ElectrifiedSession extends ServerSession {
         //rmSync(`${appServer.wwwSourceDir}/package-lock.json`, {force: true}); // no need to delete, because it always stays the original
     }
 
+    @remote
+    async disablePluginsAndRebuildClean() {
+        await this.resetNode_modules();
+        appServer.buildWeb({...appServer.builtWeb.buildOptions, enablePlugins: false});
+    }
+
     /**
      * Copies the files into /root/pveme-plugin-source-projects/example
      */
