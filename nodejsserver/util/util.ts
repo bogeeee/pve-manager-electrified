@@ -8,6 +8,7 @@ import  {IncomingMessage, ServerResponse} from "node:http";
 import {WebSocket, WebSocketServer, RawData} from "ws";
 import escapeHtml from "escape-html";
 import fs from "node:fs";
+import {Duplex} from "node:stream";
 
 /**
  *
@@ -241,20 +242,17 @@ export async function fileExists(filePath: PathLike) {
  * @param destroyUnhandled false, if there is another on-upgrade handler after this one, that may also want to catch websocket connections
  */
 export function forwardWebsocketConnections(httpsServer: Server<typeof IncomingMessage, typeof ServerResponse>, connectorFn: (req: IncomingMessage) => WebSocket | undefined, destroyUnhandled: boolean) {
-    // Params check:
-    !destroyUnhandled || throwError("destroyUnhandled not yet implemented")
 
-    const wss = new WebSocketServer({server: httpsServer});
-
-    wss.on('connection', (clientSocket, req) => {
-
-        let unforwardedMessagesToTarget: RawData[] | undefined= []; // In case, we have already retrieved messages from the client while the targetConnection is not yet open
-
-        const targetSocket = connectorFn(req);
+    const wss = new WebSocketServer({noServer: true});
+    wss.on('connection', (clientSocket, req, targetSocket?: WebSocket) => {
+        // Validity check:
         if(!targetSocket) {
-            fail("No handled / url not allowed");
+            fail("Illegal state: targetSocket param not passed")
             return;
         }
+
+        let unforwardedMessagesToTarget: RawData[] | undefined = []; // In case, we have already retrieved messages from the client while the targetConnection is not yet open
+
 
         function fail(e: unknown) {
             topLevel_withErrorHandling(() => {
@@ -334,6 +332,22 @@ export function forwardWebsocketConnections(httpsServer: Server<typeof IncomingM
         // Error handling for both sockets
         clientSocket.on('error', (err: any) => fail(err));
         targetSocket.on('error', (err: any) => fail(err));
+    });
+
+    httpsServer.on('upgrade', (req: IncomingMessage, clientSocket: Duplex, head: Buffer) => {
+
+        const targetSocket = connectorFn(req);
+        if (!targetSocket) {
+            if (destroyUnhandled) {
+                clientSocket.destroy(new Error("No handled / url not allowed"));
+                return;
+            }
+            return;
+        }
+
+        wss.handleUpgrade(req, clientSocket as any, head, function done(ws) {
+            wss.emit('connection', ws, req, targetSocket);
+        });
     });
 }
 

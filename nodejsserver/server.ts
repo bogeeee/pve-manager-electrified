@@ -185,6 +185,9 @@ class AppServer {
                     }
                     return new WebSocket(`ws://localhost:${this.config.internalViteHmrPort}${req.url}`);
                 }
+                else if(req.url?.startsWith("/engine.io_restfuncs")) {
+                    return undefined; // Let the above line "expressApp.installEngineIoServer(httpsServer);" handle it
+                }
                 else {
                     return new WebSocket(`wss://localhost:${this.config.origPort}${req.url}`, {
                         rejectUnauthorized: false,
