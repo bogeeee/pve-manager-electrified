@@ -205,8 +205,9 @@ ${packages.map(pkgInfo => `import {default as plugin${++index}} from ${JSON.stri
                     outDir: outDir,
                     rollupOptions: {
                     },
-                    //sourcemap: "inline", //you could enable this, if it is handy
-                    //minify: false, //you could disable this, if it is handy
+                    // Expose debug info also in production, so users can report error stacks:
+                    sourcemap: "inline",
+                    minify: false, // Note: When minifying, www/electrified/Plugin.ts#fixPluginClass does not work anymore, cause it expects the classname to be "DummyPluginBase"
                 }
             })
         }
