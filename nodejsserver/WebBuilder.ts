@@ -247,6 +247,9 @@ ${packages.map(pkgInfo => `import {default as plugin${++index}} from ${JSON.stri
         const pvemeUiPackageVersion = WebBuildProgress.getPvemeUiPackage().version as string;
 
         const baseDir = appServer.config.pluginSourceProjectsDir;
+        if(!fs.existsSync(baseDir)) {
+            return [];
+        }
         const dirs = fs.readdirSync(baseDir, {encoding:"utf8"});
         return dirs.filter(dirName => fs.statSync(`${baseDir}/${dirName}`).isDirectory()).map(dirName => {
             const dir = `${baseDir}/${dirName}`;
