@@ -1,4 +1,5 @@
 include ../defines.mk
+# Note: images+css are done twice (with classic build and also blindy copied - we just leave it for compatibility for now)
 SUBDIRS = images css manager6 mobile
 
 all:
@@ -6,10 +7,8 @@ all:
 .PHONY: install
 install:
 	set -e && for i in ${SUBDIRS}; do ${MAKE} -C $$i $@; done
-	install -m 0644 index.html.tpl ${WWWBASEDIR}
-	install -m 0644 proxmoxState.json.tpl ${WWWBASEDIR}
 	install -d ${WWWBASEDIR}
-	install -m 0644 u2f-api.js ${WWWBASEDIR}
+	rsync -a . ${WWWBASEDIR} --exclude Makefile --exclude manager6 --exclude mobile --exclude touch --exclude node_modules --exclude .npmignore
 
 .PHONY: check
 check:
