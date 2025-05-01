@@ -13,8 +13,5 @@
     },
     "dependencies": {
         "typescript": "=5.1.6"
-    },
-    "peerDependencies": {
-        "pveme-ui": "^1.0.5"
     }
 }
