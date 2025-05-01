@@ -85,6 +85,8 @@ export class ElectrifiedSession extends ServerSession {
      */
     @remote
     async uninstallPveme() {
+        throw new Error("Not yet implemented. Please exec manually: apt install -y pve-manager-electrified- pve-manager+");
+        // TOOD: spawning a detached process still seems not working. Instead use the pve api and spawn some sort of task
         execa("/bin/sh", ["-c", "apt install -y pve-manager-electrified- pve-manager+"],{
             detached: true,
         });
