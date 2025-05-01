@@ -14,10 +14,10 @@
       <hr/>
       <input id="useViteDevServerCheckbox" type="checkbox" onclick="rebuild({...state.builtWeb.buildOptions, buildStaticFiles: !event.target.checked})"/>Use vite devserver<br/>
       <input id="enablePlugins" type="checkbox" onclick="rebuild({...state.builtWeb.buildOptions, enablePlugins: event.target.checked})"/>Enable plugins<br/>
-      <button onclick="rebuild(state.builtWeb.buildOptions)">Rebuild web</button>
-      <button onclick="(async() => { await execElectrifiedApiMethod('resetNode_modules',[]);})()">Reset node_modules</button>
-      <button id="createExamplePluginProjectButton" onclick="(async() => { await execElectrifiedApiMethod('createUiPluginProject',['example']);await rebuild({...state.builtWeb.buildOptions, buildStaticFiles: false});})()">Create example ui plugin project</button>
-      <button onclick="(async() => { if(confirm('This will uninstall it and install the original pve-manager by Proxmox. Sure?')) { await execElectrifiedApiMethod('uninstallPveme',[]);}})()">Uninstall pve-manager-electrified</button>
+      <button onclick="withErrorHandling(() => rebuild(state.builtWeb.buildOptions))">Rebuild web</button>
+      <button onclick="withErrorHandling(async() => { await execElectrifiedApiMethod('resetNode_modules',[]);})">Reset node_modules</button>
+      <button id="createExamplePluginProjectButton" onclick="withErrorHandling(async() => { await execElectrifiedApiMethod('createUiPluginProject',['example']);await rebuild({...state.builtWeb.buildOptions, buildStaticFiles: false});})">Create example ui plugin project</button>
+      <button onclick="withErrorHandling(async() => { if(confirm('This will uninstall it and install the original pve-manager by Proxmox. Sure?')) { await execElectrifiedApiMethod('uninstallPveme',[]);}})">Uninstall pve-manager-electrified</button>
   </form>
 
   <script type="text/javascript">
@@ -76,7 +76,8 @@ ${state.builtWeb.promiseState.state==="rejected"?`<b>Build failed:</b> ${state.b
       setInterval(fetchAndUpdateContent, 500); fetchAndUpdateContent();
 
       async function rebuild(options) {
-          await execElectrifiedApiMethod("rebuildWeb", [options]);
+          //no await cause we don't want to show errors in a popup, cause they're display in the web build status anyway
+          execElectrifiedApiMethod("rebuildWeb", [options]);
       }
 
       async function execElectrifiedApiMethod(methodName, args) {
@@ -133,6 +134,15 @@ ${state.builtWeb.promiseState.state==="rejected"?`<b>Build failed:</b> ${state.b
               (e.stack ? `\n${e.stack}` : '') +
               (e.fileName ? `\nFile: ${e.fileName}` : '') + (e.lineNumber ? `, Line: ${e.lineNumber}` : '') + (e.columnNumber ? `, Column: ${e.columnNumber}` : '') +
               (e.cause ? `\nCause: ${errorToString(e.cause)}` : '')
+      }
+
+      async function withErrorHandling(fn) {
+          try {
+              await fn()
+          }
+          catch (e) {
+              alert(errorToString(e));
+          }
       }
   </script>
 </body>
