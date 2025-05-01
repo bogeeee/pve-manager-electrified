@@ -16,7 +16,7 @@ export class ElectrifiedSession extends ServerSession {
         devDisableSecurity: (process.env.NODE_ENV === "development") // Set to a fix value because the vite build changes this to "production" during runtime)
     }
 
-    @remote({isSafe: true, validateResult: false})
+    @remote({isSafe: true})
     getWebBuildState() {
         // TODO: check auth
 
@@ -36,7 +36,10 @@ export class ElectrifiedSession extends ServerSession {
             exampleUiPluginProjectExist: fs.existsSync(`${appServer.config.pluginSourceProjectsDir}/example`),
             pluginSourceProjects,
             builtWeb: {
-                ...appServer.builtWeb,
+                buildOptions: appServer.builtWeb.buildOptions,
+                buildId: appServer.builtWeb.buildId,
+                diagnosis_createdAt: appServer.builtWeb.diagnosis_createdAt,
+                diagnosis_state: appServer.builtWeb.diagnosis_state,
                 promiseState: {
                     state: appServer.builtWeb.promiseState.state,
                     rejectReason: appServer.builtWeb.promiseState.state === "rejected"?errorToHtml(appServer.builtWeb.promiseState.rejectReason):undefined,
