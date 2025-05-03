@@ -3,11 +3,12 @@ import fs from 'node:fs';
 import {build as viteBuild} from "vite";
 import crypto from "crypto"
 import { appServer } from './server.js';
-import {listSubDirs, PromiseTask} from "./util/util.js";
+import {listSubDirs} from "./util/util.js";
 import {execa, Options} from "execa";
 import {Buffer} from "node:buffer"
 import path from "node:path";
 import semver from "semver";
+import {PromiseTask} from "./util/PromiseTask";
 
 
 export type BuildOptions = {
