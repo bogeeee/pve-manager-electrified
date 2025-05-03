@@ -49,7 +49,7 @@ Ext.define('PVE.Workspace', {
 		handler: function(data) {
 		    me.login = null;
 		    me.updateLoginData(data);
-		    Proxmox.Utils.checked_command(Ext.emptyFn); // display subscription status
+		    //Proxmox.Utils.checked_command(Ext.emptyFn); // display subscription status
 		},
 	    });
 	}
