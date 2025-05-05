@@ -98,7 +98,7 @@ export const ErrorDiagnosis = {
     record_spawnAsync_stackTrace: false,
 }
 
-function toplevelHandleError(caught: unknown) {
+function toplevelLogError(caught: unknown) {
     console.error(caught);
 }
 
@@ -108,12 +108,12 @@ function toplevelHandleError(caught: unknown) {
  * @param fn
  * @param exitOnError produces an unhandled- rejection which exits the (nodejs) process.
  */
-export function topLevel_withErrorHandling(fn: () => void, exitOnError = true) {
+export function topLevel_withErrorLogging(fn: () => void, exitOnError = true) {
     try {
         fn();
     }
     catch (e) {
-        toplevelHandleError(e);
+        toplevelLogError(e);
     }
 }
 
@@ -153,8 +153,28 @@ export function spawnAsync(fn: () => Promise<void>, exitOnError = false) {
             }
         }
 
-        toplevelHandleError(caught);
+        toplevelLogError(caught);
     });
+}
+
+/**
+ * Shows an error dialog, if something goes wrong
+ */
+export function withErrorHandling(fn: () => void | Promise<void>): void {
+    spawnAsync(async () => {
+        try {throw new Error("ttest")
+            await fn();
+        }
+        catch (e) {
+            // Handle very very uncommon case of non-error:
+            if(! (e instanceof Error)) {
+                e = new Error(`Caught non-error value: ${e}`);
+            }
+
+            fixErrorStack(e as Error);
+            await showResultText(errorToString(e), "Error", "error")
+        }
+    })
 }
 
 
