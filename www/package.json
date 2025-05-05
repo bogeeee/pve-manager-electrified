@@ -22,6 +22,14 @@
     "@mui/material": "^7.0.2",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.0",
-    "@blueprintjs/core": "^5.19.0"
+    "@blueprintjs/core": "^5.19.0",
+    "react-draggable": "=4.4.6",
+    "clsx": "=2.1.1",
+    "js-tokens": "=4.0.0",
+    "loose-envify": "=1.4.0",
+    "object-assign":  "=4.1.1",
+    "prop-types": "=15.8.1",
+    "react-is": "=16.13.1",
+    "scheduler":  "<=0.26.0"
   }
 }
