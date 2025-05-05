@@ -599,15 +599,14 @@ export async function showMuiDialog<T>(title: string | React.ReactElement, dialo
  * @param icon
  */
 export async function showResultText(value: string, title?: string, icon?) {
-    copyStringToClipboard(value);
     //TODO: For more space and resizability, we should use showMuiDialog instead
     await showBlueprintDialog({title, icon, style:{width:`${window.document.documentElement.clientWidth - 20}px`, height: `${window.document.documentElement.clientHeight - 100}px`} }, (props) => {
         return <div style={{height: "100%", display: "flex", flexDirection: "column"}}>
-            <div className={Classes.DIALOG_BODY} style={{flexGrow: 1}}>
+            <div className={Classes.DIALOG_BODY} style={{flexGrow: 1, transform: "translate(0,0)"}}>
+                <div style={{position: "absolute", right:"8px", top:"8px"}}><Button icon={"duplicate"} onClick={() => copyStringToClipboard(value)}></Button></div>
                 <textarea style={{width: "100%", height: "100%"}} value={value} readOnly={true}/>
             </div>
             <div className={Classes.DIALOG_FOOTER}>
-                <Tag style={{position: "absolute"}}>Copied to clipboard.</Tag>
                 <div className={Classes.DIALOG_FOOTER_ACTIONS}>
                     <ButtonGroup>
                         <Button onClick={() => props.resolve(true)} intent={Intent.PRIMARY} autoFocus={true}>OK</Button>
