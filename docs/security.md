@@ -8,6 +8,8 @@ So here are the things listed, that are different to the original proxmox's pve-
 - `apt install pve-manager-electrified` adds ~470 additional debian packages for Node.js and npm
 - For the nodejsserver code, after install, there are ~300 Node.js packages installed. You can find them under `/usr/share/pve-manager-nodejsserver/node_modules`
 - For the client/web, there are TODO:how-many Node.js packages installed. You can find them under: `/var/lib/pve-manager/bundledWww/node_modules`
+  - These packages have pinned versions, cause exploit ability is considered lower that a future supply chain attack:
+    - **react-draggable + it's dependencies** See commit c65e7a7c.
 - Npm is run for the server and web packages **with the --ignore-scripts argument**, for some extra security. A lot of code paths are not used in reality and even complete packages are often listed but not actually used. So this doesn't give them a hook upfront. 
 
 # CSRF protection
