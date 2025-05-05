@@ -18,6 +18,7 @@ import {DialogProps} from "@mui/material/Dialog";
 import * as React from "react";
 import Draggable from 'react-draggable';
 import ReactDOM from "react-dom";
+import { createRoot } from 'react-dom/client';
 
 export async function better_fetch(...args: Parameters<typeof fetch>) {
     const request = args[0] as any;
@@ -487,8 +488,7 @@ export async function showBlueprintDialog<T>(dialogProps: Partial<BlueprintDialo
                 }}/>
             </BlueprintDialog>
         }
-
-        ReactDOM.render(<Wrapper/>, targetDiv);
+        createRoot(targetDiv).render(<Wrapper/>, );
     })
 }
 
@@ -555,8 +555,7 @@ export async function showMuiDialog<T>(title: string | React.ReactElement, dialo
                 }}/>
             </Dialog>
         }
-
-        ReactDOM.render(<Wrapper/>, targetDiv);
+        createRoot(targetDiv).render(<Wrapper/>);
     })
 
 
