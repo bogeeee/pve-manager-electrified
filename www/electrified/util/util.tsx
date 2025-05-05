@@ -13,6 +13,8 @@ import {
     Tag,
     Tooltip
 } from "@blueprintjs/core";
+import "@blueprintjs/core/lib/css/blueprint.css";
+import "@blueprintjs/icons/lib/css/blueprint-icons.css";
 import { Dialog,  DialogTitle, Paper} from "@mui/material";
 import {DialogProps} from "@mui/material/Dialog";
 import * as React from "react";
