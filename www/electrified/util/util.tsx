@@ -162,7 +162,7 @@ export function spawnAsync(fn: () => Promise<void>, exitOnError = false) {
  */
 export function withErrorHandling(fn: () => void | Promise<void>): void {
     spawnAsync(async () => {
-        try {throw new Error("ttest")
+        try {
             await fn();
         }
         catch (e) {
