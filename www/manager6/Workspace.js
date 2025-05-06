@@ -218,6 +218,9 @@ Ext.define('PVE.StdWorkspace', {
     initComponent: function() {
 	let me = this;
 
+	// Register:
+    window.electrifiedApp.workspace = this;
+
 	Ext.History.init();
 
 	let appState = Ext.create('PVE.StateProvider');

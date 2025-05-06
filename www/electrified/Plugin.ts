@@ -1,4 +1,8 @@
 import {Application} from "./Application";
+import {Guest} from "./model/Guest";
+import {Qemu} from "./model/Qemu";
+import {Lxc} from "./model/Lxc";
+import {Clazz} from "./util/util";
 
 export class Plugin {
     app: Application
@@ -12,7 +16,15 @@ export class Plugin {
         throw new Error("TODO");
     }
 
-    getGuestContextMenuEntries(guest: {id: string}): {}[]{
+    getGuestMenuItems(guest: Guest): {}[]{
+        return[];
+    }
+
+    getQemuMenuItems(qemu: Qemu): {}[]{
+        return[];
+    }
+
+    getLxcMenuItems(lxc: Lxc): {}[]{
         return[];
     }
 
@@ -28,6 +40,20 @@ export class Plugin {
      */
     onUiReady() {
 
+    }
+
+    /**
+     *
+     * @param contextObj the object where the context menu is for
+     */
+    _getMenuItems(contextObj: object) {
+        if(contextObj instanceof Qemu) {
+            return [...this.getGuestMenuItems(contextObj), ...this.getQemuMenuItems(contextObj)];
+        }
+        if(contextObj instanceof Lxc) {
+            return [...this.getGuestMenuItems(contextObj), ...this.getLxcMenuItems(contextObj)];
+        }
+        return []; // not handled
     }
 }
 

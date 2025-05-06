@@ -158,7 +158,7 @@ export function spawnAsync(fn: () => Promise<void>, exitOnError = false) {
 }
 
 /**
- * Shows an error dialog, if something goes wrong
+ * Shows an error dialog, if something goes wrong. Void version
  */
 export function withErrorHandling(fn: () => void | Promise<void>): void {
     spawnAsync(async () => {
@@ -177,6 +177,34 @@ export function withErrorHandling(fn: () => void | Promise<void>): void {
     })
 }
 
+/**
+ * Shows an error dialog, if something goes wrong. Version that returns back the value from fn
+ */
+export function returnWithErrorHandling<T>(fn: () => T): T {
+    async function handle(e: unknown) {
+        // Handle very very uncommon case of non-error:
+        if(! (e instanceof Error)) {
+            e = new Error(`Caught non-error value: ${e}`);
+        }
+
+        fixErrorStack(e as Error);
+        console.error(e); // Also log to console
+        await showResultText(errorToString(e), "Error", "error")
+    }
+
+    try {
+        const result = fn();
+        if(result !== null && result instanceof Promise) {
+            result.catch(handle);
+        }
+        return result;
+    }
+    catch (e) {
+        spawnAsync(async () => handle(e));
+        return undefined as T
+    }
+}
+
 
 /**
  * When running with jest, the cause is not displayed. This fixes it.
@@ -193,7 +221,7 @@ export function fixErrorForJest(error: Error) {
 }
 
 
-export function throwError(e: string | Error) {
+export function throwError(e: string | Error): never {
     if(e !== null && e instanceof Error) {
         throw e;
     }
@@ -835,4 +863,8 @@ export function useResizeEffect(watchedElementRef: React.RefObject<HTMLElement>,
 export function DebugInstanceId(props: {}) {
     let [instanceId] = useState(Math.random())
     return <span>InstanceId: {instanceId}</span>
+}
+
+export type Clazz<T> = {
+    new(...args: any[]): T
 }

@@ -7,9 +7,13 @@ export default class Plugin extends PvemePlugin {
         console.log("Hello world from plugin")
     }
 
-    getGuestContextMenuEntries(guest) {
-        return [];
+    getGuestMenuItems(guest) {
+        return[
+            //#GUEST_MENU_ITEMS_INSERTION_MARKER#
+        ];
     }
 
     // ... for more plugin-hooks, use code completion here (ctrl+space).
+
+    //#PLUGIN_CLASS_BODY_INSERTION_MARKER#
 }

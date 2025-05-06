@@ -129,6 +129,8 @@ Ext.define('PVE.lxc.CmdMenu', {
 	    },
 	];
 
+	this.items = window.electrifiedApp._addGuestElectrifiedMenuItems(info, this.items);
+
 	me.callParent();
     },
 });

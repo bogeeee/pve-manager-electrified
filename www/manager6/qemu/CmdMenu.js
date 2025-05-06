@@ -23,8 +23,8 @@ Ext.define('PVE.qemu.CmdMenu', {
 	};
 	let confirmedVMCommand = (cmd, params, confirmTask) => {
 	    let task = confirmTask || `qm${cmd}`;
-	    let msg = PVE.Utils.formatGuestTaskConfirmation(task, info.vmid, info.name);
-	    Ext.Msg.confirm(gettext('Confirm'), msg, btn => {
+		let msg = PVE.Utils.formatGuestTaskConfirmation(task, info.vmid, info.name);
+		Ext.Msg.confirm(gettext('Confirm'), msg, btn => {
 		if (btn === 'yes') {
 		    vm_command(cmd, params);
 		}
@@ -172,6 +172,8 @@ Ext.define('PVE.qemu.CmdMenu', {
 		},
 	    },
 	];
+
+	this.items = window.electrifiedApp._addGuestElectrifiedMenuItems(info, this.items);
 
 	me.callParent();
     },

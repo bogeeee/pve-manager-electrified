@@ -41,7 +41,7 @@
     <script type="text/javascript">
     if (typeof(PVE) === 'undefined') PVE = {};
     Ext.History.fieldid = 'x-history-field';
-    Ext.onReady(function() { Ext.create('PVE.StdWorkspace');});
+    Ext.onReady(async function() { await window.electrifiedAppPromise; Ext.create('PVE.StdWorkspace');});
     </script>
 
   </head>
