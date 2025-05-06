@@ -43,19 +43,24 @@ export async function better_fetch(...args: Parameters<typeof fetch>) {
 }
 
 export function errorToString(e: any): string {
-    // Handle other types:
-    if (!e || typeof e !== "object") {
-        return String(e);
-    }
-    if (!e.message) { // e is not an ErrorWithExtendedInfo ?
-        return JSON.stringify(e);
-    }
-    e = e as Error;
+    try {
+        // Handle other types:
+        if (!e || typeof e !== "object") {
+            return String(e);
+        }
+        if (!e.message) { // e is not an ErrorWithExtendedInfo ?
+            return JSON.stringify(e);
+        }
+        e = e as Error;
 
-    return (e.name ? `${e.name}: ` : "") + (e.message || String(e)) +
-        (e.stack ? `\n${e.stack}` : '') +
-        (e.fileName ? `\nFile: ${e.fileName}` : '') + (e.lineNumber ? `, Line: ${e.lineNumber}` : '') + (e.columnNumber ? `, Column: ${e.columnNumber}` : '') +
-        (e.cause ? `\nCause: ${errorToString(e.cause)}` : '')
+        return (e.name ? `${e.name}: ` : "") + (e.message || String(e)) +
+            (e.stack ? `\n${e.stack}` : '') +
+            (e.fileName ? `\nFile: ${e.fileName}` : '') + (e.lineNumber ? `, Line: ${e.lineNumber}` : '') + (e.columnNumber ? `, Column: ${e.columnNumber}` : '') +
+            (e.cause ? `\nCause: ${errorToString(e.cause)}` : '')
+    }
+    catch (e) {
+        return errorToString(new Error(`Error converting error to string. Original error's message: ${(e as any)?.message}`));
+    }
 }
 
 /**

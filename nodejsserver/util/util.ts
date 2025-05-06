@@ -72,37 +72,47 @@ export async function axiosExt(url: string, config?: any): Promise<any> { /* Bug
 }
 
 export function errorToString(e: any): string {
-    // Handle other types:
-    if (!e || typeof e !== "object") {
-        return String(e);
-    }
-    if (!e.message) { // e is not an ErrorWithExtendedInfo ?
-        return JSON.stringify(e);
-    }
-    e = e as Error;
+    try {
+        // Handle other types:
+        if (!e || typeof e !== "object") {
+            return String(e);
+        }
+        if (!e.message) { // e is not an ErrorWithExtendedInfo ?
+            return JSON.stringify(e);
+        }
+        e = e as Error;
 
-    return (e.name ? `${e.name}: ` : "") + (e.message || String(e)) +
-        (e.stack ? `\n${e.stack}` : '') +
-        (e.fileName ? `\nFile: ${e.fileName}` : '') + (e.lineNumber ? `, Line: ${e.lineNumber}` : '') + (e.columnNumber ? `, Column: ${e.columnNumber}` : '') +
-        (e.cause ? `\nCause: ${errorToString(e.cause)}` : '')
+        return (e.name ? `${e.name}: ` : "") + (e.message || String(e)) +
+            (e.stack ? `\n${e.stack}` : '') +
+            (e.fileName ? `\nFile: ${e.fileName}` : '') + (e.lineNumber ? `, Line: ${e.lineNumber}` : '') + (e.columnNumber ? `, Column: ${e.columnNumber}` : '') +
+            (e.cause ? `\nCause: ${errorToString(e.cause)}` : '')
+    }
+    catch (e) {
+        return errorToString(new Error(`Error converting error to string. Original error's message: ${(e as any)?.message}`));
+    }
 }
 
 export function errorToHtml(e: any): string {
-    // Handle other types:
-    if(!e || typeof e !== "object") {
-        return `<pre>${escapeHtml(String(e))}</pre>`;
-    }
-    if(!e.message) { // e is not an ErrorWithExtendedInfo ?
-        return `<pre>${escapeHtml(JSON.stringify(e))}</pre>`;
-    }
-    e = e as Error;
+    try {
+        // Handle other types:
+        if (!e || typeof e !== "object") {
+            return `<pre>${escapeHtml(String(e))}</pre>`;
+        }
+        if (!e.message) { // e is not an ErrorWithExtendedInfo ?
+            return `<pre>${escapeHtml(JSON.stringify(e))}</pre>`;
+        }
+        e = e as Error;
 
-    let title= (e.name ? `${e.name}: `: "") + (e.message || String(e))
+        let title = (e.name ? `${e.name}: ` : "") + (e.message || String(e))
 
-    return `<b><pre>${escapeHtml( title)}</pre></b>` +
-        (e.stack ? `\n<pre>${escapeHtml(e.stack)}</pre>` : '') +
-        (e.fileName ? `<br/>\nFile: ${escapeHtml(e.fileName)}` : '') + (e.lineNumber ? `, Line: ${escapeHtml(e.lineNumber)}` : '') + (e.columnNumber ? `, Column: ${escapeHtml(e.columnNumber)}` : '') +
-        (e.cause ? `<br/>\nCause:<br/>\n${errorToHtml(e.cause)}` : '')
+        return `<b><pre>${escapeHtml(title)}</pre></b>` +
+            (e.stack ? `\n<pre>${escapeHtml(e.stack)}</pre>` : '') +
+            (e.fileName ? `<br/>\nFile: ${escapeHtml(e.fileName)}` : '') + (e.lineNumber ? `, Line: ${escapeHtml(e.lineNumber)}` : '') + (e.columnNumber ? `, Column: ${escapeHtml(e.columnNumber)}` : '') +
+            (e.cause ? `<br/>\nCause:<br/>\n${errorToHtml(e.cause)}` : '')
+    }
+    catch (e) {
+        return errorToHtml(new Error(`Error converting error to html. Original error's message: ${escapeHtml((e as any)?.message)}`));
+    }
 }
 
 export async function killProcessThatListensOnPort(port: number) {
