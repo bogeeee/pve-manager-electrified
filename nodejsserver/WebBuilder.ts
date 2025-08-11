@@ -8,7 +8,7 @@ import {execa, Options} from "execa";
 import {Buffer} from "node:buffer"
 import path from "node:path";
 import semver from "semver";
-import {PromiseTask} from "./util/PromiseTask";
+import {PromiseTask} from "./util/PromiseTask.js";
 
 
 export type BuildOptions = {
