@@ -5,9 +5,10 @@ import {Dir} from "./Dir";
 import {RestfuncsClient} from "restfuncs-client";
 import type {ElectrifiedSession} from "pveme-nodejsserver/ElectrifiedSession"
 import {Guest} from "./Guest";
+import {ElectrifiedRestfuncsClient} from "../util/ElectrifiedRestfuncsClient";
 
 export class Node extends AsyncConstructableClass {
-    electrifiedApi = new RestfuncsClient<ElectrifiedSession>("/electrifiedAPI", {/* options */}).proxy // TODO: path for this node
+    electrifiedApi = new ElectrifiedRestfuncsClient<ElectrifiedSession>("/electrifiedAPI", {/* options */}).proxy // TODO: path for this node
 
     protected files = newDefaultMap<string, File>((path) => new File(this, path));
     protected dirs = newDefaultMap<string, File>((path) => new Dir(this, path));

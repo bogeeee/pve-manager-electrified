@@ -48,7 +48,11 @@ class AppServer {
         WWWBASEDIR: "/usr/share/pve-manager",
         developWwwBaseDir: "/root/proxmox/pve-manager-electrified/www", // if this exists then they are used from there
         pluginSourceProjectsDir: "/root/pveme-plugin-source-projects",
-        clusterPackagesBaseDir: "/etc/pve/pveme-plugin-packages"
+        clusterPackagesBaseDir: "/etc/pve/pveme-plugin-packages",
+        /**
+         * Time in miliseconds, before they need to be requeried from the original server
+         */
+        permissionCacheMaxAgeMs: 10000
     }
 
     thisNodejsServerDir = path.dirname(fileURLToPath(import.meta.url));

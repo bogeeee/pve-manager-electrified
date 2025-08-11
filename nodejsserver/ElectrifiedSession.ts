@@ -1,24 +1,52 @@
-import {ServerSession} from "restfuncs-server";
+import {ServerSession, CommunicationError} from "restfuncs-server";
 import {remote} from "restfuncs-server";
 import {ServerSessionOptions} from "restfuncs-server";
 import {appServer} from "./server.js";
 import WebBuildProgress, {BuildOptions} from "./WebBuilder.js";
-import {deleteDir, errorToHtml} from "./util/util.js";
+import {axiosExt, deleteDir, errorToHtml, spawnAsync} from "./util/util.js";
 import {rmSync} from "fs";
 import fs from "node:fs";
 import {execa} from "execa";
+import {Request} from "express";
+import {RemoteMethodOptions} from "restfuncs-server/ServerSession";
 
 export class ElectrifiedSession extends ServerSession {
     static options: ServerSessionOptions = {
         exposeErrors: true, // It's an open source project so there's no reason to hide the stracktraces
         exposeMetadata: true,
         logErrors: false, // They're fully reported to the client, so no need to also log them in production
-        devDisableSecurity: (process.env.NODE_ENV === "development") // Set to a fix value because the vite build changes this to "production" during runtime)
+        devDisableSecurity: (process.env.NODE_ENV === "development"), // Set to a fix value because the vite build changes this to "production" during runtime)
+
+        /**
+         * Security: The default: "Client-decided" is not sufficient in this situation, because the login does not happen in this session, so an uninitialized ElectrifiedSession(/Restfuncs session) but with existing pveAuthCookie could still be used.
+         * So we set this to a strong level. Still, token fetching for manual fetch is not needed to be implemented because the browser's origin header is sufficiently fine;)
+         * Next thought: the pveAuthCookie credential is same-site anyway.
+         */
+        csrfProtectionMode: "corsReadToken"
     }
 
-    @remote({isSafe: true})
-    getWebBuildState() {
-        // TODO: check auth
+    static defaultRemoteMethodOptions: RemoteMethodOptions = {validateResult: false}
+
+    /**
+     * Permission object with all privileges listed, see https://pve.proxmox.com/wiki/User_Management # Privileges
+     * @see #requirePermission
+     */
+    protected cachedPermissions?: {permissions: Record<string, Record<string, number>>, lastRetrievedTime: number}
+
+    /**
+     * ... can be called without being logged in
+     */
+    @remote({isSafe: true,validateResult: false})
+    async getWebBuildState() {
+
+        // Refresh permission state:
+        if(this.cachedPermissions) {
+            // Likely logged in, so the following should go quick:
+            try {
+                await this.ensurePermissionsAreUp2Date();
+            }
+            catch (e) {}
+        }
 
         // Determine pluginSourceProjects:
         let pluginSourceProjects: any;
@@ -44,13 +72,16 @@ export class ElectrifiedSession extends ServerSession {
                     state: appServer.builtWeb.promiseState.state,
                     rejectReason: appServer.builtWeb.promiseState.state === "rejected"?errorToHtml(appServer.builtWeb.promiseState.rejectReason):undefined,
                 },
-            }
+            },
+            hasPermissions: this.cachedPermissions?.permissions["/"]["Sys.Console"] === 1
         };
     }
 
     @remote()
-    async rebuildWeb(buildOptions: BuildOptions) {
-        await appServer.buildWeb(buildOptions);
+    async rebuildWebAsync(buildOptions: BuildOptions) {
+        spawnAsync(async () => {
+            await appServer.buildWeb(buildOptions)
+        }, false);
     }
 
     /**
@@ -93,5 +124,88 @@ export class ElectrifiedSession extends ServerSession {
         execa("/bin/sh", ["-c", "apt install -y pve-manager-electrified- pve-manager+"],{
             detached: true,
         });
+    }
+
+    protected async doCall(remoteMethodName: string, args: unknown[]): Promise<any> {
+        if(!["refreshPermissions","getWebBuildState"].includes(remoteMethodName)) { // non whitelisted method?
+            await this.checkPermission("/", "Sys.Console");
+        }
+        return super.doCall(remoteMethodName, args);
+    }
+
+
+
+    /**
+     * Throws an error, if the current logged on user does not have the permission.
+     * Example: await this.checkPermission("/", "Sys.Console");
+     * @param path currently only general paths are supported
+     * @param permission Permission from, see https://pve.proxmox.com/wiki/User_Management # Privileges
+     * @protected
+     */
+    protected async checkPermission(path: string, permission: string) {
+        await this.ensurePermissionsAreUp2Date();
+
+        if(this.cachedPermissions!.permissions[path] === undefined) {
+            throw new Error("Path does not exists. Special paths are not implemented yet");
+        }
+
+        if(this.cachedPermissions!.permissions[path][permission] === 1) {
+            return true;
+        }
+
+        throw new CommunicationError(`You don't have required permission: ${path}/${permission}`, {httpStatusCode: 401});
+    }
+
+    /**
+     * Makes sure, this.cachedPermissions is up2date.
+     * May throw a not logged in error
+     * @private
+     */
+    @remote
+    async ensurePermissionsAreUp2Date() {
+        if (!this.cachedPermissions || (new Date().getTime() - this.cachedPermissions.lastRetrievedTime > appServer.config.permissionCacheMaxAgeMs)) { // Permissions not fetched or outdated ?
+            if(!this.call.req) { // Non http (websocket)
+                const error = new CommunicationError("Need to refresh permissions via http");
+                error.name= "NeedToRefreshPermissionsViaHttp"; // Flag it for the client to recognize
+                throw error;
+            }
+
+            const queriedPermissions = await ElectrifiedSession.queryPermissions(this.call.req);
+            if (queriedPermissions === undefined) {
+                this.cachedPermissions = undefined;
+                // Throw error:
+                const error = new CommunicationError("Not logged in", {httpStatusCode: 401});
+                error.name = "NotLoggedInError";
+                throw error;
+            }
+            this.cachedPermissions = {permissions: queriedPermissions, lastRetrievedTime: new Date().getTime()}
+        }
+    }
+
+    /**
+     * Queries them from the original server
+     * @protected
+     * @return Permission object with all privileges listed, see https://pve.proxmox.com/wiki/User_Management # Privileges, undefined when not logged on
+     */
+    private static async queryPermissions(req: Request): Promise<Record<string,Record<string, number>> | undefined> {
+        try {
+            return ((await axiosExt(`https://localhost:${appServer.config.origPort}/api2/json/access/permissions`, {
+                headers: {cookie: req.headers.cookie}, // Pass original headers (with cookies), so we pass the right pveAuthCookie
+            })).data as any).data as any;
+        }
+        catch(e) {
+            if((e as any)?.status === 401) { // No ticket?
+                return undefined;
+            }
+            throw e;
+        }
+    }
+
+    /**
+     * Requires auth. So this will also query/refresh the permissions
+     */
+    @remote
+    ping() {
+
     }
 }

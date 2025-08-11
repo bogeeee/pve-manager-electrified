@@ -34,7 +34,7 @@
                   document.getElementById("forNonWebBuildControlPage").style.display = "block";
               }
 
-              state = await (await better_fetch("electrifiedAPI/webBuildState")).json();
+              state = await execElectrifiedApiMethod("getWebBuildState",[]);
               contentHtml = `
 ${isWebBuildControlPage?`
     <h2>Web build control panel</h2>
@@ -75,13 +75,34 @@ ${state.builtWeb.promiseState.state==="rejected"?`<b>Build failed:</b> ${state.b
       }
       setInterval(fetchAndUpdateContent, 500); fetchAndUpdateContent();
 
+      async function submitLoginForm(form) {
+          const msgSpan = document.getElementById("loginMessage");
+          msgSpan.innerHTML = loadingSpinnerHtml;
+
+          let msg = ""
+          try {
+              const result = await (await better_fetch('/api2/json/access/ticket', {
+                  method: 'POST',
+                  body: new URLSearchParams(new FormData(form)).toString(),
+                  headers: {'Content-Type': 'application/x-www-form-urlencoded'}
+              })).json();
+              document.cookie = `PVEAuthCookie=${escape(result.data.ticket)}; SameSite=lax; secure`
+              await execElectrifiedApiMethod("ping",[]) // query/refresh the permissions
+              msg = "Login successful"
+          } catch (e) {
+              msg = "Login failed.";
+          }
+
+          msgSpan.textContent = msg;
+      }
+
+
       async function rebuild(options) {
-          //no await cause we don't want to show errors in a popup, cause they're display in the web build status anyway
-          execElectrifiedApiMethod("rebuildWeb", [options]);
+          withErrorHandling(() => execElectrifiedApiMethod("rebuildWebAsync", [options]));
       }
 
       async function execElectrifiedApiMethod(methodName, args) {
-          await better_fetch(`electrifiedAPI/${methodName}`, {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(args)})
+          return await (await better_fetch(`electrifiedAPI/${methodName}`, {method: "POST", headers: {"Content-Type": "application/json", csrfProtectionMode: "corsReadToken"}, body: JSON.stringify(args)})).json()
       }
 
       // *** UTIL Functions ***
