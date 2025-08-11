@@ -138,7 +138,7 @@ ${packages.map(pkgInfo => `import {default as plugin${++index}} from ${JSON.stri
             const npmPluginPackageNames: string[] = appServer.getUiPluginPackageNames();
 
             // Install npm packages + those from localPackageDirs + npm plugins and all their dependencies. This **copies** the local packages
-            await this.execa_withProgressReport(`${headline}`, "npm", ["install", "--ignore-scripts", "--save", "false", ...npmPluginPackageNames, ...localPackageDirs], {cwd: wwwSourcesDir})
+            await this.execa_withProgressReport(`${headline}`, "npm", ["install", "--ignore-scripts", "--no-audit", "--save", "false", ...npmPluginPackageNames, ...localPackageDirs], {cwd: wwwSourcesDir})
 
             // Create symlinks to the local packages (instead of copies)
             this.diagnosis_state = `${headline} > creating symlinks to local packages`
@@ -161,7 +161,7 @@ ${packages.map(pkgInfo => `import {default as plugin${++index}} from ${JSON.stri
         }
         else {
             // Install npm packages (only):
-            await this.execa_withProgressReport(`${headline}`, "npm", ["install", "--ignore-scripts", "--save", "false"], {cwd: wwwSourcesDir}) // --save false = also don't ater package-lock.json
+            await this.execa_withProgressReport(`${headline}`, "npm", ["install", "--ignore-scripts", "--no-audit", "--save", "false"], {cwd: wwwSourcesDir}) // --save false = also don't ater package-lock.json
         }
     }
 

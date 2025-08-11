@@ -167,7 +167,7 @@ case "$1" in
     fi
 
     echo "npm-install'ing dependant packages for pve-pvenodejsserver"
-    npm --prefix /usr/share/pve-manager-nodejsserver prune --ignore-scripts
+    npm --prefix /usr/share/pve-manager-nodejsserver prune --ignore-scripts --no-audit
 
     systemctl --system daemon-reload >/dev/null || true
 

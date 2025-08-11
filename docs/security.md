@@ -10,7 +10,8 @@ So here are the things listed, that are different to the original proxmox's pve-
 - For the client/web, there are TODO:how-many Node.js packages installed. You can find them under: `/var/lib/pve-manager/bundledWww/node_modules`
   - These packages have pinned versions, cause exploit ability is considered lower that a future supply chain attack:
     - **react-draggable + it's dependencies** See commit c65e7a7c.
-- Npm is run for the server and web packages **with the --ignore-scripts argument**, for some extra security. A lot of code paths are not used in reality and even complete packages are often listed but not actually used. So this doesn't give them a hook upfront. 
+- Npm is run for the server and web packages **with the --ignore-scripts argument**, for some extra security. A lot of code paths are not used in reality and even complete packages are often listed but not actually used. So this doesn't give them a hook upfront.
+- Npm is currently run with --no-audit. This ignores warnings about critical security vulnerabilities but prevents the situation suddenly not starting up anymore just because of a **theroretical** threat. TODO: run npm audit later **at runtime** and warn the user in the ui.
 
 # CSRF protection
 - For classic, API calls, the CSRFToken is handed by index.html to a (non http-only) cookie. This is the original behaviour. The nodejsserver extracts it from the original index.html on port 8005 and serves it in the new GET-only index.html which is also not readable cross-origin. 

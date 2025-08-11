@@ -4,7 +4,7 @@
   "type": "module",
   "version": "1.0.5",
   "scripts": {
-    "IDE:link_nodejsserver_dir": "npm install --save false --ignore-scripts ../nodejsserver ",
+    "IDE:link_nodejsserver_dir": "npm install --save false --ignore-scripts --no-audit ../nodejsserver ",
     "check": "npm run IDE:link_nodejsserver_dir && tsc --noemit",
     "prepublish": "npm run check",
     "publish:npmlogin": "npm login",
