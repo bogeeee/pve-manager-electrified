@@ -636,7 +636,7 @@ export async function showResultText(value: string, title?: string, icon?) {
     await showBlueprintDialog({title, icon, style:{width:`${window.document.documentElement.clientWidth - 20}px`, height: `${window.document.documentElement.clientHeight - 100}px`} }, (props) => {
         return <div style={{height: "100%", display: "flex", flexDirection: "column"}}>
             <div className={Classes.DIALOG_BODY} style={{flexGrow: 1, transform: "translate(0,0)"}}>
-                <div style={{position: "absolute", right:"8px", top:"8px"}}><Button icon={"duplicate"} onClick={() => copyStringToClipboard(value)}></Button></div>
+                <div style={{position: "absolute", right:"24px", top:"8px"}}><Button icon={"duplicate"} onClick={() => copyStringToClipboard(value)}></Button></div>
                 <textarea style={{width: "100%", height: "100%"}} value={value} readOnly={true}/>
             </div>
             <div className={Classes.DIALOG_FOOTER}>
