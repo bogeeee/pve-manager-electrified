@@ -8,7 +8,7 @@ import {Guest} from "./Guest";
 import {ElectrifiedRestfuncsClient} from "../util/ElectrifiedRestfuncsClient";
 
 export class Node extends AsyncConstructableClass {
-    electrifiedApi = new ElectrifiedRestfuncsClient<ElectrifiedSession>("/electrifiedAPI", {/* options */}).proxy // TODO: path for this node. Allow other origins in the ElectrifiedSession.options but use sameSite cookies, so they cannot share the session cross site (would open xsrf attacks otherwise)
+    electrifiedApi: RestfuncsClient<ElectrifiedSession>["proxy"] = new ElectrifiedRestfuncsClient<ElectrifiedSession>("/electrifiedAPI", {/* options */}).proxy // TODO: path for this node. Allow other origins in the ElectrifiedSession.options but use sameSite cookies, so they cannot share the session cross site (would open xsrf attacks otherwise)
 
     protected files = newDefaultMap<string, File>((path) => new File(this, path));
     protected dirs = newDefaultMap<string, File>((path) => new Dir(this, path));
