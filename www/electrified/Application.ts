@@ -77,6 +77,24 @@ export class Application extends AsyncConstructableClass{
         this.datacenter = await Datacenter.create();
         this.currentNode = await Node.create(); // TODO use datacenter.nodes[...]
 
+        const electrifiedApi = this.currentNode.electrifiedApi;
+        const webBuildState = await electrifiedApi.getWebBuildState();
+
+        // Bug workaround: vite-devserver connection was rejected, because it had no/outdated permissions, cause they were not initialized yet.
+        if(!webBuildState.builtWeb.buildOptions.buildStaticFiles && !(await electrifiedApi.permissionsAreUp2Date())) { // Using vite-devserver but permissions are not up2date?
+            try {
+                await electrifiedApi.ping(); // Force permissions to be up2date if there's a valid login
+            }
+            catch (e) {
+            }
+
+            if (await electrifiedApi.permissionsAreUp2Date()) { // but **now** they have become valid?
+                // We realized that the vite-devserver connection must had failed because it saw none/outdated permissions. This occurs i.e. during nodejsserver development when restarting the server.
+
+                window.location.reload();
+            }
+        }
+
         // Register plugins:
         pluginList.forEach(entry => {
             try {
@@ -90,7 +108,8 @@ export class Application extends AsyncConstructableClass{
         this.plugins.forEach(p => p.onUiReady()); // TODO: Remove this line here and call it from the right place
 
 
-        console.log(`Develop: Web build state: ${JSON.stringify(await this.currentNode.electrifiedApi.getWebBuildState())}`);
+
+        console.log(`Develop: Web build state: ${JSON.stringify(webBuildState)}`);
         (window as any).electrifiedApp = this; // Make available for classic code
         app = this;
     }

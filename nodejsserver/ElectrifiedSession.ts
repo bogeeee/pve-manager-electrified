@@ -29,6 +29,8 @@ export class ElectrifiedSession extends ServerSession {
         csrfProtectionMode: "corsReadToken"
     }
 
+    private static remoteMethodsThatNeedNoPermissions: (keyof ElectrifiedSession)[] = ["getWebBuildState","permissionsAreUp2Date"];
+
     static defaultRemoteMethodOptions: RemoteMethodOptions = {validateResult: false}
 
     /**
@@ -131,7 +133,7 @@ export class ElectrifiedSession extends ServerSession {
     }
 
     protected async doCall(remoteMethodName: string, args: unknown[]): Promise<any> {
-        if(!["refreshPermissions","getWebBuildState"].includes(remoteMethodName)) { // non whitelisted method?
+        if(!ElectrifiedSession.remoteMethodsThatNeedNoPermissions.includes(remoteMethodName as any)) { // non whitelisted method?
             await this.checkPermission("/", "Sys.Console");
         }
         return super.doCall(remoteMethodName, args);
@@ -207,7 +209,7 @@ export class ElectrifiedSession extends ServerSession {
         }
     }
 
-    private permissionsAreUp2Date() {
+    @remote permissionsAreUp2Date() {
         return ! (!this.cachedPermissions || (new Date().getTime() - this.cachedPermissions.lastRetrievedTime > appServer.config.permissionCacheMaxAgeMs));
     }
 
