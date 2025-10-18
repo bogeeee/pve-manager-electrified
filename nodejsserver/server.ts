@@ -128,7 +128,7 @@ class AppServer {
             expressApp.use(
                 ['/pve2', "/novnc", "/xtermjs", "/pwt", "/api2", "/favicon.ico", "/qrcode.min.js", "/proxmoxlib.js"],
                 createProxyMiddleware({
-                    target: `https://localhost:${this.config.origPort}`,
+                    target: `https://ip6-localhost:${this.config.origPort}`,
                     prependPath: true,
                     changeOrigin: false,
                     secure: false,
@@ -138,7 +138,7 @@ class AppServer {
 
             // redirect /?console ... to perl server on port 8005:
             expressApp.use("/", conditionalMiddleware(req => req.url.startsWith("/?console"), createProxyMiddleware({
-                target: `https://localhost:${this.config.origPort}`,
+                target: `https://ip6-localhost:${this.config.origPort}`,
                 prependPath: false,
                 changeOrigin: false,
                 secure: false,
@@ -228,7 +228,7 @@ class AppServer {
                     return undefined; // Let the above line "expressApp.installEngineIoServer(httpsServer);" handle it
                 }
                 else {
-                    return new WebSocket(`wss://localhost:${this.config.origPort}${req.url}`, {
+                    return new WebSocket(`wss://ip6-localhost:${this.config.origPort}${req.url}`, {
                         rejectUnauthorized: false,
                         headers: req.headers["cookie"]?{cookie: req.headers["cookie"]}:{} // forward cookie header
                     });
@@ -365,7 +365,7 @@ class AppServer {
      * @private
      */
     private async fetchProxmoxState(req: express.Request): Promise<object> {
-        const result = (await axiosExt(`https://localhost:${this.config.origPort}/proxmox_state`, {
+        const result = (await axiosExt(`https://ip6-localhost:${this.config.origPort}/proxmox_state`, {
             headers: {...req.headers as object}, // Pass original headers (with cookies), so we get the right csrfProtectionToken (and more)
         })).data as object;
         if (result === null || typeof result !== "object") {

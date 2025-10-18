@@ -220,7 +220,7 @@ export class ElectrifiedSession extends ServerSession {
      */
     private static async queryPermissions(req: Request): Promise<Record<string,Record<string, number>> | undefined> {
         try {
-            return ((await axiosExt(`https://localhost:${appServer.config.origPort}/api2/json/access/permissions`, {
+            return ((await axiosExt(`https://ip6-localhost:${appServer.config.origPort}/api2/json/access/permissions`, {
                 headers: {cookie: req.headers.cookie}, // Pass original headers (with cookies), so we pass the right pveAuthCookie
             })).data as any).data as any;
         }
