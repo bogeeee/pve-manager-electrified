@@ -22,7 +22,9 @@ export class ElectrifiedSession extends ServerSession {
         /**
          * Security: The default: "Client-decided" is not sufficient in this situation, because the login does not happen in this session, so an uninitialized ElectrifiedSession(/Restfuncs session) but with existing pveAuthCookie could still be used.
          * So we set this to a strong level. Still, token fetching for manual fetch is not needed to be implemented because the browser's origin header is sufficiently fine;)
-         * Next thought: the pveAuthCookie credential is same-site anyway.
+         *
+         * Next thought: the pveAuthCookie credential is same-site anyway, so if you assume that permission querying and caching can only be invoked through safe calls (controled by same-site content) which initializes the session with `corsReadToken` level.
+         * But do we know all possible call situations? So explicit seems safer.
          */
         csrfProtectionMode: "corsReadToken"
     }
