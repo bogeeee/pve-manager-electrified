@@ -104,8 +104,8 @@ index.html: readme.md docs/github-pandoc.css /usr/bin/pandoc
 # Forwards the debugging port, so you can remote debug from the IDE
 # Also forwards the web ports (might be handy)
 # See also the faster alternative below, if this one gives too long roundtrips
-.PHONY: IDE_debug_nodejsserver
-IDE_debug_nodejsserver: IDE_rsync_project_to_targt_pve_host
+.PHONY: IDE_develop_nodejsserver
+IDE_develop_nodejsserver: IDE_rsync_project_to_targt_pve_host
 	#Quick check, if the .ts files compile:
 	npm --prefix nodejsserver run check
 
@@ -120,8 +120,8 @@ IDE_debug_nodejsserver: IDE_rsync_project_to_targt_pve_host
 	";
 
 # Like the above, but skips some steps
-.PHONY: IDE_debug_nodejsserver
-IDE_faster_debug_nodejsserver:
+.PHONY: IDE_faster_develop_nodejsserver
+IDE_faster_develop_nodejsserver:
 	$(MAKE) IDE_rsync_project_to_targt_pve_host RSYNC_PARAMS=
 	#Quick check, if the .ts files compile:
 	npm --prefix nodejsserver run check

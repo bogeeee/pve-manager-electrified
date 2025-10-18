@@ -34,9 +34,9 @@ Adjust the `local.config.mk` and `pve-manager-electrified-secrets.config` files.
 Look at the [Makefile](./Makefile) and see the targets, starting with `IDE_`.
 
 Normally, you run (on the first time):   
-`make IDE_debug_nodejsserver`  
-and afterwards:  
-`make IDE_faster_debug_nodejsserver`  
+`make IDE_develop_nodejsserver`  
+and later:  
+`make IDE_faster_develop_nodejsserver`  
 
 these deploy everything on the target and run it.
 
