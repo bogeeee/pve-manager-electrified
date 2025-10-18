@@ -346,10 +346,26 @@ export function forwardWebsocketConnections(httpsServer: Server<typeof IncomingM
 
     httpsServer.on('upgrade', (req: IncomingMessage, clientSocket: Duplex, head: Buffer) => {
 
-        const targetSocket = connectorFn(req);
+
+        // Obtain targetSocket
+        let targetSocket: ReturnType<typeof connectorFn>;
+        try {
+            targetSocket = connectorFn(req);
+        }
+        catch (e) {
+            // Report error:
+            if (e !== null && e instanceof Error) {
+                clientSocket.destroy(); //clientSocket.destroy(e); <- Not used: destroy(Error) causes an unhandled rejection
+
+            } else {
+                clientSocket.destroy(); // clientSocket.destroy(new Error("Unknown error in connectorFn")); <- Not used:  destroy(Error) causes an unhandled rejection
+            }
+            return;
+        }
+
         if (!targetSocket) {
             if (destroyUnhandled) {
-                clientSocket.destroy(new Error("No handled / url not allowed"));
+                clientSocket.destroy(); // clientSocket.destroy(new Error("No handled / url not allowed")); <- Not used: destroy(Error) causes an unhandled rejection
                 return;
             }
             return;
@@ -378,6 +394,19 @@ export function reThrowWithHint(e: unknown, hint: string) {
     catch (x) {
     }
     throw e;
+}
+
+export function toError(err: any): Error {
+    if(!err) {
+       return new Error();
+    }
+    if(err instanceof Error) {
+        return err;
+    }
+    if(typeof err === "string") {
+        return new Error(err);
+    }
+    return new Error(`<${typeof err}>`);
 }
 
 export function isObject(value: unknown) {
@@ -409,3 +438,33 @@ export function listSubDirs(baseDir: string, ignoreNonExisting=false): string[] 
     const dirs = fs.readdirSync(baseDir, {encoding: "utf8"})
     return dirs.filter(dirName => fs.statSync(`${baseDir}/${dirName}`).isDirectory()).map(dirName => `${baseDir}/${dirName}`);
 }
+
+/**
+ * Uses stricter same-site logic. Must be exactly the same host and port.
+ * @param req
+ */
+export function isStrictSameSiteRequest(req: IncomingMessage) {
+    function getHeader(name: string) {
+        const result = req.headers[name.toLowerCase()];
+        if(typeof result === "string") {
+            return result;
+        }
+    }
+
+    /**
+     * In express 4.x req.host is deprecated but req.hostName only gives the name without the port, so we have to work around as good as we can
+     */
+    function getHost() {
+        //if (req.app.enabled('trust proxy')) {
+        //    return undefined; // We can't reliably determine the port
+        //}
+
+        return getHeader('Host');
+    }
+
+    const origin = getHeader("Origin");
+    const destination = getHost();
+    return origin && destination && origin.replace(/^https?:\/\//,"") === destination;
+}
+
+

@@ -16,7 +16,7 @@ import {
     fileExists,
     killProcessThatListensOnPort,
     forwardWebsocketConnections,
-    spawnAsync, ErrorDiagnosis, deleteDir
+    spawnAsync, ErrorDiagnosis, deleteDir, toError, isStrictSameSiteRequest
 } from './util/util.js';
 import {ElectrifiedSession} from "./ElectrifiedSession.js";
 import {restfuncsExpress} from "restfuncs-server";
@@ -25,6 +25,13 @@ import {WebSocket} from "ws";
 import {fileURLToPath} from "node:url";
 import path from "node:path";
 import chokidar from 'chokidar';
+import session, {MemoryStore, SessionData} from "express-session";
+import {unsign} from "cookie-signature"
+import nacl_util from "tweetnacl-util";
+import nacl from "tweetnacl";
+import {IncomingMessage} from "node:http";
+import {ExpressMemoryStoreExt} from "./util/ExpressMemoryStoreExt";
+
 
 // Enable these for better error diagnosis during development:
 //ErrorDiagnosis.keepProcessAlive = (process.env.NODE_ENV === "development");
@@ -71,6 +78,9 @@ class AppServer {
 
     builtWeb!: WebBuildProgress
 
+    protected expressSessionSecret = nacl_util.encodeBase64(nacl.randomBytes(32));
+    protected expressSessionStore = new ExpressMemoryStoreExt(); // Express's default memory store. You may use a better one for production to prevent against growing memory by a DOS attack. See https://www.npmjs.com/package/express-session
+
     protected viteDevServer!: ViteDevServer;
 
 
@@ -87,8 +97,22 @@ class AppServer {
 
             const expressApp = restfuncsExpress({
                 engineIoOptions: {destroyUpgrade: false},
-                installEngineIoServer: false
+                installEngineIoServer: false,
+                sessionValidityTracking: false,
+                installSessionHandler: false,
             })
+
+            expressApp.set('trust proxy', false); // When enabling this, you must also account for this in the getDestination function!!
+
+            // Install session handler that stores in this.expressSessionStore: Code copied from restfuncs/Server.ts
+            expressApp.use(session({
+                secret: this.expressSessionSecret,
+                cookie: {sameSite: true}, // sameSite is not required for restfuncs's security but you could still enable it to harden security, if you really have no cross-site interaction.
+                saveUninitialized: false, // Privacy: Only send a cookie when really needed
+                unset: "destroy",
+                store: this.expressSessionStore,
+                resave: false
+            }));
 
             this.buildWeb({
                 buildStaticFiles: !(process.env.NODE_ENV === "development"),
@@ -187,6 +211,17 @@ class AppServer {
                     if(!this.useViteDevServer) {
                         return undefined; // Don't allow
                     }
+
+                    if(!isStrictSameSiteRequest(req)) {// Cross site?
+                        return undefined; // Don't allow. Prevent possible xsrf
+                    }
+
+                    const electrifiedSession = ElectrifiedSession.fromRequest_unofficial({session: (this.getExpressSessionFromIncomingmessage(req) || {})});
+                    if(!electrifiedSession) {
+                        return undefined; // Don't allow
+                    }
+                    electrifiedSession.checkCachedPermission("/", "Sys.Console");
+
                     return new WebSocket(`ws://localhost:${this.config.internalViteHmrPort}${req.url}`);
                 }
                 else if(req.url?.startsWith("/engine.io_restfuncs")) {
@@ -359,6 +394,46 @@ class AppServer {
         }
     }
 
+    /**
+     *
+     * @param req
+     * @returns session object which does not perfectly mimic original express's (i.e. does not have methods), but just fits our needs.
+     */
+    getExpressSessionFromIncomingmessage(req: IncomingMessage): Record<string, unknown> | undefined {
+        function getCookie(name: string) {
+            const cookieHeader = req.headers["cookie"];
+            if (!cookieHeader) {
+                return undefined;
+            }
+            const cookies = Object.fromEntries(
+                cookieHeader.split(';').map(cookie => {
+                    let [key, ...v] = cookie.split('=');
+                    return [key.trim(), v.join('=').trim()];
+                })
+            );
+            return cookies[name];
+        }
+
+        const rawExpressSessionCookie = getCookie("connect.sid");
+        if(!rawExpressSessionCookie) {
+            return undefined;
+        }
+
+        const sessionId = unsign(decodeURIComponent(rawExpressSessionCookie).slice(2), this.expressSessionSecret);
+        if(!sessionId) { // Signature invalid?
+            return undefined
+        }
+
+        const result = this.expressSessionStore.getSessionSync(sessionId);
+        if(!result) {
+            return undefined;
+        }
+
+        // Mimic express's behaviour so far to fit our needs:
+        result["id"] = sessionId;
+
+        return result;
+    }
 
     get useViteDevServer() {
         return !this.builtWeb.buildOptions.buildStaticFiles

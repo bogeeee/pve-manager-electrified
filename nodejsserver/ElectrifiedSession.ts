@@ -9,6 +9,8 @@ import fs from "node:fs";
 import {execa} from "execa";
 import {Request} from "express";
 import {RemoteMethodOptions} from "restfuncs-server/ServerSession";
+import {CookieSession} from "restfuncs-common";
+import _ from "underscore";
 
 export class ElectrifiedSession extends ServerSession {
     static options: ServerSessionOptions = {
@@ -232,5 +234,60 @@ export class ElectrifiedSession extends ServerSession {
     @remote
     ping() {
 
+    }
+
+
+    /**
+     * Copied from Restfuncs, which does not expose it as an API
+     * @param req
+     */
+    static fromRequest_unofficial(req: {session: Record<string, unknown>}): ElectrifiedSession | undefined {
+        /**
+         * Copied from ServerSesssion#getFixedCookieSessionFromRequest ***
+         * @param req
+         */
+        function getFixedCookieSessionFromRequest(req: {session: Record<string, unknown>}) {
+            if (!req.session) { // No session handler is installed (legal use case)
+                return undefined;
+            }
+
+            // Detect uninitialized session:
+            if (!req.session.id) { // Session is not initialized ?
+                return undefined;
+            }
+            const reqSession = req.session as any as Record<string, unknown>;
+            // Detect uninitialized session:
+            const standardSessionFields = new Set(["id", "cookie", "req"]);
+            if (!Object.keys(reqSession).some(key => !standardSessionFields.has(key))) { // Session has only standard fields set ?
+                return undefined; // Treat that as uninitialized
+            }
+
+            const result: CookieSession = {
+                ...reqSession,
+                id: req.session.id as string, // Re-query that property accessor (otherwise it does not get included)
+                version: (typeof reqSession.version === "number") ? reqSession.version : 0,
+                bpSalt: (typeof reqSession.bpSalt === "string") ? reqSession.bpSalt : undefined,
+            }
+
+            // Remove internal fields from the cookie handler to safe space / cut references:
+            delete result["cookie"];
+            delete result["req"]
+
+            return result
+        }
+
+        const cookieSession = getFixedCookieSessionFromRequest(req);
+
+        let result = new this();
+
+        {
+            // *** Prepare serverSession for change tracking **
+            // Create a deep clone of cookieSession: , because we want to make sure that the original is not modified. Only at the very end,
+            let cookieSessionClone = _.extend({}, cookieSession || {})// First, make all values own properties because structuredClone does not clone values from inside the prototype but maybe an express session cookie handler delivers its cookie values prototyped.
+            cookieSessionClone = structuredClone(cookieSessionClone)
+
+            _.extend(result, cookieSessionClone);
+        }
+        return result
     }
 }

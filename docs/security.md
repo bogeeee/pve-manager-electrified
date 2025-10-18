@@ -20,7 +20,7 @@ So here are the things listed, that are different to the original proxmox's pve-
 # Proxying/ IP restrictions
 
 - As the nodejsserver proxies all requests to the original server, later one sees them as coming from **localhost**!
-  **It as to be investigated, how this could be an issue!**
+  **It has to be investigated, how this could be an issue!**
 - Also, IP filter settings for the UI and Proxmox's PROXY_REAL_IP_HEADER and PROXY_REAL_IP_ALLOW_FROM currently don't work and **are not yet implemented as you're reading this**!! 
   **This has to be fixed**.
 - Custom IP filters and ssl settings from /etc/default/pveproxy have no effect with PVE electrified.
@@ -37,9 +37,13 @@ TODO: implement regular login-state polling, to propagate logouts.
   
 # Development mode
 
-PVE-electrified can run in development mode. Then the vite-devserver is used. You'll see it in the main toolbar then, or you can check the status under the url `https://you-pve/webBuild `.
-When not enabled, PVE-manager-electrified prevents access to the vite-devserver's paths (refusing websocket forwarding to 8055). Just make sure, you don't accidentally enter this mode in production.
-The vite devserver also internally listens for hmr websocket connections on port 8055. It's bound to localhost/loopback interface only👍. Still that port is always bound, even when the devserver is not used (for internal reasons, cause express is rather static and always needs the middleware object upfront).
+PVE-electrified can run in development mode. Then the vite-devserver is used. You'll see it in the main toolbar then, or you can check the status under the url `https://your-pve/webBuild `.
+When not enabled, PVE-manager-electrified prevents access to the vite-devserver's paths and also does not forward websocket connections to it (to port 8055). 
+Cause this vite-devserver's API was only meant for development mode. 
+When enabled, forwarding to it is only individually allowed for users that are logged in and have `Sys.Console` permission.
+Also, a same-origin check against the request headers is performed to prevent xsrf. So switching on the vite-devserver in production is sufficiently secured (there may be valid reasons to use it, i.e. the admin wants to edit a button).    
+
+The vite devserver internally listens for hmr websocket connections on port 8055. It's bound to localhost/loopback interface only👍. Still that port is always bound, even when the devserver is not used (for internal reasons, cause express is rather static and always needs the middleware object upfront).
 TODO: Add a config option to completely disable the vite devserver.
 
 <hr/>
