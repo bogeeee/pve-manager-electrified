@@ -137,6 +137,7 @@ export class ElectrifiedSession extends ServerSession {
 
     /**
      * Throws an error, if the current logged on user does not have the permission.
+     * Will automatically refresh non-up2date permissions.
      * Example: await this.checkPermission("/", "Sys.Console");
      * @param path currently only general paths are supported
      * @param permission Permission from, see https://pve.proxmox.com/wiki/User_Management # Privileges
@@ -144,6 +145,26 @@ export class ElectrifiedSession extends ServerSession {
      */
     protected async checkPermission(path: string, permission: string) {
         await this.ensurePermissionsAreUp2Date();
+
+        return this.checkCachedPermission(path, permission);
+    }
+
+    /**
+     * Use this one in a sync only situations. Otherwise prefer checkPermission which can refresh non-up2date permissions
+     * @param path
+     * @param permission
+     */
+    checkCachedPermission(path: string, permission: string) {
+        if(!this.cachedPermissions) {
+            // Throw error:
+            const error = new CommunicationError("Not logged in", {httpStatusCode: 401});
+            error.name = "NotLoggedInError";
+            throw error;
+        }
+
+        if(!this.permissionsAreUp2Date()) {
+            throw new Error("Permissions are not up 2 date. Try to re-load the page or re-login.");
+        }
 
         if(this.cachedPermissions!.permissions[path] === undefined) {
             throw new Error("Path does not exists. Special paths are not implemented yet");
@@ -163,7 +184,7 @@ export class ElectrifiedSession extends ServerSession {
      */
     @remote
     async ensurePermissionsAreUp2Date() {
-        if (!this.cachedPermissions || (new Date().getTime() - this.cachedPermissions.lastRetrievedTime > appServer.config.permissionCacheMaxAgeMs)) { // Permissions not fetched or outdated ?
+        if (!this.permissionsAreUp2Date()) { // Permissions not fetched or outdated ?
             if(!this.call.req) { // Non http (websocket)
                 const error = new CommunicationError("Need to refresh permissions via http");
                 error.name= "NeedToRefreshPermissionsViaHttp"; // Flag it for the client to recognize
@@ -180,6 +201,10 @@ export class ElectrifiedSession extends ServerSession {
             }
             this.cachedPermissions = {permissions: queriedPermissions, lastRetrievedTime: new Date().getTime()}
         }
+    }
+
+    private permissionsAreUp2Date() {
+        return ! (!this.cachedPermissions || (new Date().getTime() - this.cachedPermissions.lastRetrievedTime > appServer.config.permissionCacheMaxAgeMs));
     }
 
     /**
