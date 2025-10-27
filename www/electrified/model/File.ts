@@ -37,22 +37,25 @@ export class File {
      * encoding -> content
      * @protected
      */
-    protected cache_stringContent = new Map<string, string>();
+    protected cache_stringContent = new Map<BufferEncoding, string>(); // TODO: Theoretically this cache is redundant with that from asyncResource2retsync. Improve it
 
     protected watching = false;
 
     getStringContent(encoding: BufferEncoding) {
-        return asyncResource2retsync(async () => {
-            if(this.cache_stringContent.has(encoding)) { // Cache hit?
-                return this.cache_stringContent.get(encoding);
-            }
-            const result = await this.node.electrifiedApi.getFileContent(this.path, encoding);
+        if(this.cache_stringContent.has(encoding)) { // Cache hit?
+            return this.cache_stringContent.get(encoding);
+        }
 
+        return asyncResource2retsync(async () => { // Thought: the following is not strictly a "Resource" because it has side effects of manipulating the cache at any time
             // Subscribe for file changes:
             if(!this.watching) { // not yet already watching?
                 await this.node.electrifiedClient.withReconnect(async () => {
-                    await this.node.electrifiedApi.watchFileChanges(this.path, () => {
-                        this.cache_stringContent = new Map<string, string>(); // Clear cache. (Dont' do .clear(), cause we use this.cache_stringContent as the idObject)
+                    await this.node.electrifiedApi.watchFileChanges(this.path, async() => {
+                        // Re-populate cache content:
+                        for(const encoding of this.cache_stringContent.keys()) {
+                            this.cache_stringContent.set(encoding, await this.node.electrifiedApi.getFileContent(this.path, encoding));
+                        }
+
                         // Inform listeners:
                         this.changeListeners.forEach(l => {
                             try {
@@ -66,9 +69,11 @@ export class File {
                 this.watching = true;
             }
 
+            const result = await this.node.electrifiedApi.getFileContent(this.path, encoding);
+
             this.cache_stringContent.set(encoding, result);
             return result;
-        }, this.cache_stringContent, `getStringContent_${encoding}`);
+        }, this, `getStringContent_${encoding}`);
     }
 
     /**
