@@ -3,14 +3,17 @@ import {remote} from "restfuncs-server";
 import {ServerSessionOptions} from "restfuncs-server";
 import {appServer} from "./server.js";
 import WebBuildProgress, {BuildOptions} from "./WebBuilder.js";
-import {axiosExt, deleteDir, errorToHtml, spawnAsync} from "./util/util.js";
+import {axiosExt, deleteDir, errorToHtml, spawnAsync, newDefaultMap} from "./util/util.js";
 import {rmSync} from "fs";
 import fs from "node:fs";
+import fsPromises from "node:fs/promises";
 import {execa} from "execa";
 import {Request} from "express";
 import {RemoteMethodOptions} from "restfuncs-server/ServerSession";
 import {CookieSession} from "restfuncs-common";
 import _ from "underscore";
+import chokidar from "chokidar";
+import {ClientCallbackSet} from "restfuncs-server";
 
 export class ElectrifiedSession extends ServerSession {
     static options: ServerSessionOptions = {
@@ -238,6 +241,40 @@ export class ElectrifiedSession extends ServerSession {
     @remote
     ping() {
 
+    }
+
+    @remote async getFileContent(path: string, encoding: BufferEncoding): Promise<string>{
+        return await fsPromises.readFile(path, {encoding});
+    }
+
+    /**
+     * path -> ClientCallbacks (+ also the chokidar file watchers are created internally)
+     * @protected
+     */
+    protected static fileWatchers = newDefaultMap((path: string)=> {
+        const clientCallbacks = new ClientCallbackSet<[]>();
+
+        // Also create the watcher here, now that we are on a one-per file invocation. Low prio TODO: remove this watcher when all clients are disconnected
+        const watcher = chokidar.watch(path, {
+            persistent: false, atomic: true,
+            ignoreInitial: true
+        });
+        ['add','change', 'unlink'].forEach(eventName => {
+            (watcher as any).on(eventName, (path?: any) => {
+                clientCallbacks.call();
+            });
+        });
+
+        return clientCallbacks;
+    })
+
+    /**
+     * Informs you when a file content was changes, or it was added or deleted
+     * @param path
+     * @param callback
+     */
+    @remote watchFileChanges(path: string, callback: () => void) {
+       ElectrifiedSession.fileWatchers.get(path).add(callback);
     }
 
 

@@ -12,7 +12,7 @@
   },
   "dependencies": {
     "pveme-nodejsserver": "^1.0.0",
-    "restfuncs-client": "^2.2.0",
+    "restfuncs-client": "^2.3.0",
     "restfuncs-common": "^3.0.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",

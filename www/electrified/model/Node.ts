@@ -8,11 +8,22 @@ import {Guest} from "./Guest";
 import {ElectrifiedRestfuncsClient} from "../util/ElectrifiedRestfuncsClient";
 
 export class Node extends AsyncConstructableClass {
-    electrifiedApi: RestfuncsClient<ElectrifiedSession>["proxy"] = new ElectrifiedRestfuncsClient<ElectrifiedSession>("/electrifiedAPI", {/* options */}).proxy // TODO: path for this node. Allow other origins in the ElectrifiedSession.options but use sameSite cookies, so they cannot share the session cross site (would open xsrf attacks otherwise)
+    electrifiedClient: RestfuncsClient<ElectrifiedSession> = new ElectrifiedRestfuncsClient<ElectrifiedSession>("/electrifiedAPI", {/* options */}) // TODO: path for this node. Allow other origins in the ElectrifiedSession.options but use sameSite cookies, so they cannot share the session cross site (would open xsrf attacks otherwise)
 
     protected files = newDefaultMap<string, File>((path) => new File(this, path));
-    protected dirs = newDefaultMap<string, File>((path) => new Dir(this, path));
+    protected dirs = newDefaultMap<string, Dir>((path) => new Dir(this, path));
     protected guests!: Map<number, Guest>
+
+    /**
+     * Let's you call remote methods on the server. They are defined in nodejsserver/ElectrifiedSession.ts
+     *
+     * <p>
+     * Alias for this.electrifiedClient.proxy
+     * </p>
+     */
+    get electrifiedApi() {
+        return this.electrifiedClient.proxy;
+    }
 
     get name() {
         throw new Error("TODO");

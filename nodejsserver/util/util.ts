@@ -468,3 +468,99 @@ export function isStrictSameSiteRequest(req: IncomingMessage) {
 }
 
 
+
+/**
+ * A Map<K, Set<V>>. But automatically add a new Set if needed
+ */
+export class MapSet<K, V> {
+    map = new Map<K, Set<V>>()
+
+    add(key: K, value: V) {
+        let set = this.map.get(key);
+        if(set === undefined) {
+            set = new Set<V>();
+            this.map.set(key, set);
+        }
+        set.add(value);
+    }
+
+    delete(key: K, value: V) {
+        let set = this.map.get(key);
+        if(set !== undefined) {
+            set.delete(value);
+            if(set.size === 0) {
+                this.map.delete(key); // Clean up
+            }
+        }
+    }
+
+    get(key: K) {
+        return this.map.get(key);
+    }
+}
+
+/**
+ * A WeakMap<K, Set<V>>. But automatically add a new Set if needed
+ */
+export class WeakMapSet<K extends object, V> extends MapSet<K, V> {
+    map = new WeakMap<K, Set<V>>() as Map<K, Set<V>>;
+}
+
+
+/**
+ * This Map does not return empty values, so there's always a default value created
+ */
+export abstract class DefaultMap<K, V> extends Map<K,V>{
+    abstract createDefaultValue(key: K): V;
+
+    get(key: K): V {
+        let result = super.get(key);
+        if(result === undefined) {
+            result = this.createDefaultValue(key);
+            this.set(key, result);
+        }
+        return result;
+    }
+}
+
+/**
+ * This Map does not return empty values, so there's always a default value created
+ */
+export abstract class DefaultWeakMap<K extends Object, V> extends WeakMap<K,V>{
+    abstract createDefaultValue(key: K): V;
+
+    get(key: K): V {
+        let result = super.get(key);
+        if(result === undefined) {
+            result = this.createDefaultValue(key);
+            this.set(key, result);
+        }
+        return result;
+    }
+}
+
+/**
+ *
+ * @param createDefaultValueFn
+ * @returns a Map that creates and inserts a default value when that value does not exist. So the #get method always returns something.
+ */
+export function newDefaultMap<K,V>(createDefaultValueFn: (key: K) => V): DefaultMap<K, V> {
+    return new class extends DefaultMap<K, V> {
+        createDefaultValue(key:K ): V {
+            return createDefaultValueFn(key);
+        }
+    }()
+}
+
+/**
+ *
+ * @param createDefaultValueFn
+ * @returns a WeakMap that creates and inserts a default value when that value does not exist. So the #get method always returns something.
+ */
+export function newDefaultWeakMap<K,V>(createDefaultValueFn: (key: K) => V): DefaultMap<K, V> {
+    return new class extends DefaultMap<K, V> {
+        createDefaultValue(key:K): V {
+            return createDefaultValueFn(key);
+        }
+    }()
+}

@@ -1,7 +1,9 @@
 // Retsync means: retryable-synchronous.
 // retsync code is synchronous code, which when deep inside, it needs to wait for some Promise, it makes the ancestor await it and re-run that code again.
 // The "ancestor" is a retsync2promise call
-// Semantics: Retsync code must be repeatable. It can change state, as long as that leads to the same result when repeated. R
+// Semantics: Retsync code must be repeatable. It can change state, as long as that leads to the same result when repeated.
+
+import {newDefaultWeakMap} from "./util";
 
 type Retsync2promiseOptions = {
     /**
@@ -23,7 +25,7 @@ export async function retsync2promise<T>(repeatableFn: () => T, options: Retsync
             return repeatableFn();
         } catch (e) {
             if (e instanceof RetsyncWaitsForPromiseException) {
-                if (options.checkSaved !== false) {
+                if (e.checkSaved || (e.checkSaved === undefined &&  options.checkSaved !== false)) {
                     const optionHint = `Hint: See also: Retsync2promiseOptions#checkSaved`
                     // Check if repeatableFn is behaving in repeatable symantics and saves the promise
                     try {
@@ -36,7 +38,7 @@ export async function retsync2promise<T>(repeatableFn: () => T, options: Retsync
 
                         eChecked.promise.then().catch(); // Make sure, that promise is caught once, to prevent unhandledRejections, just because of our checking functionality.
 
-                        if (eChecked.stack !== e.stack) {
+                        if (fixStack(eChecked.stack) !== fixStack(e.stack)) {
                             throw new Error(`repeatableFn is not repeatable. On the first run, it was waiting for a Promise by calling promise2retsync. After a second immediate test run, it behaved diffently.\n ${optionHint}\n First run's stack: \n${e.stack}\n 2nd run's stack: See cause`, {cause: eChecked});
                         }
                         if (eChecked.promise !== e.promise) {
@@ -53,6 +55,14 @@ export async function retsync2promise<T>(repeatableFn: () => T, options: Retsync
             }
         }
     }
+
+    /**
+     * removes the retsync2promise lines. Cause we call repeatableFn from multiple lines here
+     * @param stack
+     */
+    function fixStack(stack?: string) {
+        return stack?.replaceAll(/^.*retsync2promise.*$/gm,"")
+    }
 }
 
 /**
@@ -67,13 +77,54 @@ export function promise2retsync<T>(savedPromise: Promise<T>): T {
     throw new RetsyncWaitsForPromiseException(savedPromise)
 }
 
+const globalObj = {};
+const resourcePromises = newDefaultWeakMap((key) => new Map<string | number | undefined, Promise<unknown>>())
+
+/**
+ * Makes async code usable in retsync code.
+ * <p>
+ * Because retsync code is repeatable. This call must be associated a certain **identifiable resource**, so we know if that resource is already at loading progress.
+ * Therefore, you have the idObj and idKey parameters. Example:
+ * <code>asyncResource2retsync( async() => {...load the avatar...}, myUser, "getAvatar");</code>
+ * So the User#getAvatar is, what uniquely identifies the loaderFn here.
+ * </p>
+ * @param loaderFn
+ * @param idObj object to associate this call to. undefined means globally and the idKey primitive value is the only key.
+ * @param idKey Additional primitive key under idObj.
+ */
+export function asyncResource2retsync<T>(loaderFn: ()=> Promise<T>, idObj: object | undefined, idKey?: (string|number)): T {
+    idObj = idObj || globalObj;
+
+    const promisesForIdObj = resourcePromises.get(idObj);
+
+    let promise = promisesForIdObj.get(idKey);
+    if(!promise) {
+        promise = loaderFn();
+        promisesForIdObj.set(idKey, promise);
+    }
+    try {
+        return promise2retsync(promise as Promise<T>);
+    }
+    catch (e) {
+        // Flag as no-check-needed to save time (it's not necessary):
+        if(e instanceof RetsyncWaitsForPromiseException) {
+            e.checkSaved = false;
+        }
+        throw e;
+    }
+}
+
 
 
 export class RetsyncWaitsForPromiseException extends Error {
     promise: Promise<any>;
+    /**
+     * Overrides {@link Retsync2promiseOptions#checkSaved}
+     */
+    checkSaved?: boolean;
 
     constructor(promise: Promise<any>) {
-        super("Some retsync style code (see call stack / caller of promise2retsync) want to await an async operation. To make this possible, you need to it on some ancestor caller level with retsync2promise. I.e. 'const result = await retsync2promise(() => {...your **retryable*** - synchronous code...}});");
+        super("Some retsync style code (see call stack / caller of promise2retsync) wants to await an async operation. To make this possible, you need to it on some ancestor caller level with retsync2promise. I.e. 'const result = await retsync2promise(() => {...your **retryable*** - synchronous code...}});");
         this.promise = promise;
     }
 }
