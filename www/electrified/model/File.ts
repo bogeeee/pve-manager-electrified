@@ -33,11 +33,11 @@ export class File {
     protected changeListeners = new Set<(() => void)>();
 
     /**
-     * We save the result of getStringContent, so react-deepwatch can track live changes
+     * We save the result of getStringContent (redundantly), so react-deepwatch can track live changes
      * encoding -> content
      * @protected
      */
-    protected cache_stringContent = new Map<BufferEncoding, string>(); // TODO: Theoretically this cache is redundant with that from asyncResource2retsync. Improve it
+    protected cache_stringContent = new Map<BufferEncoding, string>();
 
     protected watching = false;
 
@@ -51,9 +51,14 @@ export class File {
             if(!this.watching) { // not yet already watching?
                 await this.node.electrifiedClient.withReconnect(async () => {
                     await this.node.electrifiedApi.watchFileChanges(this.path, async() => {
-                        // Re-populate cache content:
-                        for(const encoding of this.cache_stringContent.keys()) {
-                            this.cache_stringContent.set(encoding, await this.node.electrifiedApi.getFileContent(this.path, encoding));
+                        // Re-populate whole cache content:
+                        this.cache_stringContent = new Map<BufferEncoding, string>(); // this will also make asyncResource2retsync do a fresh fetch. In case of file was deleted or file was re-added
+                        for (const encoding of this.cache_stringContent.keys()) {
+                            try {
+                                this.cache_stringContent.set(encoding, await this.node.electrifiedApi.getFileContent(this.path, encoding));
+                            }
+                            catch (e) { // I.e. the file was deleted
+                            }
                         }
 
                         // Inform listeners:
@@ -73,7 +78,7 @@ export class File {
 
             this.cache_stringContent.set(encoding, result);
             return result;
-        }, this, `getStringContent_${encoding}`);
+        }, this.cache_stringContent, `getStringContent_${encoding}`);
     }
 
     /**
