@@ -1,5 +1,5 @@
 import {Node} from "./Node";
-import {asyncResource2retsync, promise2retsync} from "../util/retsync";
+import {asyncResource2retsync, checkThatCallerHandlesRetsync, promise2retsync} from "../util/retsync";
 
 // Copied from nodejs's BufferEncoding
 /**
@@ -42,6 +42,8 @@ export class File {
     protected watching = false;
 
     getStringContent(encoding: BufferEncoding) {
+        checkThatCallerHandlesRetsync();
+
         if(this.cache_stringContent.has(encoding)) { // Cache hit?
             return this.cache_stringContent.get(encoding);
         }

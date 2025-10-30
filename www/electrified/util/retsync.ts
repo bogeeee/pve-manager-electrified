@@ -2,6 +2,8 @@
 // retsync code is synchronous code, which when deep inside, it needs to wait for some Promise, it makes the ancestor await it and re-run that code again.
 // The "ancestor" is a retsync2promise call
 // Semantics: Retsync code must be repeatable. It can change state, as long as that leads to the same result when repeated.
+// It does not mean strictly deterministic (may be for while in the same sync block??) because resources that are fetched, can change over time. Therefore some inner user's retsync code might subscribe to change events and invalidate asyncResource2retsync's cached promises when there are such changes.
+
 
 import {newDefaultWeakMap} from "./util";
 
@@ -14,22 +16,37 @@ type Retsync2promiseOptions = {
 
 const resolvedPromiseValues = new WeakMap<Promise<any>, unknown>();
 
+let callerHandlesRetsync = false
 /**
  * Let's you run retsync code and wait, till it is finished.
  * @param repeatableFn
  * @param options
  */
 export async function retsync2promise<T>(repeatableFn: () => T, options: Retsync2promiseOptions = {}): Promise<T> {
+    /**
+     * ...while setting the callerHandlesRetsync indicator
+     */
+    function runRepeatableFn() {
+        const orig_callerHandlesRetsync = callerHandlesRetsync;
+        try {
+            callerHandlesRetsync = true;
+            return repeatableFn();
+        }
+        finally {
+            callerHandlesRetsync = orig_callerHandlesRetsync;
+        }
+    }
+
     while(true) {
         try {
-            return repeatableFn();
+            return runRepeatableFn();
         } catch (e) {
             if (e instanceof RetsyncWaitsForPromiseException) {
                 if (e.checkSaved || (e.checkSaved === undefined &&  options.checkSaved !== false)) {
                     const optionHint = `Hint: See also: Retsync2promiseOptions#checkSaved`
                     // Check if repeatableFn is behaving in repeatable symantics and saves the promise
                     try {
-                        repeatableFn();
+                        runRepeatableFn();
                         throw new Error(`repeatableFn is not repeatable. On the first run, it was waiting for a Promise by calling promise2retsync (see cause). After a second immediate test run, it returned successful without such.\n${optionHint}`, {cause: e});
                     } catch (eChecked) {
                         if (!(eChecked !== null && eChecked instanceof RetsyncWaitsForPromiseException)) {
@@ -124,8 +141,14 @@ export class RetsyncWaitsForPromiseException extends Error {
     checkSaved?: boolean;
 
     constructor(promise: Promise<any>) {
-        super("Some retsync style code (see call stack / caller of promise2retsync) wants to await an async operation. To make this possible, you need to it on some ancestor caller level with retsync2promise. I.e. 'const result = await retsync2promise(() => {...your **retryable*** - synchronous code...}});");
+        super("Some retsync style code (see call stack / caller of promise2retsync) wants to await an async operation. To make this possible, you need to wrapt it at some ancestor caller level with retsync2promise. I.e. 'const result = await retsync2promise(() => {...your **retryable*** - synchronous code...}});");
         this.promise = promise;
+    }
+}
+
+export function checkThatCallerHandlesRetsync() {
+    if(!callerHandlesRetsync) {
+        throw new Error("The method, you are calling uses retsync code and needs to be wrapped at some ancestor caller level with retsync2promise. I.e. 'const result = await retsync2promise(() => {...call the function that (deep inside) uses **retryable*** - synchronous code...}});");
     }
 }
 
