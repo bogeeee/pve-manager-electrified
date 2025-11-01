@@ -1,5 +1,5 @@
 import {Node} from "./Node";
-import {asyncResource2retsync, checkThatCallerHandlesRetsync, promise2retsync} from "../util/retsync";
+import {asyncResource2retsync, checkThatCallerHandlesRetsync} from "proxy-facades/retsync";
 
 // Copied from nodejs's BufferEncoding
 /**
