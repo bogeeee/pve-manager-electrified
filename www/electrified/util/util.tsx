@@ -492,7 +492,7 @@ export abstract class DefaultWeakMap<K extends Object, V> extends WeakMap<K,V>{
  */
 export function newDefaultMap<K,V>(createDefaultValueFn: (key: K) => V): DefaultMap<K, V> {
     return new class extends DefaultMap<K, V> {
-        createDefaultValue(key): V {
+        createDefaultValue(key:K): V {
             return createDefaultValueFn(key);
         }
     }()
@@ -505,7 +505,7 @@ export function newDefaultMap<K,V>(createDefaultValueFn: (key: K) => V): Default
  */
 export function newDefaultWeakMap<K,V>(createDefaultValueFn: (key: K) => V): DefaultMap<K, V> {
     return new class extends DefaultMap<K, V> {
-        createDefaultValue(key): V {
+        createDefaultValue(key:K): V {
             return createDefaultValueFn(key);
         }
     }()
