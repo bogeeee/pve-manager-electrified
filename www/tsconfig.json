@@ -16,7 +16,7 @@
         "strictBindCallApply": true,
         "strictFunctionTypes": true,
         "skipLibCheck": true,
-        "moduleResolution": "node",
+        "moduleResolution": "bundler",
         "resolveJsonModule": true,
         "jsx": "react",
         "forceConsistentCasingInFileNames": true,
