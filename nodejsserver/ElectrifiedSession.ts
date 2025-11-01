@@ -9,7 +9,7 @@ import fs from "node:fs";
 import fsPromises from "node:fs/promises";
 import {execa} from "execa";
 import {Request} from "express";
-import {RemoteMethodOptions} from "restfuncs-server/ServerSession";
+import {RemoteMethodOptions} from "restfuncs-server";
 import {CookieSession} from "restfuncs-common";
 import _ from "underscore";
 import chokidar from "chokidar";
