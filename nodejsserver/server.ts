@@ -30,7 +30,7 @@ import {unsign} from "cookie-signature"
 import nacl_util from "tweetnacl-util";
 import nacl from "tweetnacl";
 import {IncomingMessage} from "node:http";
-import {ExpressMemoryStoreExt} from "./util/ExpressMemoryStoreExt";
+import {ExpressMemoryStoreExt} from "./util/ExpressMemoryStoreExt.js";
 
 
 // Enable these for better error diagnosis during development:
