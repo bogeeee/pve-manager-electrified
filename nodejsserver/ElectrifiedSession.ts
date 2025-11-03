@@ -6,7 +6,7 @@ import WebBuildProgress, {BuildOptions} from "./WebBuilder.js";
 import {axiosExt, deleteDir, errorToHtml, spawnAsync, newDefaultMap} from "./util/util.js";
 import {rmSync} from "fs";
 import fs from "node:fs";
-import fsPromises from "node:fs/promises";
+import fsPromises  from "node:fs/promises";
 import {execa} from "execa";
 import {Request} from "express";
 import {RemoteMethodOptions} from "restfuncs-server";
@@ -243,6 +243,20 @@ export class ElectrifiedSession extends ServerSession {
 
     }
 
+    static async getFileStat(path: string) {
+        try {
+            return await fsPromises.stat(path);
+        }
+        catch (e) {
+            return false;
+        }
+    }
+
+    @remote async getFileStat(path: string) {
+        return ElectrifiedSession.getFileStat(path);
+    }
+
+
     @remote async getFileContent(path: string, encoding: BufferEncoding): Promise<string>{
         return await fsPromises.readFile(path, {encoding});
     }
@@ -252,16 +266,17 @@ export class ElectrifiedSession extends ServerSession {
      * @protected
      */
     protected static fileWatchers = newDefaultMap((path: string)=> {
-        const clientCallbacks = new ClientCallbackSet<[]>();
+        const clientCallbacks = new ClientCallbackSet<[stat: Awaited<ReturnType<ElectrifiedSession["getFileStat"]>>]>();
 
         // Also create the watcher here, now that we are on a one-per file invocation. Low prio TODO: remove this watcher when all clients are disconnected
         const watcher = chokidar.watch(path, {
             persistent: false, atomic: true,
             ignoreInitial: true
         });
-        ['add','change', 'unlink'].forEach(eventName => {
-            (watcher as any).on(eventName, (path?: any) => {
-                clientCallbacks.call();
+        ['add','change', 'unlink'].forEach(async (eventName) => {
+            (watcher as any).on(eventName, async (path?: any) => {
+                const fileStat = await ElectrifiedSession.getFileStat(path);
+                clientCallbacks.call(fileStat);
             });
         });
 
@@ -273,7 +288,7 @@ export class ElectrifiedSession extends ServerSession {
      * @param path
      * @param callback
      */
-    @remote watchFileChanges(path: string, callback: () => void) {
+    @remote watchFileChanges(path: string, callback: (stat: Awaited<ReturnType<ElectrifiedSession["getFileStat"]>>) => void) {
        ElectrifiedSession.fileWatchers.get(path).add(callback);
     }
 
