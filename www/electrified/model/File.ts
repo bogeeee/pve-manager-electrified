@@ -1,5 +1,6 @@
 import {Node} from "./Node";
 import {asyncResource2retsync, checkThatCallerHandlesRetsync} from "proxy-facades/retsync";
+import {FileStats} from "pveme-nodejsserver/ElectrifiedSession";
 
 // Copied from nodejs's BufferEncoding
 /**
@@ -18,39 +19,10 @@ type BufferEncoding =
     | "binary"
     | "hex";
 
-/**
- * Copied from nodejsserver/node_modules/@types/node/fs.d.ts
- */
-export interface Stats {
-    isFile(): boolean;
-    isDirectory(): boolean;
-    isBlockDevice(): boolean;
-    isCharacterDevice(): boolean;
-    isSymbolicLink(): boolean;
-    isFIFO(): boolean;
-    isSocket(): boolean;
-    dev: Number;
-    ino: Number;
-    mode: Number;
-    nlink: Number;
-    uid: Number;
-    gid: Number;
-    rdev: Number;
-    size: Number;
-    blksize: Number;
-    blocks: Number;
-    atimeMs: Number;
-    mtimeMs: Number;
-    ctimeMs: Number;
-    birthtimeMs: Number;
-    atime: Date;
-    mtime: Date;
-    ctime: Date;
-    birthtime: Date;
-}
+
 
 /**
- * A file an a pve node, that is live-watched.
+ * A file or directory on a pve node, that is live-watched.
  * See {@link Node#getFile}
  */
 export class File {
@@ -64,9 +36,7 @@ export class File {
     /**
      * ... + false when file does not exist
      */
-    protected cache_stat?: Stats | false;
-
-    protected changeListeners = new Set<(() => void)>();
+    protected cache_stat?: FileStats | false;
 
     /**
      * We save the result of getStringContent (redundantly), so react-deepwatch can track live changes
@@ -75,13 +45,17 @@ export class File {
      */
     protected cache_stringContent = new Map<BufferEncoding, string>();
 
+    protected cache_dirContent?: ReturnType<File["getDirectoryContents"]>
+
     protected watchesForChanges = false;
+
+    protected changeListeners = new Set<(() => void)>();
 
     getStringContent(encoding: BufferEncoding) {
         checkThatCallerHandlesRetsync();
 
         if(!this.exists) {
-            throw new Error("File does not exist");
+            throw new Error(`File does not exist: ${this.path}`);
         }
 
         if(this.cache_stringContent.has(encoding)) { // Cache hit?
@@ -98,15 +72,15 @@ export class File {
         }, this.cache_stringContent, `getStringContent_${encoding}`);
     }
 
-    get stat(): Stats {
+    get stats(): FileStats {
         const result = this.getStats();
         if(result === false) {
-            throw new Error("File does not exist");
+            throw new Error(`File does not exist: ${this.path}`);
         }
         return result;
     }
 
-    protected getStats() : Stats | false {
+    protected getStats() : FileStats | false {
         checkThatCallerHandlesRetsync();
 
         if(this.cache_stat !== undefined) { // Cache hit?
@@ -133,7 +107,8 @@ export class File {
         if(!this.watchesForChanges) { // not yet already watching?
             await this.node.electrifiedClient.withReconnect(async () => {
                 await this.node.electrifiedApi.watchFileChanges(this.path, async(new_stats ) => {
-                    // Re-populate whole cache content:
+                    // *** Re-populate whole cache content ***:
+                    // Retrieve cache_stringContents:
                     const new_cache_stringContents = new Map<BufferEncoding, string>();
                     if(new_stats !== false) { // File exists?
                         for (const encoding of this.cache_stringContent.keys()) {
@@ -143,9 +118,15 @@ export class File {
                             }
                         }
                     }
+                    // Retrieve cache_dirContents
+                    let new_cache_dirContent: File["cache_dirContent"] = undefined;
+                    if(new_stats !== false && this.cache_dirContent !== undefined) { // File exists and cache exists?
+                        new_cache_dirContent = (await this.node.electrifiedApi.getDirectoryContents(this.path)).map((fileName) => this.node.getFile(`${this.path}/${fileName}`));
+                    }
                     // Atomically flip fields at once:
                     this.cache_stat = new_stats;
                     this.cache_stringContent = new_cache_stringContents;  // this will also make asyncResource2retsync do a fresh fetch. In case of file was deleted or file was re-added
+                    this.cache_dirContent = new_cache_dirContent;
 
                     // Inform listeners:
                     this.changeListeners.forEach(l => {
@@ -176,5 +157,38 @@ export class File {
     constructor(node: Node, path: string) {
         this.node = node;
         this.path = path;
+    }
+
+    get isFile() {
+        return this.stats.isFile;
+    }
+
+    get isDirectory() {
+        return this.stats.isDirectory;
+    }
+
+    get isSymbolicLink() {
+        return this.stats.isSymbolicLink
+    }
+
+
+    /**
+     * @returns all child files and directories
+     */
+    getDirectoryContents(): File[] {
+        checkThatCallerHandlesRetsync();
+
+        if(!this.isDirectory) {
+            throw new Error(`File is not a directory: ${this.path}`);
+        }
+
+        if(this.cache_dirContent !== undefined) { // Cache hit?
+            return this.cache_dirContent;
+        }
+
+        return asyncResource2retsync(async () => {
+            await this.ensureWatchesForChanges();
+            return this.cache_dirContent = (await this.node.electrifiedApi.getDirectoryContents(this.path)).map((fileName) => this.node.getFile(`${this.path}/${fileName}`));
+        }, this, `getDirectoryContents`);
     }
 }

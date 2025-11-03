@@ -243,9 +243,20 @@ export class ElectrifiedSession extends ServerSession {
 
     }
 
-    static async getFileStat(path: string) {
+    static async getFileStat(path: string): Promise<FileStats | false> {
         try {
-            return await fsPromises.stat(path);
+            const result = await fsPromises.stat(path);
+            return {
+                ...result,
+                // include evaluated version of all isXXX() methods;
+                isFIFO: result.isFIFO(),
+                isFile: result.isFile(),
+                isDirectory: result.isDirectory(),
+                isBlockDevice: result.isBlockDevice(),
+                isCharacterDevice: result.isCharacterDevice(),
+                isSocket: result.isSocket(),
+                isSymbolicLink: result.isSymbolicLink()
+            }
         }
         catch (e) {
             return false;
@@ -262,6 +273,22 @@ export class ElectrifiedSession extends ServerSession {
     }
 
     /**
+     * ...with UTF8 file name encoding
+     * @param path
+     */
+    @remote async getDirectoryContents(path: string) {
+        const fileStat = await ElectrifiedSession.getFileStat(path);
+        if(fileStat === false) {
+            throw new Error(`Directory ${path} does not exist`);
+        }
+        if(!fileStat.isDirectory) {
+            throw new Error(`Not a directory: ${path}`);
+        }
+
+        return await fsPromises.readdir(path, {encoding: "utf8"})
+    }
+
+    /**
      * path -> ClientCallbacks (+ also the chokidar file watchers are created internally)
      * @protected
      */
@@ -271,11 +298,13 @@ export class ElectrifiedSession extends ServerSession {
         // Also create the watcher here, now that we are on a one-per file invocation. Low prio TODO: remove this watcher when all clients are disconnected
         const watcher = chokidar.watch(path, {
             persistent: false, atomic: true,
-            ignoreInitial: true
+            ignoreInitial: true,
+            depth:0, // For directories, only the first child level
         });
-        ['add','change', 'unlink'].forEach(async (eventName) => {
-            (watcher as any).on(eventName, async (path?: any) => {
+        ['add','change', 'unlink','addDir', 'unlinkDir'].forEach(async (eventName) => {
+            (watcher as any).on(eventName, async (trigger_path?: any) => {
                 const fileStat = await ElectrifiedSession.getFileStat(path);
+                console.log("changeevent path: " + path + "; trigger_path:" + trigger_path + ": " + eventName + " stat: " + JSON.stringify(fileStat));
                 clientCallbacks.call(fileStat);
             });
         });
@@ -346,4 +375,36 @@ export class ElectrifiedSession extends ServerSession {
         }
         return result
     }
+}
+
+/**
+ * fs.Filestat as DTO
+ * Copied from nodejsserver/node_modules/@types/node/fs.d.ts
+ */
+export interface FileStats {
+    isFile: boolean;
+    isDirectory: boolean;
+    isBlockDevice: boolean;
+    isCharacterDevice: boolean;
+    isSymbolicLink: boolean;
+    isFIFO: boolean;
+    isSocket: boolean;
+    dev: Number;
+    ino: Number;
+    mode: Number;
+    nlink: Number;
+    uid: Number;
+    gid: Number;
+    rdev: Number;
+    size: Number;
+    blksize: Number;
+    blocks: Number;
+    atimeMs: Number;
+    mtimeMs: Number;
+    ctimeMs: Number;
+    birthtimeMs: Number;
+    atime: Date;
+    mtime: Date;
+    ctime: Date;
+    birthtime: Date;
 }
