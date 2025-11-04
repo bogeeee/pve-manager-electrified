@@ -320,6 +320,7 @@ class AppServer {
         }
         try {
             const endoding = "utf-8";
+            const buildId = this.builtWeb.buildId;
             let indexHtml = await fsAsync.readFile(`${this.useViteDevServer?this.wwwSourceDir:this.bundledWWWDir}/index.html`, {encoding: endoding});
 
             // Remove absolute-url prefixes:
@@ -340,16 +341,16 @@ class AppServer {
             let themeHtml = "";
             if (theme != 'crisp') {
                 if (theme != 'auto') {
-                    themeHtml = `<link rel="stylesheet" type="text/css" href="/pwt/themes/theme-${theme}.css?ver=TODO_BUILDID" />`
+                    themeHtml = `<link rel="stylesheet" type="text/css" href="/pwt/themes/theme-${theme}.css?ver=${buildId}" />`
                 } else {
-                    themeHtml = `<link rel="stylesheet" type="text/css" media="(prefers-color-scheme: dark)" href="/pwt/themes/theme-proxmox-dark.css?ver=TODO_BUILDID" />`
+                    themeHtml = `<link rel="stylesheet" type="text/css" media="(prefers-color-scheme: dark)" href="/pwt/themes/theme-proxmox-dark.css?ver=${buildId}" />`
                 }
             }
             indexHtml = indexHtml.replace("$THEME$", themeHtml);
 
             //$LANGFILE$:
             if (await fileExists(`/usr/share/pve-i18n/pve-lang-${lang}`)) { // Language file exists ?
-                indexHtml = indexHtml.replace("$LANGFILE$", `<script type='text/javascript' src='/pve2/locale/pve-lang-${lang}.js?ver=TODO_BUILDID'/>`);
+                indexHtml = indexHtml.replace("$LANGFILE$", `<script type='text/javascript' src='/pve2/locale/pve-lang-${lang}.js?ver=${buildId}'/>`);
             } else {
                 indexHtml = indexHtml.replace("$LANGFILE$", "<script type='text/javascript'>function gettext(buf) { return buf; }</script>");
             }
