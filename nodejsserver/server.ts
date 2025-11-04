@@ -58,9 +58,13 @@ class AppServer {
         pluginSourceProjectsDir: "/root/pveme-plugin-source-projects",
         clusterPackagesBaseDir: "/etc/pve/pveme-plugin-packages",
         /**
-         * Time in miliseconds, before they need to be requeried from the original server
+         * Time in miliseconds, before they need to be requeried from the original server.
          */
-        permissionCacheMaxAgeMs: 10000
+        permissionCacheMaxAgeMs: {
+            prod: 10000,
+            dev: 2 *60 * 60 * 1000, // 2hours for, when working with the vite-devserver. Otherwise there are annoying double-reloads when the cache timed out.
+        },
+
     }
 
     thisNodejsServerDir = path.dirname(fileURLToPath(import.meta.url));

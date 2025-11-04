@@ -213,7 +213,8 @@ export class ElectrifiedSession extends ServerSession {
     }
 
     @remote permissionsAreUp2Date() {
-        return ! (!this.cachedPermissions || (new Date().getTime() - this.cachedPermissions.lastRetrievedTime > appServer.config.permissionCacheMaxAgeMs));
+        const permissionCacheMaxAgeMs = appServer.config.permissionCacheMaxAgeMs[appServer.useViteDevServer?"dev":"prod"];
+        return ! (!this.cachedPermissions || (new Date().getTime() - this.cachedPermissions.lastRetrievedTime > permissionCacheMaxAgeMs));
     }
 
     /**

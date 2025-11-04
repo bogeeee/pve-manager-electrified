@@ -31,7 +31,7 @@ So here are the things listed, that are different to the original proxmox's pve-
 Compared to classic proxmox, the processing is shifted much more towards the client (browser). 
 Pve-electrified- or plugin client code request the server directly to run shell commands. The server will check, if the current web user has root permissions (yes, you must be logged in as root, for most of the new features, this is a bit the downside here).
 This different paradigm doesn't weaken security, because it's the same semantics: If someone pwns the browser, we're screwed in both cases.
-The logon state will be cached in the pve-electrified's browser session (opposed to the **original pve server on 8005**'s browser session). This allows us fast websocket calls for the small price that **logouts** get propagated a few seconds later.
+The logon state will be cached in the pve-electrified's browser session (opposed to the **original pve server on 8005**'s browser session). This allows us fast websocket calls for the small price that **logouts** get propagated a few seconds later (10 seconds in prod, 2hours in vite-devserver mode).
 TODO: implement regular login-state polling, to propagate logouts.
 
   
