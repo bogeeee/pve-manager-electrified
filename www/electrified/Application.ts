@@ -83,6 +83,10 @@ export class Application extends AsyncConstructableClass{
         const electrifiedApi = this.currentNode.electrifiedApi;
         const webBuildState = this.webBuildState = await electrifiedApi.getWebBuildState();
 
+        // Subscribe to event and reload the page when a new build is triggered:
+        await this.currentNode.electrifiedClient.withReconnect(() => electrifiedApi.onWebBuildStart(() => {window.location.reload()}));
+
+
         // Bug workaround: vite-devserver connection was rejected, because it had no/outdated permissions, cause they were not initialized yet.
         if(!webBuildState.builtWeb.buildOptions.buildStaticFiles && !(await electrifiedApi.permissionsAreUp2Date())) { // Using vite-devserver but permissions are not up2date?
             try {

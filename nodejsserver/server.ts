@@ -19,7 +19,7 @@ import {
     spawnAsync, ErrorDiagnosis, deleteDir, toError, isStrictSameSiteRequest
 } from './util/util.js';
 import {ElectrifiedSession} from "./ElectrifiedSession.js";
-import {restfuncsExpress} from "restfuncs-server";
+import {ClientCallbackSet, restfuncsExpress} from "restfuncs-server";
 import {createServer, ViteDevServer} from "vite";
 import {WebSocket} from "ws";
 import {fileURLToPath} from "node:url";
@@ -82,6 +82,11 @@ class AppServer {
 
 
     builtWeb!: WebBuildProgress
+
+    /**
+     * Called when the web is rebuild (when it is starting)
+     */
+    webBuildStartListeners = new ClientCallbackSet<[]>({maxListenersPerClient: 1})
 
     protected expressSessionSecret = nacl_util.encodeBase64(nacl.randomBytes(32));
     protected expressSessionStore = new ExpressMemoryStoreExt(); // Express's default memory store. You may use a better one for production to prevent against growing memory by a DOS attack. See https://www.npmjs.com/package/express-session
@@ -289,7 +294,9 @@ class AppServer {
             }
         }
 
-        return this.builtWeb = WebBuildAndDeploy.create({buildOptions}) as any as WebBuildProgress;
+        this.builtWeb = WebBuildAndDeploy.create({buildOptions}) as any as WebBuildProgress;
+        this.webBuildStartListeners.call();
+        return this.builtWeb;
     }
 
 

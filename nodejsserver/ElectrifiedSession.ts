@@ -32,7 +32,7 @@ export class ElectrifiedSession extends ServerSession {
         csrfProtectionMode: "corsReadToken"
     }
 
-    private static remoteMethodsThatNeedNoPermissions: (keyof ElectrifiedSession)[] = ["getWebBuildState","permissionsAreUp2Date"];
+    private static remoteMethodsThatNeedNoPermissions: (keyof ElectrifiedSession)[] = ["getWebBuildState","permissionsAreUp2Date", "onWebBuildStart"];
 
     static defaultRemoteMethodOptions: RemoteMethodOptions = {validateResult: false}
 
@@ -91,6 +91,12 @@ export class ElectrifiedSession extends ServerSession {
         spawnAsync(async () => {
             await appServer.buildWeb(buildOptions)
         }, false);
+    }
+
+    @remote async onWebBuildStart(listener: ()  => void) {
+        // This method needs no permissions
+
+        appServer.webBuildStartListeners.add(listener);
     }
 
     /**
