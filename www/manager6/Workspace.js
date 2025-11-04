@@ -378,6 +378,53 @@ Ext.define('PVE.StdWorkspace', {
 			},
 			createVM,
 			createCT,
+			// Settings menu:
+			{
+				xtype: 'button',
+				id: 'settingsMenu',
+				//text: gettext('Settings'),
+				margin: '0 5 0 0',
+				baseCls: 'x-btn',
+				style: {
+					// proxmox dark grey p light grey as border
+					backgroundColor: '#464d4d',
+					borderColor: '#ABBABA',
+				},
+				iconCls: 'fa fa-gear',
+				menu: [
+					{
+						iconCls: 'fa fa-gear',
+						text: gettext('My Settings'),
+						handler: function() {
+							var win = Ext.create('PVE.window.Settings');
+							win.show();
+						},
+					},
+					{
+						iconCls: 'fa fa-paint-brush',
+						text: gettext('Color Theme'),
+						handler: function() {
+							Ext.create('Proxmox.window.ThemeEditWindow')
+								.show();
+						},
+					},
+					{
+						iconCls: 'fa fa-language',
+						text: gettext('Language'),
+						handler: function() {
+							Ext.create('Proxmox.window.LanguageEditWindow')
+								.show();
+						},
+					},
+					{
+						iconCls: 'fa fa-code',
+						text: gettext('Web build control panel'),
+						handler: function() {
+							window.open("/webBuild", "webBuild");
+						},
+					},
+				]
+			},
 			{
 			    pack: 'end',
 			    margin: '0 5 0 0',
@@ -391,14 +438,7 @@ Ext.define('PVE.StdWorkspace', {
 			    },
 			    iconCls: 'fa fa-user',
 			    menu: [
-				{
-				    iconCls: 'fa fa-gear',
-				    text: gettext('My Settings'),
-				    handler: function() {
-					var win = Ext.create('PVE.window.Settings');
-					win.show();
-				    },
-				},
+
 				{
 				    text: gettext('Password'),
 				    itemId: 'passworditem',
@@ -420,29 +460,6 @@ Ext.define('PVE.StdWorkspace', {
 					Ext.state.Manager.getProvider().set('dctab', { value: 'tfa' }, true);
 					me.selectById('root');
 				    },
-				},
-				{
-				    iconCls: 'fa fa-paint-brush',
-				    text: gettext('Color Theme'),
-				    handler: function() {
-					Ext.create('Proxmox.window.ThemeEditWindow')
-					    .show();
-				    },
-				},
-				{
-				    iconCls: 'fa fa-language',
-				    text: gettext('Language'),
-				    handler: function() {
-					Ext.create('Proxmox.window.LanguageEditWindow')
-					    .show();
-				    },
-				},
-				{
-					iconCls: 'fa fa-code',
-					text: gettext('Web build control panel'),
-					handler: function() {
-						window.open("/webBuild", "webBuild");
-					},
 				},
 				'-',
 				{
