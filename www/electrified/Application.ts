@@ -9,6 +9,7 @@ import {Lxc} from "./model/Lxc";
 import {Node} from "./model/Node";
 import {Datacenter} from "./model/Datacenter";
 import {AsyncConstructableClass} from "./util/AsyncConstructableClass";
+import {ElectrifiedSession} from "../../nodejsserver/ElectrifiedSession";
 
 export class Application extends AsyncConstructableClass{
 
@@ -51,6 +52,8 @@ export class Application extends AsyncConstructableClass{
 
     private _plugins=  new Map<PluginClass, Plugin>();
 
+    webBuildState!: Awaited<ReturnType<ElectrifiedSession["getWebBuildState"]>>
+
     get plugins(){
         return [...this._plugins.values()];
     }
@@ -78,7 +81,7 @@ export class Application extends AsyncConstructableClass{
         this.currentNode = await Node.create(); // TODO use datacenter.nodes[...]
 
         const electrifiedApi = this.currentNode.electrifiedApi;
-        const webBuildState = await electrifiedApi.getWebBuildState();
+        const webBuildState = this.webBuildState = await electrifiedApi.getWebBuildState();
 
         // Bug workaround: vite-devserver connection was rejected, because it had no/outdated permissions, cause they were not initialized yet.
         if(!webBuildState.builtWeb.buildOptions.buildStaticFiles && !(await electrifiedApi.permissionsAreUp2Date())) { // Using vite-devserver but permissions are not up2date?
@@ -107,9 +110,6 @@ export class Application extends AsyncConstructableClass{
 
         this.plugins.forEach(p => p.onUiReady()); // TODO: Remove this line here and call it from the right place
 
-
-
-        console.log(`Develop: Web build state: ${JSON.stringify(webBuildState)}`);
         (window as any).electrifiedApp = this; // Make available for classic code
         app = this;
     }
