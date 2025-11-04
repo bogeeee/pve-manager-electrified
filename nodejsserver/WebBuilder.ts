@@ -109,7 +109,7 @@ export default class WebBuildProgress extends PromiseTask<BuildResult> {
             packages = [
                 ...WebBuildProgress.getUiPluginSourceProjects_fixed().map(p => {return {name: p.pkg.name, diagnosis_dir: p.dir}}),
                 ...WebBuildProgress.getClusterPackages().map(p => {return {name: p.pkg.name, diagnosis_dir: p.dir}}),
-                ...appServer.getUiPluginPackageNames().map(p => {return {name: p}})
+                ...appServer.electrifiedJsonConfig.plugins.filter(p => p.codeLocation === "npm").map(p => {return {name: p.name}})
             ];
         }
 
@@ -135,10 +135,10 @@ ${packages.map(pkgInfo => `import {default as plugin${++index}} from ${JSON.stri
         if(this.buildOptions.enablePlugins) {
             const localSourcePackageDirs = WebBuildProgress.getUiPluginSourceProjects_fixed().map(p => p.dir);
             const localPackageDirs = [appServer.thisNodejsServerDir, ...listSubDirs(appServer.config.clusterPackagesBaseDir, true), ...localSourcePackageDirs];
-            const npmPluginPackageNames: string[] = appServer.getUiPluginPackageNames();
+            const npmPluginPackageSpecs: string[] = appServer.electrifiedJsonConfig.plugins.filter(p => p.codeLocation === "npm").map(p => `${p.name}@${p.version}`);
 
             // Install npm packages + those from localPackageDirs + npm plugins and all their dependencies. This **copies** the local packages
-            await this.execa_withProgressReport(`${headline}`, "npm", ["install", "--ignore-scripts", "--no-audit", "--save", "false", ...npmPluginPackageNames, ...localPackageDirs], {cwd: wwwSourcesDir})
+            await this.execa_withProgressReport(`${headline}`, "npm", ["install", "--ignore-scripts", "--no-audit", "--save", "false", ...npmPluginPackageSpecs, ...localPackageDirs], {cwd: wwwSourcesDir})
 
             // Create symlinks to the local packages (instead of copies)
             this.diagnosis_state = `${headline} > creating symlinks to local packages`

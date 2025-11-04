@@ -31,6 +31,7 @@ import nacl_util from "tweetnacl-util";
 import nacl from "tweetnacl";
 import {IncomingMessage} from "node:http";
 import {ExpressMemoryStoreExt} from "./util/ExpressMemoryStoreExt.js";
+import {ElectrifiedJsonConfig} from "./Common.js";
 
 
 // Enable these for better error diagnosis during development:
@@ -446,12 +447,26 @@ class AppServer {
     }
 
     /**
-     * Names of all enabled npm plugins. Does not include those with a source project
-     * @see WebBuildProgress#getUiPluginSourceProjects_fixed
+     * From /etc/pve-local/electrified.json
+     * Creates file if it does not yet exist.
      */
-    getUiPluginPackageNames() {
-        return []; // TODO
+    get electrifiedJsonConfig(): ElectrifiedJsonConfig {
+        const filePath = ElectrifiedJsonConfig.filePath;
+        if(!fs.existsSync(filePath)) {
+            const newConfig = new ElectrifiedJsonConfig();
+            fs.mkdirSync(path.dirname(filePath), {recursive: true});
+            fs.writeFileSync(filePath, JSON.stringify(newConfig, undefined, 4), {encoding: "utf8"});
+        }
+        const fileContent = fs.readFileSync(filePath, {encoding: "utf8"});
+        try {
+            return JSON.parse(fileContent) as ElectrifiedJsonConfig;
+        }
+        catch (e) {
+            throw new Error(`Error parsing config file: ${filePath}: ${(e as any)?.message}`);
+        }
     }
+
+
 
     /**
      * Listens for every file/dir changes that needs an automatic rebuild of the web
@@ -481,6 +496,9 @@ class AppServer {
         watchInner(this.config.clusterPackagesBaseDir, (filePath) => {
             return filePath.startsWith(this.config.clusterPackagesBaseDir)// Deep under dir ?
         });
+
+        // Watch the npm plugin config:
+        watchInner(ElectrifiedJsonConfig.filePath, (filePath) => true);
 
         /**
          * Watches targetDir for creation and changes to paths where includeFn returns true
