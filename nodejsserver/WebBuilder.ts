@@ -131,38 +131,31 @@ ${packages.map(pkgInfo => `import {default as plugin${++index}} from ${JSON.stri
         this.diagnosis_state = headline;
 
         const wwwSourcesDir = appServer.wwwSourceDir;
+        const localSourcePackageDirs = this.buildOptions.enablePlugins?WebBuildProgress.getUiPluginSourceProjects_fixed().map(p => p.dir):[];
+        const localPackageDirs = [appServer.thisNodejsServerDir, ...this.buildOptions.enablePlugins?[...listSubDirs(appServer.config.clusterPackagesBaseDir, true), ...localSourcePackageDirs]:[]];
+        const npmPluginPackageSpecs: string[] = this.buildOptions.enablePlugins?appServer.electrifiedJsonConfig.plugins.filter(p => p.codeLocation === "npm").map(p => `${p.name}@${p.version}`):[];
 
-        if(this.buildOptions.enablePlugins) {
-            const localSourcePackageDirs = WebBuildProgress.getUiPluginSourceProjects_fixed().map(p => p.dir);
-            const localPackageDirs = [appServer.thisNodejsServerDir, ...listSubDirs(appServer.config.clusterPackagesBaseDir, true), ...localSourcePackageDirs];
-            const npmPluginPackageSpecs: string[] = appServer.electrifiedJsonConfig.plugins.filter(p => p.codeLocation === "npm").map(p => `${p.name}@${p.version}`);
+        // Install npm packages + those from localPackageDirs + npm plugins and all their dependencies. This **copies** the local packages
+        await this.execa_withProgressReport(`${headline}`, "npm", ["install", "--ignore-scripts", "--no-audit", "--save", "false", ...npmPluginPackageSpecs, ...localPackageDirs], {cwd: wwwSourcesDir})
 
-            // Install npm packages + those from localPackageDirs + npm plugins and all their dependencies. This **copies** the local packages
-            await this.execa_withProgressReport(`${headline}`, "npm", ["install", "--ignore-scripts", "--no-audit", "--save", "false", ...npmPluginPackageSpecs, ...localPackageDirs], {cwd: wwwSourcesDir})
+        // Create symlinks to the local packages (instead of copies)
+        this.diagnosis_state = `${headline} > creating symlinks to local packages`
+        localPackageDirs.forEach(dir => {
+            const pkg = JSON.parse(fs.readFileSync(`${dir}/package.json`, {encoding: "utf8"}));
+            fs.rmSync(`${wwwSourcesDir}/node_modules/${pkg.name}`, {recursive: true}); // remove existing folder
+            fs.symlinkSync(dir, `${wwwSourcesDir}/node_modules/${pkg.name}`); // create link
+        })
 
-            // Create symlinks to the local packages (instead of copies)
-            this.diagnosis_state = `${headline} > creating symlinks to local packages`
-            localPackageDirs.forEach(dir => {
-                const pkg = JSON.parse(fs.readFileSync(`${dir}/package.json`, {encoding: "utf8"}));
-                fs.rmSync(`${wwwSourcesDir}/node_modules/${pkg.name}`, {recursive: true}); // remove existing folder
-                fs.symlinkSync(dir, `${wwwSourcesDir}/node_modules/${pkg.name}`); // create link
-            })
+        // The following works only with tsc but not with esbuild sadly. So we can only "import type" + do dependency injection to communicate with the plugin:
+        // Symlink node_modules/pveme-ui -> wwwSourceDir, so that plugin source projects which have a node_modules linked to wwwSourceDir/node_modules also find the "pveme-ui" package:
+        fs.rmSync(`${wwwSourcesDir}/node_modules/pveme-ui`, {force:true, recursive: true}); // remove old, which npm has falsely installed as a copy (still leave this line)
+        fs.symlinkSync(wwwSourcesDir,`${wwwSourcesDir}/node_modules/pveme-ui`);
 
-            // The following works only with tsc but not with esbuild sadly. So we can only "import type" + do dependency injection to communicate with the plugin:
-            // Symlink node_modules/pveme-ui -> wwwSourceDir, so that plugin source projects which have a node_modules linked to wwwSourceDir/node_modules also find the "pveme-ui" package:
-            fs.rmSync(`${wwwSourcesDir}/node_modules/pveme-ui`, {force:true, recursive: true}); // remove old, which npm has falsely installed as a copy (still leave this line)
-            fs.symlinkSync(wwwSourcesDir,`${wwwSourcesDir}/node_modules/pveme-ui`);
-
-            // Symlink all source package's node_modules -> wwwSourceDir/node_modules:
-            localSourcePackageDirs.forEach(dir => {
-                fs.rmSync(`${dir}/node_modules`, {force:true, recursive: true}); // remove old
-                fs.symlinkSync(`${wwwSourcesDir}/node_modules`,`${dir}/node_modules`);
-            });
-        }
-        else {
-            // Install npm packages (only):
-            await this.execa_withProgressReport(`${headline}`, "npm", ["install", "--ignore-scripts", "--no-audit", "--save", "false"], {cwd: wwwSourcesDir}) // --save false = also don't ater package-lock.json
-        }
+        // Symlink all source package's node_modules -> wwwSourceDir/node_modules:
+        localSourcePackageDirs.forEach(dir => {
+            fs.rmSync(`${dir}/node_modules`, {force:true, recursive: true}); // remove old
+            fs.symlinkSync(`${wwwSourcesDir}/node_modules`,`${dir}/node_modules`);
+        });
     }
 
     /**
