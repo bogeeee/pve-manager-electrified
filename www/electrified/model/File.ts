@@ -91,7 +91,7 @@ export class File {
             await this.ensureWatchesForChanges();
 
             return this.cache_stat = await this.node.electrifiedApi.getFileStat(this.path);
-        }, this.cache_stringContent, `stats`);
+        }, this, `stats`);
     }
 
     get exists() {
