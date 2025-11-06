@@ -279,6 +279,14 @@ export class ElectrifiedSession extends ServerSession {
         return await fsPromises.readFile(path, {encoding});
     }
 
+    @remote async setFileContent(path: string, newContent: string, encoding: BufferEncoding) {
+        return await fsPromises.writeFile(path, newContent,{encoding});
+    }
+
+    @remote async removeFile(path: string) {
+        await fsPromises.rm(path, {recursive: true})
+    }
+
     /**
      * ...with UTF8 file name encoding
      * @param path
@@ -324,8 +332,12 @@ export class ElectrifiedSession extends ServerSession {
      * @param path
      * @param callback
      */
-    @remote watchFileChanges(path: string, callback: (stat: Awaited<ReturnType<ElectrifiedSession["getFileStat"]>>) => void) {
+    @remote onFileChanged(path: string, callback: (stat: Awaited<ReturnType<ElectrifiedSession["getFileStat"]>>) => void) {
        ElectrifiedSession.fileWatchers.get(path).add(callback);
+    }
+
+    @remote offFileChanged(path: string, callback: (stat: Awaited<ReturnType<ElectrifiedSession["getFileStat"]>>) => void) {
+        ElectrifiedSession.fileWatchers.get(path).remove(callback);
     }
 
 

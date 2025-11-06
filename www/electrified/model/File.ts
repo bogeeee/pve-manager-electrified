@@ -1,6 +1,10 @@
 import {Node} from "./Node";
-import {asyncResource2retsync, checkThatCallerHandlesRetsync} from "proxy-facades/retsync";
+import {asyncResource2retsync, cleanResource, checkThatCallerHandlesRetsync, retsync2promise, promise2retsync} from "proxy-facades/retsync";
 import {FileStats} from "pveme-nodejsserver/ElectrifiedSession";
+import _ from "underscore";
+import {spawnAsync} from "../util/util";
+import {WatchedProxyFacade} from "proxy-facades";
+import {RetsyncWaitsForPromiseException} from "proxy-facades/retsync";
 
 // Copied from nodejs's BufferEncoding
 /**
@@ -18,8 +22,6 @@ type BufferEncoding =
     | "latin1"
     | "binary"
     | "hex";
-
-
 
 /**
  * A file or directory on a pve node, that is live-watched.
@@ -51,7 +53,7 @@ export class File {
 
     protected changeListeners = new Set<(() => void)>();
 
-    getStringContent(encoding: BufferEncoding) {
+    getStringContent(encoding: BufferEncoding): string {
         checkThatCallerHandlesRetsync();
 
         if(!this.exists) {
@@ -59,17 +61,68 @@ export class File {
         }
 
         if(this.cache_stringContent.has(encoding)) { // Cache hit?
-            return this.cache_stringContent.get(encoding);
+            return this.cache_stringContent.get(encoding)!;
         }
 
         return asyncResource2retsync(async () => {
-            await this.ensureWatchesForChanges();
+            await this.ensureWatchesForChangesOnDisk();
 
             const result = await this.node.electrifiedApi.getFileContent(this.path, encoding);
 
             this.cache_stringContent.set(encoding, result);
             return result;
         }, this.cache_stringContent, `getStringContent_${encoding}`);
+    }
+
+    protected setStringContent_writeOperation?: {newValue: string, encoding: BufferEncoding, promise: Promise<void>};
+    protected removeOperation?: Promise<void>
+
+    setStringContent(newValue:string, encoding: BufferEncoding) {
+        // Validity check:
+        if(newValue === undefined) {
+            throw new Error("Illegal argument: undefined");
+        }
+
+        checkThatCallerHandlesRetsync();
+
+        if(this.cache_stringContent.get(encoding) === newValue) { // Nothing has changed / already up2date ?
+            return;
+        }
+
+        if(this.setStringContent_writeOperation?.encoding === encoding && this.setStringContent_writeOperation?.newValue === newValue) { // Write operation is already in progress ?
+
+        }
+        else {
+            this.setStringContent_writeOperation = {
+                newValue: newValue,
+                encoding: encoding,
+                promise: (async () => {
+                    await this.ensureWatchesForChangesOnDisk();
+                    await this.node.electrifiedApi.setFileContent(this.path, newValue, encoding);
+                    this.cache_stringContent.clear(); // Clear values for other encodings
+                    this.cache_stringContent.set(encoding, newValue);
+                    this.setStringContent_writeOperation = undefined; // We dont' need it anymore, so let's clear the memory which holds a big string
+                })()
+            }
+        }
+    }
+
+    remove() {
+        checkThatCallerHandlesRetsync();
+
+        if(this.exists) {
+            this.removeOperation = this.removeOperation || (async () => {
+                try {
+                    await this.node.electrifiedApi.removeFile(this.path);
+                    await this.cleanup();
+                }
+                finally {
+                    this.removeOperation = undefined;
+                }
+            })()
+
+            return promise2retsync(this.removeOperation);
+        }
     }
 
     get stats(): FileStats {
@@ -88,7 +141,7 @@ export class File {
         }
 
         return asyncResource2retsync(async () => {
-            await this.ensureWatchesForChanges();
+            await this.ensureWatchesForChangesOnDisk();
 
             return this.cache_stat = await this.node.electrifiedApi.getFileStat(this.path);
         }, this, `stats`);
@@ -98,45 +151,47 @@ export class File {
         return this.getStats() !== false
     }
 
+    protected changeOnDiskHandler = (async(new_stats ) => {
+        // *** Re-populate whole cache content ***:
+        // Retrieve cache_stringContents:
+        const new_cache_stringContents = new Map<BufferEncoding, string>();
+        if(new_stats !== false) { // File exists?
+            for (const encoding of this.cache_stringContent.keys()) {
+                try {
+                    new_cache_stringContents.set(encoding, await this.node.electrifiedApi.getFileContent(this.path, encoding));
+                } catch (e) { // I.e. the file was deleted (race condition)
+                }
+            }
+        }
+        // Retrieve cache_dirContents
+        let new_cache_dirContent: File["cache_dirContent"] = undefined;
+        if(new_stats !== false && this.cache_dirContent !== undefined) { // File exists and cache exists?
+            new_cache_dirContent = (await this.node.electrifiedApi.getDirectoryContents(this.path)).map((fileName) => this.node.getFile(`${this.path}/${fileName}`));
+        }
+        // Atomically flip fields at once:
+        this.cache_stat = new_stats;
+        this.cache_stringContent = new_cache_stringContents;  // this will also make asyncResource2retsync do a fresh fetch. In case of file was deleted or file was re-added
+        this.cache_dirContent = new_cache_dirContent;
+
+        // Inform listeners:
+        this.changeListeners.forEach(l => {
+            try {
+                l();
+            } catch (e) {
+                console.error(e);
+            }
+        });
+    }).bind(this);
+
     /**
      * Subscribes to and handles file changes
      * @protected
      */
-    protected async ensureWatchesForChanges() {
+    protected async ensureWatchesForChangesOnDisk() {
         // Subscribe for file changes:
         if(!this.watchesForChanges) { // not yet already watching?
             await this.node.electrifiedClient.withReconnect(async () => {
-                await this.node.electrifiedApi.watchFileChanges(this.path, async(new_stats ) => {
-                    // *** Re-populate whole cache content ***:
-                    // Retrieve cache_stringContents:
-                    const new_cache_stringContents = new Map<BufferEncoding, string>();
-                    if(new_stats !== false) { // File exists?
-                        for (const encoding of this.cache_stringContent.keys()) {
-                            try {
-                                new_cache_stringContents.set(encoding, await this.node.electrifiedApi.getFileContent(this.path, encoding));
-                            } catch (e) { // I.e. the file was deleted (race condition)
-                            }
-                        }
-                    }
-                    // Retrieve cache_dirContents
-                    let new_cache_dirContent: File["cache_dirContent"] = undefined;
-                    if(new_stats !== false && this.cache_dirContent !== undefined) { // File exists and cache exists?
-                        new_cache_dirContent = (await this.node.electrifiedApi.getDirectoryContents(this.path)).map((fileName) => this.node.getFile(`${this.path}/${fileName}`));
-                    }
-                    // Atomically flip fields at once:
-                    this.cache_stat = new_stats;
-                    this.cache_stringContent = new_cache_stringContents;  // this will also make asyncResource2retsync do a fresh fetch. In case of file was deleted or file was re-added
-                    this.cache_dirContent = new_cache_dirContent;
-
-                    // Inform listeners:
-                    this.changeListeners.forEach(l => {
-                        try {
-                            l();
-                        } catch (e) {
-                            console.error(e);
-                        }
-                    });
-                });
+                await this.node.electrifiedApi.onFileChanged(this.path, this.changeOnDiskHandler);
             })
             this.watchesForChanges = true;
         }
@@ -157,6 +212,7 @@ export class File {
     constructor(node: Node, path: string) {
         this.node = node;
         this.path = path;
+        this._jsonObject_watchedProxyFacade.onAfterChange(() => retsync2promise(() => this.writeJsonObjectToDisk()));
     }
 
     get isFile() {
@@ -169,6 +225,108 @@ export class File {
 
     get isSymbolicLink() {
         return this.stats.isSymbolicLink
+    }
+
+    /**
+     * null = file does not exist (redundant but this way we can query it from non-retsync code)
+     * @protected
+     */
+    protected cache_jsonObject?: object | Error | null;
+    protected _jsonObject_watchedProxyFacade = new WatchedProxyFacade();
+
+    writeJsonObjectToDisk() {
+        this.setStringContent(JSON.stringify(this.cache_jsonObject, undefined, 4), "utf8"); // Write to disk
+    }
+
+    /**
+     * Retrieves and sets this._cache_jsonObject.
+     * @protected
+     */
+    protected updateJsonObjectFromDisk() {
+        try {
+            if(!this.exists) {
+                this.cache_jsonObject = null;
+                return;
+            }
+
+            const newObject = JSON.parse(this.getStringContent("utf8"));
+            if(newObject === null || (typeof newObject) !== "object") {
+                throw new Error(`${this.path} does not have an **object** as root element`)
+            }
+            if(!_.isEqual(this.cache_jsonObject, newObject)) { // Version on disk is different?
+                this.cache_jsonObject = newObject;
+            }
+        }
+        catch (e) {
+            if(e != null && e instanceof RetsyncWaitsForPromiseException) {
+                throw e;
+            }
+            this.cache_jsonObject = e as Error;
+        }
+    }
+
+    protected jsonOnDiskChangeHandlerFn = (() =>  retsync2promise(() => this.updateJsonObjectFromDisk())).bind(this)
+
+    /**
+     * This .json file, parsed as a object. Changes to the returned object (can be deep) will result in a write.
+     * Will always return the same object instance unless there's a write to the file through some other way.
+     * Once initialized, it can be used from non-retsync calls.
+     * @return object or undefined if file does not exist
+     */
+    get jsonObject(): object | undefined {
+        if(this.cache_jsonObject === undefined) { // not yet initialized?
+            this.updateJsonObjectFromDisk();
+            this.onChange(this.jsonOnDiskChangeHandlerFn);
+        }
+
+        if(this.cache_jsonObject != null && this.cache_jsonObject instanceof Error) {
+            throw this.cache_jsonObject;
+        }
+        else if(this.cache_jsonObject === null) { // File does not exist?
+            return undefined;
+        }
+        return this._jsonObject_watchedProxyFacade.getProxyFor(this.cache_jsonObject);
+    }
+
+    /**
+     * Sets the new json content and the content will be written to disk (lazily, only if there are changes).
+     * <p>
+     *     Note: If it's the same json object **instance** since the previous setter call, no change is detected. You have to call {@see writeJsonObjectToDisk} then.
+     *     Or it's a good idea to call the getter after setting it. So you retrieve a proxy with change-tracking.
+     *     TODO: Implement proxy-facades/PartialGraph#viral feature and automatically track the new value for changes.
+     * </p>
+     * @param newObject ..., undefined  deletes the file.
+     */
+    set jsonObject(newObject) {
+        // Validate argument
+        if(newObject !== undefined && (newObject === null || (typeof newObject) !== "object")) {
+            throw new Error(`newObject is not an object`)
+        }
+
+        this.onChange(this.jsonOnDiskChangeHandlerFn);
+
+        if(newObject === undefined) {
+            if(this.exists) {
+                this.remove();
+            }
+            this.cache_jsonObject = null;
+            return;
+        }
+
+
+        if(!_.isEqual(this.cache_jsonObject, newObject)) { // Version on disk is different?
+            this.cache_jsonObject = newObject;
+            this.writeJsonObjectToDisk();
+        }
+        this.cache_jsonObject = newObject;
+    }
+
+
+    /**
+     * Not yet implemented
+     */
+    get preservedJsonObject() {
+        throw new Error("TODO")
     }
 
 
@@ -187,8 +345,25 @@ export class File {
         }
 
         return asyncResource2retsync(async () => {
-            await this.ensureWatchesForChanges();
+            await this.ensureWatchesForChangesOnDisk();
             return this.cache_dirContent = (await this.node.electrifiedApi.getDirectoryContents(this.path)).map((fileName) => this.node.getFile(`${this.path}/${fileName}`));
         }, this, `getDirectoryContents`);
+    }
+
+    async cleanup() {
+        this.cache_stat = undefined;
+        cleanResource(this, `stats`);
+
+        this.cache_stringContent = new Map<BufferEncoding, string>();
+
+        this.cache_jsonObject = undefined;
+
+        this.cache_dirContent = undefined
+        cleanResource(this, `getDirectoryContents`);
+
+        if(this.watchesForChanges) {
+            await this.node.electrifiedApi.offFileChanged(this.path, this.changeOnDiskHandler);
+            this.watchesForChanges = false;
+        }
     }
 }
