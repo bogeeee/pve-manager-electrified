@@ -59,7 +59,7 @@ export class Plugin {
 
 export type PluginClass = typeof Plugin;
 
-export type PluginList =  {pluginClass: PluginClass, diagnosis_packageName: string, diagnosis_sourceDir?: string}[]
+export type PluginList =  {pluginClass: PluginClass, packageName: string, diagnosis_sourceDir?: string}[]
 
 /**
  * import {something} from "pveme-ui" does not work with the vite bundler. It cannot reference the the root package from within another package.

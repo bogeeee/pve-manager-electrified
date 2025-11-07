@@ -118,7 +118,7 @@ export default class WebBuildProgress extends PromiseTask<BuildResult> {
         const tsContent = `// this files was generated during the web build, by the createPluginList() method.
 import {PluginList} from "./electrified/Plugin"
 export const generated_pluginList: PluginList = [];
-${packages.map(pkgInfo => `import {default as plugin${++index}} from ${JSON.stringify(`${pkgInfo.name}/Plugin`)}; generated_pluginList.push({pluginClass: plugin${index}, diagnosis_packageName: ${JSON.stringify(pkgInfo.name)}, diagnosis_sourceDir: ${JSON.stringify(pkgInfo.diagnosis_dir)}});`).join("\n")}
+${packages.map(pkgInfo => `import {default as plugin${++index}} from ${JSON.stringify(`${pkgInfo.name}/Plugin`)}; generated_pluginList.push({pluginClass: plugin${index}, packageName: ${JSON.stringify(pkgInfo.name)}, diagnosis_sourceDir: ${JSON.stringify(pkgInfo.diagnosis_dir)}});`).join("\n")}
 `
         fs.writeFileSync(`${wwwSourcesDir}/_generated_pluginList.ts`, tsContent, {encoding: "utf8"});
     }
