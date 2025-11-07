@@ -105,6 +105,8 @@ export class File {
                 })()
             }
         }
+
+        promise2retsync(this.setStringContent_writeOperation.promise);
     }
 
     remove() {
@@ -212,7 +214,7 @@ export class File {
     constructor(node: Node, path: string) {
         this.node = node;
         this.path = path;
-        this._jsonObject_watchedProxyFacade.onAfterChange(() => retsync2promise(() => this.writeJsonObjectToDisk()));
+        this._jsonObject_watchedProxyFacade.onAfterChange(() => withErrorHandling(() => retsync2promise(() => this.writeJsonObjectToDisk(this.cache_jsonObject as object))));
     }
 
     get isFile() {
@@ -234,8 +236,8 @@ export class File {
     protected cache_jsonObject?: object | Error | null;
     protected _jsonObject_watchedProxyFacade = new WatchedProxyFacade();
 
-    writeJsonObjectToDisk() {
-        this.setStringContent(JSON.stringify(this.cache_jsonObject, undefined, 4), "utf8"); // Write to disk
+    writeJsonObjectToDisk(jsonObject: object) {
+        this.setStringContent(JSON.stringify(jsonObject, undefined, 4), "utf8"); // Write to disk
     }
 
     /**
@@ -315,8 +317,8 @@ export class File {
 
 
         if(!_.isEqual(this.cache_jsonObject, newObject)) { // Version on disk is different?
+            this.writeJsonObjectToDisk(newObject);
             this.cache_jsonObject = newObject;
-            this.writeJsonObjectToDisk();
         }
         this.cache_jsonObject = newObject;
     }
