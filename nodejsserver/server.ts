@@ -510,7 +510,7 @@ class AppServer {
         });
 
         // Watch the npm plugin config:
-        watchInner(ElectrifiedJsonConfig.filePath, (filePath) => true);
+        watchInner(ElectrifiedJsonConfig.filePath, (filePath) => filePath === ElectrifiedJsonConfig.filePath);
 
         /**
          * Watches targetDir for creation and changes to paths where includeFn returns true
