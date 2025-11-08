@@ -102,6 +102,8 @@ export class Application extends AsyncConstructableClass{
             }
         }
 
+        app = this;
+
         // Register plugins:
         pluginList.forEach(entry => {
             try {
@@ -115,8 +117,25 @@ export class Application extends AsyncConstructableClass{
         this.plugins.forEach(p => p.onUiReady()); // TODO: Remove this line here and call it from the right place
 
         (window as any).electrifiedApp = this; // Make available for classic code
-        app = this;
+
+        this.setup_logoutPropagation();
+
     }
+
+    /**
+     * Sets up faster logout propagation. Useful for vite-devserver mode
+     * @protected
+     */
+    protected setup_logoutPropagation() {
+        // Patch Proxmox.Utils.authClear function:
+        const orig_authClear = (window as any).Proxmox.Utils.authClear as () => void;
+        (window as any).Proxmox.Utils.authClear = async () => {
+            orig_authClear();
+            await this.currentNode.electrifiedApi.clearCachedPermissions();
+        }
+    }
+
+
 
 
     /**

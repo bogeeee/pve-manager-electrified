@@ -32,7 +32,7 @@ export class ElectrifiedSession extends ServerSession {
         csrfProtectionMode: "corsReadToken"
     }
 
-    private static remoteMethodsThatNeedNoPermissions: (keyof ElectrifiedSession)[] = ["getWebBuildState","permissionsAreUp2Date", "onWebBuildStart"];
+    private static remoteMethodsThatNeedNoPermissions: (keyof ElectrifiedSession)[] = ["getWebBuildState","permissionsAreUp2Date", "clearCachedPermissions", "onWebBuildStart"];
 
     static defaultRemoteMethodOptions: RemoteMethodOptions = {validateResult: false}
 
@@ -221,6 +221,10 @@ export class ElectrifiedSession extends ServerSession {
     @remote permissionsAreUp2Date() {
         const permissionCacheMaxAgeMs = appServer.config.permissionCacheMaxAgeMs[appServer.useViteDevServer?"dev":"prod"];
         return ! (!this.cachedPermissions || (new Date().getTime() - this.cachedPermissions.lastRetrievedTime > permissionCacheMaxAgeMs));
+    }
+
+    @remote clearCachedPermissions() {
+        this.cachedPermissions = undefined;
     }
 
     /**
