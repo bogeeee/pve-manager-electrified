@@ -3,9 +3,10 @@ import {remote} from "restfuncs-server";
 import {ServerSessionOptions} from "restfuncs-server";
 import {appServer} from "./server.js";
 import WebBuildProgress, {BuildOptions} from "./WebBuilder.js";
-import {axiosExt, deleteDir, errorToHtml, spawnAsync, newDefaultMap} from "./util/util.js";
+import {axiosExt, deleteDir, errorToHtml, spawnAsync, newDefaultMap, fileExists} from "./util/util.js";
 import {rmSync} from "fs";
 import fs from "node:fs";
+import path from "node:path";
 import fsPromises  from "node:fs/promises";
 import {execa} from "execa";
 import {Request} from "express";
@@ -283,8 +284,18 @@ export class ElectrifiedSession extends ServerSession {
         return await fsPromises.readFile(path, {encoding});
     }
 
-    @remote async setFileContent(path: string, newContent: string, encoding: BufferEncoding) {
-        return await fsPromises.writeFile(path, newContent,{encoding});
+    /**
+     * ... + creates the parent dirs if necessary
+     * @param filePath
+     * @param newContent
+     * @param encoding
+     */
+    @remote async setFileContent(filePath: string, newContent: string, encoding: BufferEncoding) {
+        const parentDir = path.dirname(filePath);
+        if(!await fileExists(parentDir)) {
+            await fsPromises.mkdir(parentDir, {recursive: true}); // Create parent dir
+        }
+        return await fsPromises.writeFile(filePath, newContent,{encoding});
     }
 
     @remote async removeFile(path: string) {
