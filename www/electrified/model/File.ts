@@ -2,7 +2,7 @@ import {Node} from "./Node";
 import {asyncResource2retsync, cleanResource, checkThatCallerHandlesRetsync, retsync2promise, promise2retsync} from "proxy-facades/retsync";
 import {FileStats} from "pveme-nodejsserver/ElectrifiedSession";
 import _ from "underscore";
-import {spawnAsync} from "../util/util";
+import {spawnAsync, withErrorHandling} from "../util/util";
 import {WatchedProxyFacade} from "proxy-facades";
 import {RetsyncWaitsForPromiseException} from "proxy-facades/retsync";
 
@@ -215,6 +215,7 @@ export class File {
         this.node = node;
         this.path = path;
         this._jsonObject_watchedProxyFacade.onAfterChange(() => withErrorHandling(() => retsync2promise(() => this.writeJsonObjectToDisk(this.cache_jsonObject as object))));
+        this._jsonObject_safe_watchedProxyFacade.onAfterChange(() => this.writeJsonObjectToDisk(this.cache_jsonObject as object));
     }
 
     get isFile() {
@@ -235,6 +236,7 @@ export class File {
      */
     protected cache_jsonObject?: object | Error | null;
     protected _jsonObject_watchedProxyFacade = new WatchedProxyFacade();
+    protected _jsonObject_safe_watchedProxyFacade = new WatchedProxyFacade();
 
     writeJsonObjectToDisk(jsonObject: object) {
         this.setStringContent(JSON.stringify(jsonObject, undefined, 4), "utf8"); // Write to disk
@@ -270,10 +272,11 @@ export class File {
     protected jsonOnDiskChangeHandlerFn = (() =>  retsync2promise(() => this.updateJsonObjectFromDisk())).bind(this)
 
     /**
-     * This .json file, parsed as a object. Changes to the returned object (can be deep) will result in a write.
+     * This .json file, parsed as a object. Changes to the returned object (can be deep) will result in a write (ignoring errors / only showing a popup).
      * Will always return the same object instance unless there's a write to the file through some other way.
      * Once initialized, it can be used from non-retsync calls.
      * @return object or undefined if file does not exist
+     * @see jsonObject_safe For a version with safer writes, not ignoring errors.
      */
     get jsonObject(): object | undefined {
         if(this.cache_jsonObject === undefined) { // not yet initialized?
@@ -288,6 +291,13 @@ export class File {
             return undefined;
         }
         return this._jsonObject_watchedProxyFacade.getProxyFor(this.cache_jsonObject);
+    }
+
+    /**
+     * @see jsonObject
+     */
+    get jsonObject_safe(): object | undefined {
+        return this._jsonObject_safe_watchedProxyFacade.getProxyFor(this.jsonObject);
     }
 
     /**
