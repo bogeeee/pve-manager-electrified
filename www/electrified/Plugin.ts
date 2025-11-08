@@ -1,8 +1,9 @@
-import {Application} from "./Application";
+import {Application, app} from "./Application";
 import {Guest} from "./model/Guest";
 import {Qemu} from "./model/Qemu";
 import {Lxc} from "./model/Lxc";
 import {Clazz} from "./util/util";
+import {retsync2promise} from "proxy-facades/retsync";
 
 export class Plugin {
     app: Application
@@ -12,8 +13,33 @@ export class Plugin {
         this.app = app;
     }
 
-    get packageName() {
-        throw new Error("TODO");
+    /**
+     * Initializes this plugin. Prefer this point, instead of the constructor.
+     * The configs have already been initialized at this time
+     * @see onUiReady
+     */
+    async init() {
+
+    }
+
+    /**
+     * @return short name
+     * @see packageName
+     */
+    get name() {
+        return this.packageName.replace(/^pveme-ui-plugin-/,"");
+    }
+
+    /**
+     * Set during registration
+     */
+    static packageName: string;
+
+    /**
+     * @see name
+     */
+    get packageName(): string {
+        return (this.constructor as any).packageName;
     }
 
     getGuestMenuItems(guest: Guest): {}[]{
@@ -36,9 +62,9 @@ export class Plugin {
     }
 
     /**
-     * Fired, when the ui is loaded and displayed (i.e. the login screen or main window is displayed)
+     * Fired, when the ui is loaded and displayed (i.e. the login screen or main window is displayed).
      */
-    onUiReady() {
+    async onUiReady() {
 
     }
 
@@ -92,4 +118,87 @@ export function fixPluginClass(pluginClass: PluginClass) {
     Object.setPrototypeOf(dummyPluginBaseLevel.prototype , Plugin.prototype); // re-base instance prototype
 
     return pluginClass;
+}
+
+/**
+ *
+ */
+export async function initializePluginConfigs(plugin: Plugin) {
+
+    for (const cfg of [
+        /* TODO: {key: "userConfig", file: `/home/${userDir}/.pve-manager/plugins/${plugin.name}.json`}, */
+        {key: "nodeConfig", path: `/etc/pve-local/manager/plugins/${plugin.name}.json`, isDatacenterConfig: false},
+        {key: "datacenterConfig", path: `/etc/pve/manager/plugins/${plugin.name}.json.`, isDatacenterConfig: true}]) {
+
+        const initialConfig:object | undefined = plugin[cfg.key];
+        if(initialConfig !== undefined) { // field was specified?
+            const file = app.currentNode.getFile(cfg.path);
+
+            // Init config:
+            let initialized = false;
+            const init = async () => {
+                if(initialized) {
+                    return;
+                }
+                await retsync2promise(() => {
+                    const config = file.jsonObject || {};
+
+                    // Shyly apply initial values:
+                    Object.getOwnPropertyNames(initialConfig).forEach(propName => {
+                        if(!config.hasOwnProperty(propName)) {
+                            config[propName] = initialConfig[propName];
+                        }
+                    })
+
+                    if(file.jsonObject === undefined && Object.getOwnPropertyNames(config).length == 0) {
+                        // Don't write if everything is empty to not create a bunch of empty config files when there's not really an interest to use them
+                    }
+                    else {
+                        file.jsonObject = config; // write
+                    }
+
+                })
+
+                initialized = true;
+            }
+            if(cfg.isDatacenterConfig) {
+                if(app.datacenter.online) {
+                    await init();
+                }
+                app.datacenter.onOnlineStatusChanged((online) => {
+                    if(online) {
+                        init();
+                    }
+                })
+
+            }
+            else {
+                await init()
+            }
+
+            // Define accessors
+            Object.defineProperty(plugin, cfg.key, {
+                get() {
+                    if(cfg.isDatacenterConfig && !app.datacenter.online) {
+                        throw new Error("Cannot read from datacenter config when datacenter is offline")
+                    }
+
+                    if(!initialized) {
+                        throw new Error("Illegal state");
+                    }
+
+                    if(file.jsonObject === undefined) { // Config does not yet exist?
+                        file.jsonObject = {};
+                    }
+
+                    return file.jsonObject;
+                },
+                set(value: object) {
+                    if(cfg.isDatacenterConfig && !app.datacenter.online) {
+                        throw new Error("Cannot write to from datacenter config when datacenter is offline")
+                    }
+                }
+            })
+        }
+    }
 }

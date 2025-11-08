@@ -23,4 +23,16 @@ export class Datacenter extends AsyncConstructableClass{
     getNode_existing(name: string) {
         return this.nodes.get(name) || throwError(`Node does not exist: ${name}`);
     }
+
+    /**
+     * Synchronous / live
+     * @return online / cluster is in sync (from this node's perspective)
+     */
+    get online() {
+        return true; // TODO
+    }
+
+    onOnlineStatusChanged(listener: (online: boolean)=> void) {
+        // TODO
+    }
 }

@@ -1,15 +1,25 @@
 import {RestfuncsClient} from "restfuncs-client";
 
-import {Clazz, returnWithErrorHandling, spawnAsync, withErrorHandling} from "./util/util"; // Import to have types
+import {
+    Clazz, errorToString,
+    isPVEDarkTheme,
+    returnWithErrorHandling, showErrorDialog,
+    showResultText,
+    spawnAsync,
+    withErrorHandling
+} from "./util/util"; // Import to have types
 import {generated_pluginList as pluginList} from "../_generated_pluginList";
-import {fixPluginClass, Plugin, PluginClass} from "./Plugin"
+import {fixPluginClass, initializePluginConfigs, Plugin, PluginClass} from "./Plugin"
 import {Guest} from "./model/Guest";
 import {Qemu} from "./model/Qemu";
 import {Lxc} from "./model/Lxc";
 import {Node} from "./model/Node";
 import {Datacenter} from "./model/Datacenter";
 import {AsyncConstructableClass} from "./util/AsyncConstructableClass";
-import {ElectrifiedSession} from "../../nodejsserver/ElectrifiedSession";
+import type {ElectrifiedSession} from "pveme-nodejsserver/ElectrifiedSession";
+import {showPluginManager} from "./ui/PluginManager";
+import {ElectrifiedJsonConfig} from "pveme-nodejsserver/Common";
+import {retsync2promise} from "proxy-facades/retsync";
 
 export class Application extends AsyncConstructableClass{
 
@@ -23,6 +33,14 @@ export class Application extends AsyncConstructableClass{
      * Live model, (live like {@see datacenter})) of current node where this web frontend is currently hosted.
      */
     currentNode!: Node;
+
+    /**
+     * /etc/pve-local/electrified.json
+     *
+     */
+    get electrifiedJsonConfig(): ElectrifiedJsonConfig {
+        return this.currentNode.getFile(ElectrifiedJsonConfig.filePath).jsonObject as ElectrifiedJsonConfig // TODO create if it doesnt exist, like with plugins
+    }
 
 
     /**
@@ -62,12 +80,15 @@ export class Application extends AsyncConstructableClass{
         return this._plugins.get(clazz);
     }
 
-    registerPlugin(pluginClass: PluginClass) {
+    registerPlugin(pluginClass: PluginClass, packageName: string) {
         pluginClass = fixPluginClass(pluginClass);
 
         if(this.getPluginByClass(pluginClass)) { // Already registered
             return;
         }
+
+        pluginClass.packageName = packageName;
+
         const plugin = new pluginClass(this);
         this._plugins.set(pluginClass, plugin);
 
@@ -105,14 +126,25 @@ export class Application extends AsyncConstructableClass{
         app = this;
 
         // Register plugins:
-        pluginList.forEach(entry => {
+        for(const entry of pluginList) {
             try {
-                this.registerPlugin(entry.pluginClass);
+                this.registerPlugin(entry.pluginClass, entry.packageName);
             }
             catch (e) {
-                throw new Error(`Error registering plugin ${entry.diagnosis_packageName}. Path: ${entry.diagnosis_sourceDir || ""}`, {cause: e});
+                await showErrorDialog(new Error(`Error registering plugin ${entry.packageName}. Path: ${entry.diagnosis_sourceDir || ""}`, {cause: e})); // Show a dialog instead of crashing the whole app which prevents the user from reconfiguring plugins
             }
-        })
+        }
+
+        // Init plugins:
+        for(const plugin of this.plugins) {
+            try {
+                await initializePluginConfigs(plugin);
+                await plugin.init();
+            }
+            catch (e) {
+                await showErrorDialog(new Error(`Error initializing plugin ${plugin.name}`, {cause: e})); // Show a dialog instead of crashing the whole app which prevents the user from reconfiguring plugins
+            }
+        }
 
         this.plugins.forEach(p => p.onUiReady()); // TODO: Remove this line here and call it from the right place
 
