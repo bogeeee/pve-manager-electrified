@@ -34,6 +34,17 @@ export class Application extends AsyncConstructableClass{
      */
     currentNode!: Node;
 
+    loginData?: {
+        CSRFPreventionToken: string
+        cap: unknown
+        clustername: string
+        ticket: string
+        /**
+         * i.e. root@pam
+         */
+        username: string
+    }
+
     /**
      * /etc/pve-local/electrified.json
      *
@@ -107,9 +118,32 @@ export class Application extends AsyncConstructableClass{
         // Subscribe to event and reload the page when a new build is triggered:
         await this.currentNode.electrifiedClient.withReconnect(() => electrifiedApi.onWebBuildStart(() => {window.location.reload()}));
 
+        app = this;
 
+        // Register plugins:
+        for(const entry of pluginList) {
+            try {
+                this.registerPlugin(entry.pluginClass, entry.packageName);
+            }
+            catch (e) {
+                await showErrorDialog(new Error(`Error registering plugin ${entry.packageName}. Path: ${entry.diagnosis_sourceDir || ""}`, {cause: e})); // Show a dialog instead of crashing the whole app which prevents the user from reconfiguring plugins
+            }
+        }
+
+
+        (window as any).electrifiedApp = this; // Make available for classic code
+
+        this.setup_logoutPropagation();
+
+    }
+
+    /**
+     * Called after login or on start, with valid login ticket
+     */
+    async initAfterLogin() {
         // Bug workaround: vite-devserver connection was rejected, because it had no/outdated permissions, cause they were not initialized yet.
-        if(!webBuildState.builtWeb.buildOptions.buildStaticFiles && !(await electrifiedApi.permissionsAreUp2Date())) { // Using vite-devserver but permissions are not up2date?
+        const electrifiedApi = this.currentNode.electrifiedApi;
+        if(!this.webBuildState.builtWeb.buildOptions.buildStaticFiles && !(await electrifiedApi.permissionsAreUp2Date())) { // Using vite-devserver but permissions are not up2date?
             try {
                 await electrifiedApi.ping(); // Force permissions to be up2date if there's a valid login
             }
@@ -120,18 +154,6 @@ export class Application extends AsyncConstructableClass{
                 // We realized that the vite-devserver connection must had failed because it saw none/outdated permissions. This occurs i.e. during nodejsserver development when restarting the server.
 
                 window.location.reload();
-            }
-        }
-
-        app = this;
-
-        // Register plugins:
-        for(const entry of pluginList) {
-            try {
-                this.registerPlugin(entry.pluginClass, entry.packageName);
-            }
-            catch (e) {
-                await showErrorDialog(new Error(`Error registering plugin ${entry.packageName}. Path: ${entry.diagnosis_sourceDir || ""}`, {cause: e})); // Show a dialog instead of crashing the whole app which prevents the user from reconfiguring plugins
             }
         }
 
@@ -146,12 +168,23 @@ export class Application extends AsyncConstructableClass{
             }
         }
 
+
         this.plugins.forEach(p => p.onUiReady()); // TODO: Remove this line here and call it from the right place
+    }
 
-        (window as any).electrifiedApp = this; // Make available for classic code
+    /**
+     * Called by workspace after login or on start, with valid login ticket
+     * @param loginData
+     */
+    onLogin(loginData: Application["loginData"]) {
+        if(this.loginData) { // User logged out and re-logged in
+            window.location.reload(); // Cause the File/Node/etc. objects can't deal with a potential different user and changed permissions or with beeing teporary logged out. And there's no cleanup for the whole app implemented.
+        }
+        this.loginData = loginData;
 
-        this.setup_logoutPropagation();
-
+        spawnAsync(async () => {
+            await this.initAfterLogin();
+        });
     }
 
     /**
