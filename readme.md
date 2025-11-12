@@ -5,9 +5,7 @@
 This is a modification of the [Proxmox Virtual Environment](https://www.proxmox.com/en/products/proxmox-virtual-environment/overview) **user interface**, that brings some nice features, mainly for homelab'ers. 
 The goal is also, to provide a plugin system and give plugin authors the tools to develop such and publish them with very little effort. 
 
-# Currently it' developer's summer pause
-Saw no updates recently here/on github? That's because i'm making a summer break presumably till the end of August.
-If you have **commercial/paid** interest on getting this project done faster,  or want some urgent features, then write me. So i can focus more on this one and don't have to catch other customer projects for my earnings then.  
+Update: Heavily working on the plugin system. Expect the first release on November 16.
 
 ## Install
 **!!!!It's not yet releaed!!!. Please be patient!** Here, you'll find some random in-development release in the meanwhile.
