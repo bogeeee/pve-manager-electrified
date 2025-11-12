@@ -418,6 +418,13 @@ Ext.define('PVE.StdWorkspace', {
 						},
 					},
 					{
+						iconCls: 'fa fa-plug',
+						text: gettext('Plugins'),
+						handler: function() {
+							window.electrifiedApp.showPluginManager();
+						},
+					},
+					{
 						iconCls: 'fa fa-code',
 						text: gettext('Web build control panel'),
 						handler: function() {

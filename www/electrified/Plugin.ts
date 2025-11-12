@@ -55,6 +55,14 @@ export class Plugin {
     }
 
     /**
+     * Called when the user clicks the config symbol in the plugin manager.
+     * This config symbol will be disabled, if this method is not overridden
+     */
+    async showConfigurationDialog() {
+
+    }
+
+    /**
      * Content of package.json
      */
     getPackage(): any {

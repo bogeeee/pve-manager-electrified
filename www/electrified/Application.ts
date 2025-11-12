@@ -91,6 +91,14 @@ export class Application extends AsyncConstructableClass{
         return this._plugins.get(clazz);
     }
 
+    /**
+     *
+     * @param name the full name: pveme-ui-plugin-...
+     */
+    getPluginByName(name: string): Plugin | undefined {
+        return this.plugins.find(p => p.packageName === name);
+    }
+
     registerPlugin(pluginClass: PluginClass, packageName: string) {
         pluginClass = fixPluginClass(pluginClass);
 
@@ -104,6 +112,10 @@ export class Application extends AsyncConstructableClass{
         plugin.app = this; // Once again, cause the constructor doesn't work
         this._plugins.set(pluginClass, plugin);
 
+    }
+
+    async showPluginManager() {
+        await showPluginManager();
     }
 
 
@@ -157,6 +169,8 @@ export class Application extends AsyncConstructableClass{
                 window.location.reload();
             }
         }
+
+        await retsync2promise(() => this.electrifiedJsonConfig); // Fetch this once, so the next access can be without retsync
 
         // Init plugins:
         for(const plugin of this.plugins) {

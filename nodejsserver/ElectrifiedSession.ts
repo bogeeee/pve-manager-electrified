@@ -355,6 +355,65 @@ export class ElectrifiedSession extends ServerSession {
         ElectrifiedSession.fileWatchers.get(path).remove(callback);
     }
 
+    /**
+     * @returns all available plugins from all types (sources, cluster and npm)
+     */
+    @remote async getPlugins(filterByType: "all" | "installed"): Promise<(PluginPackage & {codeLocation: string, updated?: string})[]> {
+        async function fetchNpmRepositoryPackages() {
+            // Api description: https://github.com/npm/registry/blob/main/docs/REGISTRY-API.md#get-v1search
+            const searchTerm = "pveme"; // First, search for all with this term because there is no better filter option
+            const url = `${appServer.config.npmRegistryApiBaseUrl}/-/v1/search?text=${encodeURIComponent(searchTerm)}&size=250`;
+            const fetchResult = await fetch(url);
+            if(fetchResult.status !== 200) {
+                throw new Error("Could not fetch packages from NPM registry. Url: " + url);
+            }
+            const result: {objects: {updated: string, "package": PluginPackage}[]} = await fetchResult.json();
+            return result.objects.filter(o => o.package.name.startsWith("pveme-ui-plugin-"));
+        }
+
+
+
+        async function getInstalledNpmPackages() {
+            const result: (PluginPackage & {codeLocation: string})[] = [];
+            const selectedPackages = appServer.electrifiedJsonConfig.plugins.filter(p => p.codeLocation === "npm");
+             for(const selectedPackage of selectedPackages) {
+                 // Try to retrieve package.json content:
+                 let pkg: PluginPackage | {} = {};
+                 try {
+                     if(appServer.builtWeb.promiseState.state === "resolved") { // Web is successfully built?
+                         const wwwDir = appServer.builtWeb.promiseState.resolvedValue.staticFilesDir || appServer.wwwSourceDir;
+                         pkg = JSON.parse(await fsPromises.readFile(`${wwwDir}/node_modules/${selectedPackage.name}/package.json`, {encoding: "utf8"})) as PluginPackage;
+                     }
+                 }
+                 catch (e) {
+
+                 }
+
+                 result.push({...pkg, name: selectedPackage.name, version: selectedPackage.version, codeLocation: selectedPackage.codeLocation})
+             }
+
+             return result;
+        }
+
+
+
+        const sourcePackages = [
+            ...WebBuildProgress.getUiPluginSourceProjects_fixed().map(entry => {return {...(entry.pkg as PluginPackage), codeLocation:"local"}}),
+            ...WebBuildProgress.getClusterPackages().map(entry => {return {...(entry.pkg as PluginPackage), codeLocation:"datacenter"}}),
+        ];
+
+        if(filterByType === "all") {
+            const npmRepositoryPackages = (await fetchNpmRepositoryPackages()).map(e => {return {...e.package, codeLocation: "npm", updated: e.updated}});
+            return [...sourcePackages, ...npmRepositoryPackages]
+        }
+        else if (filterByType === "installed") {
+            return [...sourcePackages, ...(await getInstalledNpmPackages())];
+        }
+        else {
+            throw new Error("Illegal argument")
+        }
+    }
+
 
     /**
      * Copied from Restfuncs, which does not expose it as an API
@@ -441,4 +500,14 @@ export interface FileStats {
     mtime: Date;
     ctime: Date;
     birthtime: Date;
+}
+
+/**
+ * Essential info of a plugin's package.json
+ */
+export type PluginPackage = {
+    name: string,
+    version: string
+    description?: string,
+    homepage?: string,
 }
