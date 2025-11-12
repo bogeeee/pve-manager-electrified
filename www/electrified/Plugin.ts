@@ -10,7 +10,7 @@ export class Plugin {
 
 
     constructor(app: Application) {
-        this.app = app;
+        // This constructor is not called because the of dummy-plugin-base workaround / class-rebasing
     }
 
     /**

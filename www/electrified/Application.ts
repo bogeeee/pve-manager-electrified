@@ -101,6 +101,7 @@ export class Application extends AsyncConstructableClass{
         pluginClass.packageName = packageName;
 
         const plugin = new pluginClass(this);
+        plugin.app = this; // Once again, cause the constructor doesn't work
         this._plugins.set(pluginClass, plugin);
 
     }
