@@ -201,7 +201,18 @@ export class Application extends AsyncConstructableClass{
         }
     }
 
+    get isDarkTheme() {
+        return isPVEDarkTheme();
+    }
 
+    /**
+     * @param text
+     * @returns Text, translated into the current ui language. Uses the electrified text repo
+     */
+    getText(text: string) {
+        //@ts-ignore
+        return window.gettext(text); //
+    }
 
 
     /**
@@ -219,7 +230,10 @@ export class Application extends AsyncConstructableClass{
         })
     }
 }
-let app: Application
+export let app: Application
+export function gettext(text: string) {
+    return app.getText(text);
+}
 
 withErrorHandling(async () => {
     const promise = Application.create();
