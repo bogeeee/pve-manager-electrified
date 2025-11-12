@@ -1,11 +1,11 @@
-import {CSSProperties, FunctionComponent,useEffect, useLayoutEffect, useState} from "react";
+import {CSSProperties, FunctionComponent, ReactNode, useEffect, useLayoutEffect, useState} from "react";
 
 import {
     Button,
     ButtonGroup,
     Classes,
     Dialog as BlueprintDialog,
-    DialogProps as BlueprintDialogProps,
+    DialogProps as BlueprintDialogProps, Icon,
     Intent,
     NonIdealState,
     NonIdealStateIconSize,
@@ -21,6 +21,10 @@ import * as React from "react";
 import Draggable from 'react-draggable';
 import ReactDOM from "react-dom";
 import { createRoot } from 'react-dom/client';
+import {watchedComponent} from "react-deepwatch";
+import { ErrorBoundary } from "react-error-boundary";
+import {gettext} from "../Application";
+
 
 export async function better_fetch(...args: Parameters<typeof fetch>) {
     const request = args[0] as any;
@@ -162,7 +166,18 @@ export function spawnAsync(fn: () => Promise<void>, exitOnError = false) {
     });
 }
 
+export async function showErrorDialog(e) {
+    if (!(e instanceof Error)) {
+        e = new Error(`Caught non-error value: ${e}`);
+    }
+
+    fixErrorStack(e as Error);
+    console.error(e); // Also show in console, so there's a more accurate source map and better interactivity
+    await showResultText(errorToString(e), "Error", "error");
+}
+
 /**
+ * TODO: rename spawnWithErrorHandling
  * Shows an error dialog, if something goes wrong. Void version
  */
 export function withErrorHandling(fn: () => void | Promise<void>): void {
@@ -172,12 +187,7 @@ export function withErrorHandling(fn: () => void | Promise<void>): void {
         }
         catch (e) {
             // Handle very very uncommon case of non-error:
-            if(! (e instanceof Error)) {
-                e = new Error(`Caught non-error value: ${e}`);
-            }
-
-            fixErrorStack(e as Error);
-            await showResultText(errorToString(e), "Error", "error")
+            await showErrorDialog(e);
         }
     })
 }
@@ -187,14 +197,7 @@ export function withErrorHandling(fn: () => void | Promise<void>): void {
  */
 export function returnWithErrorHandling<T>(fn: () => T): T {
     async function handle(e: unknown) {
-        // Handle very very uncommon case of non-error:
-        if(! (e instanceof Error)) {
-            e = new Error(`Caught non-error value: ${e}`);
-        }
-
-        fixErrorStack(e as Error);
-        console.error(e); // Also log to console
-        await showResultText(errorToString(e), "Error", "error")
+        await showErrorDialog(e);
     }
 
     try {
@@ -518,8 +521,11 @@ export function newDefaultWeakMap<K,V>(createDefaultValueFn: (key: K) => V): Def
  import { Button, ButtonGroup, Classes, Intent,} from "@blueprintjs/core";
  import "@blueprintjs/core/lib/css/blueprint.css"; // don't forget these
  import "@blueprintjs/icons/lib/css/blueprint-icons.css"; // don't forget these
+ import "@blueprintjs/icons/lib/css/blueprint-icons.css"; // don't forget these
+ import {useWatchedState} from "react-deepwatch";
 
  const result = await showBlueprintDialog({title: "SayHello"},(props) => {
+     const state = useWatchedState({}); // contentComponentFn was wrapped for you in a watchedComponent, so you can use its features
      return <div>
                 <div className={Classes.DIALOG_BODY}>
                     ...
@@ -534,20 +540,22 @@ export function newDefaultWeakMap<K,V>(createDefaultValueFn: (key: K) => V): Def
                     </div>
                 </div>
             </div>;
- * });
- *
- * ... code after dialog was closed...
+   });
+
+   ... code after dialog was closed...
  * </code></pre>
  * For a dialog with dragging and resizing, {@see showMuiDialog}
  * @param dialogProps
- * @param ContentComponent
+ * @param contentComponentFn
  */
-export async function showBlueprintDialog<T>(dialogProps: Partial<BlueprintDialogProps>, ContentComponent: FunctionComponent<{resolve: (result: T) => void, close: () => void}>) {
+export async function showBlueprintDialog<T>(dialogProps: Partial<BlueprintDialogProps>, contentComponentFn: FunctionComponent<{resolve: (result: T) => void, close: () => void}>) {
     return new Promise<T|undefined>((resolve) => {
         // We need some <div/> to render into
         const targetDiv = document.createElement("div");
         targetDiv.className = "ContainerForDialog"; // Tag it just for better debugging
         document.body.append(targetDiv);
+
+        const WatchedContentComponentFn = watchedComponent(contentComponentFn, {fallback:<div style={{margin: "16px", textAlign: "center"}}>{gettext("Loading...")}</div>});
 
         /**
          * Wrapper component so we can control the open state
@@ -562,15 +570,18 @@ export async function showBlueprintDialog<T>(dialogProps: Partial<BlueprintDialo
                 targetDiv.remove(); // clean up target div. A bit dirty but works
             }
 
-            return <BlueprintDialog usePortal={true} portalContainer={document.body} isOpen={open} {...dialogProps} onClose={() => {
-                close();
-                resolve(undefined);
-            }}>
-                <ContentComponent close={close} resolve={(result) => {
+            return <BlueprintDialog className={isPVEDarkTheme()?"bp5-dark":undefined} usePortal={true} portalContainer={document.body} isOpen={open} {...dialogProps} onClose={() => {
                     close();
-                    resolve(result);
-                }}/>
-            </BlueprintDialog>
+                    resolve(undefined);
+                }}><ErrorBoundary fallbackRender={ErrorState}>
+                    <WatchedContentComponentFn close={close} resolve={(result) => {
+                        close();
+                        resolve(result);
+                    }}/>
+                    </ErrorBoundary>
+                </BlueprintDialog>
+
+
         }
         createRoot(targetDiv).render(<Wrapper/>, );
     })
@@ -901,4 +912,62 @@ export function DebugInstanceId(props: {}) {
 
 export type Clazz<T> = {
     new(...args: any[]): T
+}
+
+function getCookieByName(name: string) {
+    const nameEQ = name + "=";
+    const cookies = document.cookie.split(';');
+    for(let cookie of cookies) {
+        cookie = cookie.trim();
+        if (cookie.startsWith(nameEQ)) {
+            return cookie.substring(nameEQ.length);
+        }
+    }
+    return undefined;
+}
+
+export function isPVEDarkTheme() {
+    return getCookieByName( "PVEThemeCookie") === "proxmox-dark";
+}
+
+export function InfoTooltip(props: {children: React.ReactElement}) {
+    return <Tooltip content={props.children} interactionKind={"hover"}><Icon icon={"small-info-sign"}/></Tooltip>
+}
+
+/**
+ *
+ * @param title
+ * @param message
+ * @param icon
+ * @return
+ */
+export async function confirm(title: string, message: string | ReactNode, icon: string = "warning-sign") {
+    return (await showBlueprintDialog({title: <div style={{paddingLeft: "4px"}}><Icon icon={icon as any} />{title}</div>}, (props) => {
+        return <div>
+            <div className={Classes.DIALOG_BODY}>
+
+                {message}
+            </div>
+
+            <div className={Classes.DIALOG_FOOTER}>
+                <div className={Classes.DIALOG_FOOTER_ACTIONS}>
+                    <ButtonGroup>
+                        <Button onClick={() => props.resolve(true)} intent={Intent.PRIMARY}>{gettext("OK")}</Button>
+                        <Button onClick={() => props.resolve(false)}>{gettext("Cancel")}</Button>
+                    </ButtonGroup>
+                </div>
+            </div>
+        </div>;
+    }))?true:false;
+}
+
+
+export function formatDate(date: Date) {
+    return date.toLocaleString(undefined, {
+        year: 'numeric',
+        month: 'numeric',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
 }
