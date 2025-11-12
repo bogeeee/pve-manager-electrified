@@ -1,9 +1,13 @@
-// For typescript, just rename this file to .ts
+// For typescript, just rename this file from .jsx to .tsx
 
 import {PvemePlugin} from "./_pluginTypeFix";
+import React from "react";
+import {watchedComponent, watched, useWatchedState} from "react-deepwatch"
+import {Button, ButtonGroup, Checkbox,  Classes,  HTMLSelect, Icon, Intent, InputGroup, Label, Menu, MenuItem, Popover, Tooltip} from "@blueprintjs/core";
+import "@blueprintjs/core/lib/css/blueprint.css";
+import "@blueprintjs/icons/lib/css/blueprint-icons.css";
 
 export default class Plugin extends PvemePlugin {
-
     /**
      * Node wide configuration for this plugin.
      * Will be stored under /etc/pve-local/manager/plugins/[plugin name].json.
@@ -32,10 +36,8 @@ export default class Plugin extends PvemePlugin {
      */
     async init() {
 
-    }
+    onUiReady() {
 
-    async onUiReady() {
-        console.log("Hello world from plugin")
     }
 
     getGuestMenuItems(guest) {

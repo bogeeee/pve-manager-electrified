@@ -56,7 +56,35 @@ export class Plugin {
 
     /**
      * Called when the user clicks the config symbol in the plugin manager.
-     * This config symbol will be disabled, if this method is not overridden
+     * This config symbol will be disabled, if this method is not overridden.
+     * <p>Example:</p>
+     * <code><pre>
+     async showConfigurationDialog() {
+        await this.app.util.ui.showBlueprintDialog({title: `Configure ${this.name}`},(props) => {
+            function save() {
+                // TODO
+                props.resolve(true); // Closes the dialog
+            }
+            const state = useWatchedState({}); // contentComponentFn was wrapped for you in a watchedComponent, so you can use its features
+            return <div>
+                <div className={Classes.DIALOG_BODY}>
+                    ...
+                </div>
+
+                <div className={Classes.DIALOG_FOOTER}>
+                    <div className={Classes.DIALOG_FOOTER_ACTIONS}>
+                        <ButtonGroup>
+                            <Button onClick={() => props.resolve()} intent={Intent.PRIMARY}>Save</Button>
+                            <Button onClick={() => props.resolve(undefined)}>Cancel</Button>
+                        </ButtonGroup>
+                    </div>
+                </div>
+            </div>;
+        });
+    }
+
+
+     * </pre></code>
      */
     async showConfigurationDialog() {
 

@@ -3,7 +3,7 @@ import {RestfuncsClient} from "restfuncs-client";
 import {
     Clazz, errorToString,
     isPVEDarkTheme,
-    returnWithErrorHandling, showErrorDialog,
+    returnWithErrorHandling, showBlueprintDialog, showErrorDialog,
     showResultText,
     spawnAsync,
     withErrorHandling
@@ -72,6 +72,12 @@ export class Application extends AsyncConstructableClass{
             Guest, Qemu, Lxc
         },
         Plugin
+    }
+
+    util = {
+        ui: {
+            showBlueprintDialog
+        }
     }
 
     /**
