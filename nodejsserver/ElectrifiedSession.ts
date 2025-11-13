@@ -414,6 +414,24 @@ export class ElectrifiedSession extends ServerSession {
         }
     }
 
+    /**
+     *
+     * @param packageName
+     * @returns Versions, latest version first
+     */
+    @remote async getNpmPackageVersions(packageName: string): Promise<{version: string}[]> {
+        // Api description: https://github.com/npm/registry/blob/main/docs/REGISTRY-API.md#get-v1search
+        const searchTerm = "pveme"; // First, search for all with this term because there is no better filter option
+        const url = `${appServer.config.npmRegistryApiBaseUrl}/${encodeURIComponent(packageName)}`;
+        const fetchResult = await fetch(url);
+        if(fetchResult.status !== 200) {
+            throw new Error("Could not fetch packages version from NPM registry. Url: " + url);
+        }
+        const result = Object.keys((await fetchResult.json() as any).versions).map(version => {return {version}});
+        result.reverse();
+        return result;
+    }
+
 
     /**
      * Copied from Restfuncs, which does not expose it as an API

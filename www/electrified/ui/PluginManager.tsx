@@ -81,6 +81,8 @@ export async function showPluginManager() {
                             {plugins.map((plugin) => {
                                 const shortName = plugin.name.replace(/^pveme-ui-plugin-/,"");
 
+                                const stagingPluginEntry = state.stagingPluginConfig.find(s => s.codeLocation === plugin.codeLocation && s.name === plugin.name);
+
                                 // Retrieve isOverridden and isInstalled:
                                 let isOverridden = false;
                                 let diagnosis_overriddenCause = "";
@@ -96,7 +98,8 @@ export async function showPluginManager() {
                                     if(isOverridden) {
                                         diagnosis_overriddenCause = gettext("This plugin is not active because a local-/source plugin or a datacenter-wide plugin with the same name exists and has precedence.")
                                     }
-                                    isInstalled = state.stagingPluginConfig.some(s => s.codeLocation === plugin.codeLocation && s.name === plugin.name) // is listed in staging plugin config
+
+                                    isInstalled = stagingPluginEntry !== undefined// is listed in staging plugin config
                                 }
 
                                 const setInstalled = (value) => {
@@ -151,7 +154,18 @@ export async function showPluginManager() {
 
                                     {/* Version */}
                                     <TableCell style={{...cellStyle, whiteSpace: "nowrap"}}>
-                                        <strong>{plugin.version}</strong><br/>
+                                        {
+                                            stagingPluginEntry && plugin.codeLocation === "npm"?
+                                                <select {...bind(stagingPluginEntry.version)}>
+                                                    {
+                                                        load(async () => await app.currentNode.electrifiedApi.getNpmPackageVersions(plugin.name),  {preserve: false, fallback: [{version: "loading"}]})
+                                                            .map(entry => <option value={entry.version}>{entry.version}</option>)
+                                                    }
+                                                </select>
+                                                :
+                                                <strong>{plugin.version}</strong>
+                                        }
+                                        <br/>
                                         <span>{plugin.updated?formatDate(new Date(plugin.updated)):undefined}</span>
                                     </TableCell>
 
