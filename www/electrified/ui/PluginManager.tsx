@@ -19,14 +19,14 @@ import {confirm, formatDate, showBlueprintDialog, spawnAsync, throwError} from "
 import {app, Application, gettext} from "../Application";
 import _ from "underscore";
 import {Table, TableBody, TableCell, TableContainer, TableHead, TableRow} from "@mui/material";
-
+import clone from "clone";
 
 export async function showPluginManager() {
     const result = await showBlueprintDialog({title: gettext("Electrified plugins"), style: {width: "1250px"}},(props) => {
         const state = useWatchedState(new class {
             filterByType: "all" | "installed" = "installed";
             filterText= ""; // Searchfilter
-            stagingPluginConfig = _.clone(app.electrifiedJsonConfig.plugins); // Staging until apply is clicked
+            stagingPluginConfig = clone(app.electrifiedJsonConfig.plugins); // Staging until apply is clicked
         })
 
         let plugins = load(() => app.currentNode.electrifiedApi.getPlugins(state.filterByType), {preserve: false, fallback: []});
