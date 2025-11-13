@@ -36,6 +36,7 @@ export async function showPluginManager() {
             plugins = plugins.filter(p => matches(p.name) || matches(p.description));
         }
 
+        const pluginsDisabledInCurrentBuild = app.webBuildState.builtWeb.buildOptions.enablePlugins === false;
         const stagingPluginConfigHasChanged = !_.isEqual(app.electrifiedJsonConfig.plugins, state.stagingPluginConfig);
 
         function applyChanges() {
@@ -47,10 +48,13 @@ export async function showPluginManager() {
                 }
 
                 app.electrifiedJsonConfig.plugins = state.stagingPluginConfig; // Apply changes and automatically rebuilds and reloads
+                // For, when only re-enabling enablePlugins:
+                await app.currentNode.electrifiedApi.rebuildWebAsync({...app.webBuildState.builtWeb.buildOptions, enablePlugins: true});
 
                 props.resolve("ok"); // Closes dialog
             })
         }
+
 
         return <div >
             <div className={Classes.DIALOG_BODY}>
@@ -220,12 +224,16 @@ export async function showPluginManager() {
                 </TableContainer>
 
                 {/* JSON.stringify(state) */}
+
+                {pluginsDisabledInCurrentBuild?
+                    <div style={{textAlign: "center", fontSize: "17px"}}><Icon icon={"warning-sign"} size={25}/> {gettext("All plugins are currently disabled")}</div>
+                    :undefined}
             </div>
 
             <div className={Classes.DIALOG_FOOTER}>
                 <div className={Classes.DIALOG_FOOTER_ACTIONS}>
                     <ButtonGroup>
-                        <Button onClick={applyChanges} intent={Intent.PRIMARY} disabled={!stagingPluginConfigHasChanged}>{gettext("Apply changes")}</Button>
+                        <Button onClick={applyChanges} intent={Intent.PRIMARY} disabled={!stagingPluginConfigHasChanged && !pluginsDisabledInCurrentBuild}>{pluginsDisabledInCurrentBuild?(stagingPluginConfigHasChanged?gettext("Re-enable plugins and apply changes"):gettext("Re-enable plugins")):gettext("Apply changes")}</Button>
                         <Button onClick={() => props.resolve(undefined)}>Cancel</Button>
                     </ButtonGroup>
                 </div>
