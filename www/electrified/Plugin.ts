@@ -6,7 +6,7 @@ import {Clazz} from "./util/util";
 import {retsync2promise} from "proxy-facades/retsync";
 
 export class Plugin {
-    app: Application
+    app!: Application
 
 
     constructor(app: Application) {
