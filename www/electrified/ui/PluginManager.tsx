@@ -160,12 +160,12 @@ export async function showPluginManager() {
                                     <TableCell style={{...cellStyle, whiteSpace: "nowrap"}}>
                                         {
                                             stagingPluginEntry && plugin.codeLocation === "npm"?
-                                                <select {...bind(stagingPluginEntry.version)}>
+                                                <HTMLSelect {...bind(stagingPluginEntry.version)}>
                                                     {
                                                         load(async () => await app.currentNode.electrifiedApi.getNpmPackageVersions(plugin.name),  {preserve: false, fallback: [{version: "loading"}]})
                                                             .map(entry => <option value={entry.version}>{entry.version}</option>)
                                                     }
-                                                </select>
+                                                </HTMLSelect>
                                                 :
                                                 <strong>{plugin.version}</strong>
                                         }
