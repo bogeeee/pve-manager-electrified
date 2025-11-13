@@ -29,7 +29,7 @@ export async function showPluginManager() {
             stagingPluginConfig = clone(app.electrifiedJsonConfig.plugins); // Staging until apply is clicked
         })
 
-        let plugins = load(() => app.currentNode.electrifiedApi.getPlugins(state.filterByType), {preserve: false, fallback: []});
+        let plugins = load(() => app.currentNode.electrifiedApi.getPlugins(state.filterByType), {preserve: false, fallback: [], name: "plugins"});
         if(state.filterText) {
             // Filter plugin by the search input:
             const matches = (value?:string) => value && value.toLowerCase().indexOf(state.filterText.toLowerCase()) >=0;
@@ -54,6 +54,22 @@ export async function showPluginManager() {
                 props.resolve("ok"); // Closes dialog
             })
         }
+
+        async function upgradeAllNpmPluginsToLatestVersion(dry = false) {
+            let upgraded = 0;
+            for(const plugin of state.stagingPluginConfig.filter(p => p.codeLocation === "npm")) {
+                const allVersions = await app.currentNode.electrifiedApi.getNpmPackageVersions(plugin.name);
+                if(allVersions.length > 0 && allVersions[0].version !== plugin.version) {
+                    if(!dry) {
+                        plugin.version = allVersions[0].version;
+                    }
+                    upgraded++;
+                }
+            }
+
+            return upgraded;
+        }
+        const numberOfUpgradableNpmPackages = load( () => upgradeAllNpmPluginsToLatestVersion(true), {fallback: 0});
 
 
         return <div >
@@ -213,7 +229,7 @@ export async function showPluginManager() {
                             })}
                             {
                                 /* "Loading..." */
-                                isLoading()?<TableRow><TableCell colSpan={99} style={{textAlign: "center"}}>Loading...</TableCell></TableRow>:undefined
+                                isLoading("plugins")?<TableRow><TableCell colSpan={99} style={{textAlign: "center"}}>Loading...</TableCell></TableRow>:undefined
                             }
                             {
                                 /* "Show all available plugins" button: */
@@ -225,9 +241,13 @@ export async function showPluginManager() {
 
                 {/* JSON.stringify(state) */}
 
+                {/* Plugins disabled warning: */}
                 {pluginsDisabledInCurrentBuild?
                     <div style={{textAlign: "center", fontSize: "17px"}}><Icon icon={"warning-sign"} size={25}/> {gettext("All plugins are currently disabled")}</div>
                     :undefined}
+
+                {/* Upgrade plugins hint + button: */}
+                <div style={{textAlign: "right"}}>{numberOfUpgradableNpmPackages > 0?<span>{numberOfUpgradableNpmPackages} {gettext(" plugin(s) can be upgraded.")} <a onClick={() => spawnAsync( async () => {await upgradeAllNpmPluginsToLatestVersion()})}>Upgrade</a></span>:undefined}&#160;</div>
             </div>
 
             <div className={Classes.DIALOG_FOOTER}>
