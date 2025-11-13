@@ -179,7 +179,7 @@ export async function showPluginManager() {
                                                 <HTMLSelect {...bind(stagingPluginEntry.version)}>
                                                     {
                                                         load(async () => await app.currentNode.electrifiedApi.getNpmPackageVersions(plugin.name),  {preserve: false, fallback: [{version: "loading"}]})
-                                                            .map(entry => <option value={entry.version}>{entry.version}</option>)
+                                                            .map(entry => <option key={entry.version} value={entry.version}>{entry.version}</option>)
                                                     }
                                                 </HTMLSelect>
                                                 :
