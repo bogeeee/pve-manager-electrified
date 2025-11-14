@@ -166,7 +166,7 @@ export function spawnAsync(fn: () => Promise<void>, exitOnError = false) {
     });
 }
 
-export async function showErrorDialog(e) {
+export async function showErrorDialog(e: unknown) {
     if (!(e instanceof Error)) {
         e = new Error(`Caught non-error value: ${e}`);
     }
@@ -671,9 +671,9 @@ export async function showMuiDialog<T>(title: string | React.ReactElement, dialo
  * @param title
  * @param icon
  */
-export async function showResultText(value: string, title?: string, icon?) {
+export async function showResultText(value: string, title?: string, icon?: string) {
     //TODO: For more space and resizability, we should use showMuiDialog instead
-    await showBlueprintDialog({title, icon, style:{width:`${window.document.documentElement.clientWidth - 20}px`, height: `${window.document.documentElement.clientHeight - 100}px`} }, (props) => {
+    await showBlueprintDialog({title, icon: icon as any, style:{width:`${window.document.documentElement.clientWidth - 20}px`, height: `${window.document.documentElement.clientHeight - 100}px`} }, (props) => {
         return <div style={{height: "100%", display: "flex", flexDirection: "column"}}>
             <div className={Classes.DIALOG_BODY} style={{flexGrow: 1, transform: "translate(0,0)"}}>
                 <div style={{position: "absolute", right:"24px", top:"8px"}}><Button icon={"duplicate"} onClick={() => copyStringToClipboard(value)}></Button></div>
@@ -754,7 +754,7 @@ export function useHashParam(name: string, initialValue?: string): [string|undef
         //@ts-ignore
         params[name] = newValue;
 
-        let pairs = [];
+        let pairs: string[] = [];
         Object.keys(params).forEach(key => {
             const value = params[key];
             if(value) {
@@ -804,7 +804,7 @@ export function getParamsFromUrl(url: string) {
  * Like useHashParam, but allows to set any value that will then be encoded / decocoded to json in the url
  */
 export function useJsonHashParam<T>(name: string, initialValue?: T): [T, (newValue?: T) => void] {
-    function toString(value) {
+    function toString(value: unknown) {
         return value === undefined ? undefined : JSON.stringify(value);
     }
 
@@ -814,7 +814,7 @@ export function useJsonHashParam<T>(name: string, initialValue?: T): [T, (newVal
     return [currentValue, (newValue?: T) => setStringValue(toString(newValue))]
 }
 
-export function ExceptionPopover(props) {
+export function ExceptionPopover(props: any) {
 }
 
 /**
@@ -824,7 +824,7 @@ export function ExceptionPopover(props) {
  * @param props
  * @constructor
  */
-export function ErrorState(props) {
+export function ErrorState(props: any) {
     fixErrorStack(props.error)
     const fullError = errorToString(props.error);
 

@@ -153,7 +153,7 @@ export class File {
         return this.getStats() !== false
     }
 
-    protected changeOnDiskHandler = (async(new_stats ) => {
+    protected changeOnDiskHandler = (async(new_stats: FileStats | false ) => {
         // *** Re-populate whole cache content ***:
         // Retrieve cache_stringContents:
         const new_cache_stringContents = new Map<BufferEncoding, string>();

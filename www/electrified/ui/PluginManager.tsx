@@ -122,7 +122,7 @@ export async function showPluginManager() {
                                     isInstalled = stagingPluginEntry !== undefined// is listed in staging plugin config
                                 }
 
-                                const setInstalled = (value) => {
+                                const setInstalled = (value: boolean) => {
                                     plugin.codeLocation === "npm" || throwError("Illegal argument");
                                     if(value) {
                                         state.stagingPluginConfig.push({name: plugin.name, version: plugin.version, codeLocation: plugin.codeLocation as any})

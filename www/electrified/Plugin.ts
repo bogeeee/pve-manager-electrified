@@ -208,6 +208,7 @@ export async function initializePluginConfigs(plugin: Plugin) {
         {key: "nodeConfig", path: `/etc/pve-local/manager/plugins/${plugin.name}.json`, isDatacenterConfig: false},
         {key: "datacenterConfig", path: `/etc/pve/manager/plugins/${plugin.name}.json.`, isDatacenterConfig: true}]) {
 
+        //@ts-ignore
         const initialConfig:object | undefined = plugin[cfg.key];
         if(initialConfig !== undefined) { // field was specified?
             const file = app.currentNode.getFile(cfg.path);
@@ -224,6 +225,7 @@ export async function initializePluginConfigs(plugin: Plugin) {
                     // Shyly apply initial values:
                     Object.getOwnPropertyNames(initialConfig).forEach(propName => {
                         if(!config.hasOwnProperty(propName)) {
+                            //@ts-ignore
                             config[propName] = initialConfig[propName];
                         }
                     })

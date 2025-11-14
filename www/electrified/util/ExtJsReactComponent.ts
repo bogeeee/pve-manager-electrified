@@ -33,7 +33,7 @@ export const ReactComponent = Ext.define("electrified.util.ReactComponent", {
         props: {}
     },
     listeners: {
-        afterrender: function(me, eOpts) {
+        afterrender: function(me: any, eOpts: any) {
             createRoot(me.getEl().dom).render(React.createElement(me.componentClass, me.props ), );
         }
 
@@ -62,7 +62,7 @@ export const ReactPanel = Ext.define("electrified.util.ReactPanel", {
         props: {}
     },
 
-    constructor: function(config) {
+    constructor: function(config: any) {
         // validity check:
         if(config.componentClass == null) {
             throw "componentClass not set";
