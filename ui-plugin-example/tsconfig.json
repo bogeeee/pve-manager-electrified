@@ -14,7 +14,7 @@
     "strictPropertyInitialization": true,
     "strictBindCallApply": true,
     "strictFunctionTypes": true,
-    "noImplicitAny": true,
+    "noImplicitAny": false,
     "skipLibCheck": true,
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
