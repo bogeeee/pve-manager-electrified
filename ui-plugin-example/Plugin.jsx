@@ -36,6 +36,8 @@ export default class Plugin extends PvemePlugin {
      */
     async init() {
 
+    }
+
     onUiReady() {
 
     }
