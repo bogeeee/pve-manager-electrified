@@ -6,7 +6,7 @@
   "scripts": {
     "IDE:link_nodejsserver_dir": "npm install --save false --ignore-scripts --no-audit ../nodejsserver ",
     "IDE_check": "npm run IDE:link_nodejsserver_dir && tsc --noemit",
-    "check": "tsc --noemit",
+    "check": "tsc --noemit --noImplicitAny false",
     "prepublish": "npm run check",
     "publish:npmlogin": "npm login",
     "publish:publish_to_npm": "npm run prepublish && npm publish"

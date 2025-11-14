@@ -15,6 +15,7 @@
         "strictPropertyInitialization": true,
         "strictBindCallApply": true,
         "strictFunctionTypes": true,
+        "noImplicitAny": true, // Used on developer machine but disabled in "production" because including the plugins fails otherwise
         "skipLibCheck": true,
         "moduleResolution": "bundler",
         "resolveJsonModule": true,
