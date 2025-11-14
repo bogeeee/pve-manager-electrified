@@ -16,7 +16,6 @@ export default class Plugin extends PvemePlugin {
     nodeConfig = {
         // myConfigurationProperty1: "initial value",
         // ...
-        myProp: 1
     }
 
     /**
@@ -31,11 +30,12 @@ export default class Plugin extends PvemePlugin {
 
     /**
      * Initializes this plugin. Prefer this point, instead of the constructor.
-     * The configs have already been initialized at this time
+     * At this point of the time, a user is logged in.
+     * The xxxConfig fields have already been initialized at this time.
      * @see onUiReady
      */
     async init() {
-
+        console.log("Hello says some example plugin")
     }
 
     onUiReady() {
@@ -50,5 +50,20 @@ export default class Plugin extends PvemePlugin {
 
     // ... for more plugin-hooks, use code completion here (ctrl+space).
 
+
     //#PLUGIN_CLASS_BODY_INSERTION_MARKER#
+}
+
+
+/**
+ * Translates text from english into the current ui language. It looks it up in this plugin's and the electrified translation repo.
+ * It uses the "taged template" syntax which allows to easily inert variables.
+ * <p>
+ *     Usage example: <code>t`You have ${numberOfUnread} unread messages`</code>
+ * </p>
+ * @param englishTextTokens
+ * @param values
+ */
+export function t(englishTextTokens /* :TemplateStringsArray */, ...values /* :any[] */) {
+    return Plugin.instance.getTranslatedTextWithTags(englishTextTokens, ...values);
 }

@@ -16,7 +16,7 @@ import {
 import "@blueprintjs/core/lib/css/blueprint.css";
 import "@blueprintjs/icons/lib/css/blueprint-icons.css";
 import {confirm, formatDate, showBlueprintDialog, spawnAsync, throwError} from "../util/util";
-import {app, Application, gettext} from "../Application";
+import {app, Application, gettext, t} from "../Application";
 import _ from "underscore";
 import {Table, TableBody, TableCell, TableContainer, TableHead, TableRow} from "@mui/material";
 import clone from "clone";
@@ -247,7 +247,7 @@ export async function showPluginManager() {
                     :undefined}
 
                 {/* Upgrade plugins hint + button: */}
-                <div style={{textAlign: "right"}}>{numberOfUpgradableNpmPackages > 0?<span>{numberOfUpgradableNpmPackages} {gettext(" plugin(s) can be upgraded.")} <a onClick={() => spawnAsync( async () => {await upgradeAllNpmPluginsToLatestVersion()})}>Upgrade</a></span>:undefined}&#160;</div>
+                <div style={{textAlign: "right"}}>{numberOfUpgradableNpmPackages > 0?<span>{t`${numberOfUpgradableNpmPackages} plugin(s) can be upgraded.`} <a onClick={() => spawnAsync( async () => {await upgradeAllNpmPluginsToLatestVersion()})}>Upgrade</a></span>:undefined}&#160;</div>
             </div>
 
             <div className={Classes.DIALOG_FOOTER}>

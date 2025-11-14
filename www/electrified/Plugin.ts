@@ -6,6 +6,8 @@ import {Clazz} from "./util/util";
 import {retsync2promise} from "proxy-facades/retsync";
 
 export class Plugin {
+    static instance: Plugin;
+
     app!: Application
 
 
@@ -117,6 +119,46 @@ export class Plugin {
         }
         return []; // not handled
     }
+
+    /**
+     * @param englishText
+     * @returns Text, translated into the current ui language. Uses this plugin's and the electrified- text repo
+     */
+    private getText(englishText: string) {
+        // TODO: create an electrified and plugin-wide text repo and look up text there
+        //@ts-ignore
+        return window.gettext(englishText); //
+    }
+
+    /**
+     * See also the function t in your plugin.jsx file which is a shortcut function for this method with usage example.
+     * @param englishTextTokens
+     * @returns Text, translated into the current ui language. Uses this plugin's and the electrified- text repo
+     */
+    getTranslatedTextWithTags(englishTextTokens: TemplateStringsArray, ...values: any[]) {
+        // Mostly duplicate code in this method
+
+        // Compose textWithPlaceholders in the form "some text $0 has $1 something"
+        let textWithPlaceholders = "";
+        for(let i =0;i<englishTextTokens.length;i++) {
+            if(i > 0) {
+                textWithPlaceholders+="$" + (i-1); // add $n
+            }
+            textWithPlaceholders+=englishTextTokens[i];
+        }
+
+
+        //@ts-ignore
+        const translatedWithPlaceholders:string =  this.getText(textWithPlaceholders);
+        return translatedWithPlaceholders.replace(/\$[0-9]+/g, token => {
+            try {
+                return values[token.substr(1) as any as number];
+            }
+            catch (e) {
+                return token;
+            }
+        })
+    }
 }
 
 export type PluginClass = typeof Plugin;
@@ -129,8 +171,8 @@ export type PluginList =  {pluginClass: PluginClass, packageName: string, diagno
  * To still give .js users a nice code completion experience with classes, we import only the type (for tsc and the IDE) and give it the DummyPluginBase class.
  * Here, we change the prototype chain and re-base it on the real Plugin class.
  */
-export function fixPluginClass(pluginClass: PluginClass) {
-    function isSubclassOf(subclass: object, baseClass: object) {
+export function fixPluginClass(pluginClass: PluginClass): PluginClass {
+    function isSubclassOf(subclass: object, baseClass: object): boolean {
         if(subclass === baseClass) {
             return true;
         }

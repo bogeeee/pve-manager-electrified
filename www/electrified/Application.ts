@@ -116,6 +116,7 @@ export class Application extends AsyncConstructableClass{
 
         const plugin = new pluginClass(this);
         plugin.app = this; // Once again, cause the constructor doesn't work
+        pluginClass.instance = plugin;
         this._plugins.set(pluginClass, plugin);
 
     }
@@ -226,12 +227,42 @@ export class Application extends AsyncConstructableClass{
     }
 
     /**
-     * @param text
+     * @param englishText
      * @returns Text, translated into the current ui language. Uses the electrified text repo
      */
-    getText(text: string) {
+    getText(englishText: string) {
+        // TODO: create an electrified and plugin-wide text repo and look up text there
         //@ts-ignore
-        return window.gettext(text); //
+        return window.gettext(englishText); //
+    }
+
+    /**
+     * @param englishTextsTokens
+     * @returns Text, translated into the current ui language. Uses the electrified text repo
+     */
+    getTranslatedTextWithTags(englishTextsTokens: TemplateStringsArray, ...values: any[]) {
+        // Mostly duplicate code in this method
+
+        // Compose textWithPlaceholders in the form "some text $0 has $1 something"
+        let textWithPlaceholders = "";
+        for(let i =0;i<englishTextsTokens.length;i++) {
+            if(i > 0) {
+                textWithPlaceholders+="$" + (i-1); // add $n
+            }
+            textWithPlaceholders+=englishTextsTokens[i];
+        }
+
+
+        //@ts-ignore
+        const translatedWithPlaceholders:string =  this.getText(textWithPlaceholders);
+        return translatedWithPlaceholders.replace(/\$[0-9]+/g, token => {
+            try {
+                return values[token.substr(1) as any as number];
+            }
+            catch (e) {
+                return token;
+            }
+        })
     }
 
 
@@ -251,8 +282,23 @@ export class Application extends AsyncConstructableClass{
     }
 }
 export let app: Application
+
 export function gettext(text: string) {
     return app.getText(text);
+}
+
+/**
+ * Translates text into the current ui language. It looks it up in the electrified translation repo.
+ * It uses the "taged template" syntax which allows to easily inert variables.
+ * <p>
+ *     Usage example: <code>t`You have ${numberOfUnread} unread messages`</code>
+ * </p>
+ * TODO: create an electrified and plugin-wide text repo and look up text there
+ * @param englishTextTokens
+ * @param values
+ */
+export function t(englishTextTokens: TemplateStringsArray, ...values: any[]) {
+    return app.getTranslatedTextWithTags(englishTextTokens, ...values);
 }
 
 withErrorHandling(async () => {
