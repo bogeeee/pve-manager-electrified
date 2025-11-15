@@ -165,7 +165,8 @@ export class ElectrifiedSession extends ServerSession {
     }
 
     /**
-     * Use this one in a sync only situations. Otherwise prefer checkPermission which can refresh non-up2date permissions
+     * Use this one in a sync only situations. Otherwise prefer checkPermission which can refresh non-up2date permissions.
+     * <p>Also internally used.</p>
      * @param path
      * @param permission
      */
@@ -182,14 +183,14 @@ export class ElectrifiedSession extends ServerSession {
         }
 
         if(this.cachedPermissions!.permissions[path] === undefined) {
-            throw new Error("Path does not exists. Special paths are not implemented yet");
+            throw new CommunicationError(`You don't have the required permission: ${path}/${permission}${path !== "/"?". The path does not exists. Special paths are not implemented yet":""}`, {httpStatusCode: 401});
         }
 
         if(this.cachedPermissions!.permissions[path][permission] === 1) {
             return true;
         }
 
-        throw new CommunicationError(`You don't have required permission: ${path}/${permission}`, {httpStatusCode: 401});
+        throw new CommunicationError(`You don't have the required permission: ${path}/${permission}`, {httpStatusCode: 401});
     }
 
     /**
