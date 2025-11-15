@@ -11,7 +11,6 @@ import fsPromises  from "node:fs/promises";
 import {execa} from "execa";
 import {Request} from "express";
 import {RemoteMethodOptions} from "restfuncs-server";
-import {CookieSession} from "restfuncs-common";
 import _ from "underscore";
 import chokidar from "chokidar";
 import {ClientCallbackSet} from "restfuncs-server";
@@ -320,9 +319,10 @@ export class ElectrifiedSession extends ServerSession {
 
     /**
      * path -> ClientCallbacks (+ also the chokidar file watchers are created internally)
+     * Bug worakound: ":any" because typescript-rtti tries to follow the type and creates a broken import statement: "import ... from "restfuncs-server/dist/commonjs/..."
      * @protected
      */
-    protected static fileWatchers = newDefaultMap((path: string)=> {
+    protected static fileWatchers: any = newDefaultMap((path: string)=> {
         const clientCallbacks = new ClientCallbackSet<[stat: Awaited<ReturnType<ElectrifiedSession["getFileStat"]>>]>();
 
         // Also create the watcher here, now that we are on a one-per file invocation. Low prio TODO: remove this watcher when all clients are disconnected
@@ -528,4 +528,20 @@ export type PluginPackage = {
     version: string
     description?: string,
     homepage?: string,
+}
+
+/**
+ *
+ * Same as
+ * import {CookieSession} from "restfuncs-common";
+ * <p>
+ *     This is a bug worakound: because typescript-rtti tries to follow the type and creates a broken import statement: "import ... from "restfuncs-common/dist/commonjs/..."
+ * </p>
+ */
+interface CookieSession extends Record<string, unknown> {
+    id: string
+    version: number
+    bpSalt?: string
+    previousBpSalt?: string
+    commandDestruction?:boolean
 }

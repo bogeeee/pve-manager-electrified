@@ -87,8 +87,9 @@ class AppServer {
 
     /**
      * Called when the web is rebuild (when it is starting)
+     * Bug worakound: ":any" because typescript-rtti tries to follow the type and creates a broken import statement: "import ... from "restfuncs-server/dist/commonjs/..."
      */
-    webBuildStartListeners = new ClientCallbackSet<[]>({maxListenersPerClient: 1})
+    webBuildStartListeners: any = new ClientCallbackSet<[]>({maxListenersPerClient: 1})
 
     protected expressSessionSecret = nacl_util.encodeBase64(nacl.randomBytes(32));
     protected expressSessionStore = new ExpressMemoryStoreExt(); // Express's default memory store. You may use a better one for production to prevent against growing memory by a DOS attack. See https://www.npmjs.com/package/express-session
