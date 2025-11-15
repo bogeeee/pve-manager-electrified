@@ -7,7 +7,7 @@ import {
     showResultText,
     spawnAsync,
     withErrorHandling
-} from "./util/util"; // Import to have types
+} from "./util/util";
 import {generated_pluginList as pluginList} from "../_generated_pluginList";
 import {fixPluginClass, initializePluginConfigs, Plugin, PluginClass} from "./Plugin"
 import {Guest} from "./model/Guest";
