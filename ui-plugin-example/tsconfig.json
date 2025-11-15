@@ -1,8 +1,8 @@
 // Don't modify this file. It will be replaced by the default, after package was installed by npm, for security reasons
 {
   "compilerOptions": {
-    "target": "ES2022",
-    "module": "ES2022",
+    "target": "ESNext",
+    "module": "ESNext",
     "lib": [
       "dom",
       "dom.iterable",
