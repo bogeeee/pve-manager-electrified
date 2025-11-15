@@ -2,9 +2,9 @@ import fsPromises from 'node:fs/promises';
 import fs from 'node:fs';
 import {build as viteBuild} from "vite";
 import crypto from "crypto"
-import { appServer } from './server.js';
-import {listSubDirs} from "./util/util.js";
-import {execa, Options} from "execa";
+import {appServer} from './server.js';
+import {fileExists, listSubDirs, parseJsonFile} from "./util/util.js";
+import {execa} from "execa";
 import {Buffer} from "node:buffer"
 import path from "node:path";
 import semver from "semver";
@@ -216,13 +216,7 @@ ${packages.map(pkgInfo => `import {default as plugin${++index}} from ${JSON.stri
         const pvemeUiPackageVersion = WebBuildProgress.getPvemeUiPackage().version as string;
 
         const packageJson = `${packageDir}/package.json`;
-        let pkg: any;
-        try {
-            pkg = JSON.parse(fs.readFileSync(packageJson, {encoding: "utf8"}));
-        }
-        catch (e) {
-            throw new Error(`Error, parsing ${packageJson}: ${(e as any)?.message}`, {cause: e});
-        }
+        let pkg = parseJsonFile(packageJson) as any;
 
         let peerDepVersion: string | undefined = pkg.peerDependencies?.["pveme-ui"];
         if(!peerDepVersion) {
@@ -258,13 +252,7 @@ ${packages.map(pkgInfo => `import {default as plugin${++index}} from ${JSON.stri
             const name = `pveme-ui-plugin-${dirName}`;
 
             const packageJson = `${dir}/package.json`;
-            let pkg: any;
-            try {
-                pkg = JSON.parse(fs.readFileSync(packageJson, {encoding: "utf8"}));
-            }
-            catch (e) {
-                throw new Error(`Error, parsing ${packageJson}: ${(e as any)?.message}`, {cause: e});
-            }
+            let pkg = parseJsonFile(packageJson) as any;
 
 
             // *** Check / fix package settings ***
@@ -299,14 +287,7 @@ ${packages.map(pkgInfo => `import {default as plugin${++index}} from ${JSON.stri
 
     static getClusterPackages() {
         return listSubDirs(appServer.config.clusterPackagesBaseDir, true).map(dir => {
-            const packageJson = `${dir}/package.json`;
-            let pkg: any;
-            try {
-                pkg = JSON.parse(fs.readFileSync(packageJson, {encoding: "utf8"}));
-            }
-            catch (e) {
-                throw new Error(`Error, parsing ${packageJson}: ${(e as any)?.message}`, {cause: e});
-            }
+            let pkg = parseJsonFile(`${dir}/package.json`) as any;
 
             return {
                 dir,

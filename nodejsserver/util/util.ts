@@ -564,3 +564,11 @@ export function newDefaultWeakMap<K,V>(createDefaultValueFn: (key: K) => V): Def
         }
     }()
 }
+
+export function parseJsonFile(packageJsonFile: string): unknown {
+    try {
+        return JSON.parse(fs.readFileSync(packageJsonFile, {encoding: "utf8"}));
+    } catch (e) {
+        throw new Error(`Error, parsing ${packageJsonFile}: ${(e as any)?.message}`, {cause: e});
+    }
+}
