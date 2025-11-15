@@ -6,9 +6,9 @@ import {appServer} from './server.js';
 import {fileExists, listSubDirs, parseJsonFile} from "./util/util.js";
 import {execa} from "execa";
 import {Buffer} from "node:buffer"
-import path from "node:path";
 import semver from "semver";
 import {PromiseTask} from "./util/PromiseTask.js";
+import _ from "underscore";
 
 
 export type BuildOptions = {
@@ -42,6 +42,10 @@ export default class WebBuildProgress extends PromiseTask<BuildResult> {
         // copy & modify package.json to enable/disable plugins
         // create listPlugins.js
         await this.npmInstall();
+        this.checkCanceled();
+        if(this.buildOptions.enablePlugins) {
+            await this.checkAndFixPluginPackages();
+        }
         this.checkCanceled();
         await this.typeCheck();
         this.checkCanceled();
@@ -156,6 +160,33 @@ ${packages.map(pkgInfo => `import {default as plugin${++index}} from ${JSON.stri
             fs.rmSync(`${dir}/node_modules`, {force:true, recursive: true}); // remove old
             fs.symlinkSync(`${wwwSourcesDir}/node_modules`,`${dir}/node_modules`);
         });
+    }
+
+    async checkAndFixPluginPackages() {
+        const localSourcePackageSpecs = WebBuildProgress.getUiPluginSourceProjects_fixed().map(p => {return {name: p.pkg.name as string, dir: p.dir, codeLocation: "local"}});
+        const npmPluginPackageSpecs = appServer.electrifiedJsonConfig.plugins.filter(p => p.codeLocation === "npm").map(p => {return {name: p.name, dir: `${appServer.wwwSourceDir}/node_modules/${p.name}`, codeLocation: p.codeLocation}});
+        for(const it of [...localSourcePackageSpecs, ...npmPluginPackageSpecs]) {
+            const pkg = parseJsonFile(`${it.dir}/package.json`) as any;
+
+            // Security: check peerDependencies field, so you can't sneak packages to be installed there (which are not listed in NPM in the overview dependency counter)
+            if(pkg.peerDependencies && !_.isEqual(Object.keys(pkg.peerDependencies),["pveme-ui"])) {
+                throw new Error(`Package ${it.name} must only have 'pveme-ui' as peerDependency. Actual: ${JSON.stringify(pkg.peerDependencies)}`);
+            }
+
+            if(it.codeLocation === "npm") {
+                // Security: Copy-over files from example dir, so you can't hide code /logic there, which might be overlooked in a quick review.
+                if (await fileExists(appServer.config.examplePluginDir)) { // example dir should usually exist in a prod environment
+                    for (const fileName of ["_pluginTypeFix.ts", "tsconfig.json"]) {
+                        await fsPromises.copyFile(`${appServer.config.examplePluginDir}/${fileName}`, `${it.dir}/${fileName}`);
+                    }
+                } else {
+                    if (!(process.env.NODE_ENV === "development" || !this.buildOptions.buildStaticFiles)) {
+                        throw new Error(`Dir does not exist: ${appServer.config.examplePluginDir}`)
+                    }
+                }
+            }
+        }
+
     }
 
     /**

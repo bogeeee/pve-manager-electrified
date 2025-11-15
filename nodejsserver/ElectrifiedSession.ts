@@ -125,7 +125,7 @@ export class ElectrifiedSession extends ServerSession {
             return;
         }
         await execa("mkdir", ["-p", targetDir]);
-        await execa("cp", ["-r", "-a", "/usr/share/pve-manager-ui-plugin-example/.", targetDir])
+        await execa("cp", ["-r", "-a", `${appServer.config.examplePluginDir}/.`, targetDir])
 
         WebBuildProgress.getUiPluginSourceProjects_fixed(); // Fix the name in package.json
     }
