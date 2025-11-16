@@ -143,7 +143,7 @@ export async function showPluginManager() {
                                 }
                                 else if(plugin.codeLocation === "datacenter") {
                                     icon = <div className="fa fa-server" />
-                                    infoForType = gettext("Datacenter-wide plugin from") + " /etc/pve/pveme-plugin-packages/" + plugin.name;
+                                    infoForType = gettext("Datacenter-wide plugin from") + " /etc/pve/manager/plugin-packages/" + plugin.name;
                                 }
                                 else if(plugin.codeLocation === "npm") {
                                     icon = <Icon icon="globe-network" />;
