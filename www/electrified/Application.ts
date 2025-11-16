@@ -36,7 +36,13 @@ export class Application extends AsyncConstructableClass{
 
     loginData?: {
         CSRFPreventionToken: string
-        cap: unknown
+
+        /**
+         * Capabilities (permissions).
+         * <p>Note, these are not updated since the last login.</p>
+         */
+        cap: UserCapabilities
+
         clustername: string
         ticket: string
         /**
@@ -317,3 +323,67 @@ withErrorHandling(async () => {
 })
 
 
+type UserCapabilities = {
+    "mapping": {
+        "Mapping.Audit"?: (0|1),
+        "Permissions.Modify"?: (0|1),
+        "Mapping.Modify"?: (0|1),
+        "Mapping.Use"?: (0|1)
+    },
+    "nodes": {
+        "Sys.Modify"?: (0|1),
+        "Sys.Incoming"?: (0|1),
+        "Sys.AccessNetwork"?: (0|1),
+        "Permissions.Modify"?: (0|1),
+        "Sys.PowerMgmt"?: (0|1),
+        "Sys.Console"?: (0|1),
+        "Sys.Audit"?: (0|1),
+        "Sys.Syslog"?: (0|1)
+    },
+    "storage": {
+        "Datastore.Audit"?: (0|1),
+        "Datastore.AllocateTemplate"?: (0|1),
+        "Datastore.AllocateSpace"?: (0|1),
+        "Permissions.Modify"?: (0|1),
+        "Datastore.Allocate"?: (0|1)
+    },
+    "sdn": {
+        "SDN.Audit"?: (0|1),
+        "Permissions.Modify"?: (0|1),
+        "SDN.Allocate"?: (0|1),
+        "SDN.Use"?: (0|1)
+    },
+    "dc": {
+        "SDN.Audit"?: (0|1),
+        "SDN.Use"?: (0|1),
+        "Sys.Modify"?: (0|1),
+        "SDN.Allocate"?: (0|1),
+        "Sys.Audit"?: (0|1)
+    },
+    "vms": {
+        "VM.Monitor"?: (0|1),
+        "VM.Config.Options"?: (0|1),
+        "VM.Migrate"?: (0|1),
+        "VM.Config.Cloudinit"?: (0|1),
+        "VM.Config.CDROM"?: (0|1),
+        "VM.Config.Memory"?: (0|1),
+        "VM.Allocate"?: (0|1),
+        "VM.PowerMgmt"?: (0|1),
+        "VM.Config.Network"?: (0|1),
+        "VM.Clone"?: (0|1),
+        "VM.Snapshot.Rollback"?: (0|1),
+        "VM.Backup"?: (0|1),
+        "VM.Config.HWType"?: (0|1),
+        "VM.Config.Disk"?: (0|1),
+        "Permissions.Modify"?: (0|1),
+        "VM.Audit"?: (0|1),
+        "VM.Console"?: (0|1),
+        "VM.Snapshot"?: (0|1),
+        "VM.Config.CPU"?: (0|1)
+    },
+    "access": {
+        "Permissions.Modify"?: (0|1),
+        "User.Modify"?: (0|1),
+        "Group.Allocate"?: (0|1)
+    }
+}
