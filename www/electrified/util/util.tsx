@@ -578,7 +578,7 @@ export async function showBlueprintDialog<T>(dialogProps: Partial<BlueprintDialo
                 targetDiv.remove(); // clean up target div. A bit dirty but works
             }
 
-            return <BlueprintDialog className={isPVEDarkTheme()?"bp5-dark":undefined} usePortal={true} portalContainer={document.body} isOpen={open} {...dialogProps} onClose={() => {
+            return <BlueprintDialog className={isPVEDarkTheme()?"bp6-dark":undefined} usePortal={true} portalContainer={document.body} isOpen={open} {...dialogProps} onClose={() => {
                     close();
                     resolve(undefined);
                 }}>
@@ -654,7 +654,7 @@ export async function showMuiDialog<T>(title: string | React.ReactElement, dialo
                         }}
                         PaperComponent={PaperComponent}
                         maxWidth={false}
-                        className={isPVEDarkTheme()?"bp5-dark":undefined}
+                        className={isPVEDarkTheme()?"bp6-dark":undefined}
                         aria-labelledby="draggable-dialog-title" {...dialogProps}>
                     <DialogTitle style={{cursor: 'move'}} id="draggable-dialog-title">{title}</DialogTitle>
                     <ContentComponent close={close} resolve={(result) => {

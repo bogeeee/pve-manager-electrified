@@ -28,7 +28,7 @@
     "@mui/material": "^7.3.5",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
-    "@blueprintjs/core": "^5.19.0",
+    "@blueprintjs/core": "^6.3.4",
     "react-draggable": "=4.4.6",
     "clsx": "=2.1.1",
     "js-tokens": "=4.0.0",
