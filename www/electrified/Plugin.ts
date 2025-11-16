@@ -8,11 +8,16 @@ import {retsync2promise} from "proxy-facades/retsync";
 export class Plugin {
     static instance: Plugin;
 
-    app!: Application
+    app: Application
+
+    /**
+     * Set this to false, if this plugin can run without such. Otherwise, it will just be disabled for users with no /Sys.Console permission, so it won't throw lots of errors.
+     */
+    needsAdminPermissions = true;
 
 
     constructor(app: Application) {
-        // This constructor is not called because the of dummy-plugin-base workaround / class-rebasing
+        this.app = app;
     }
 
     /**

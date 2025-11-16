@@ -115,7 +115,16 @@ export class Application extends AsyncConstructableClass{
         pluginClass.packageName = packageName;
 
         const plugin = new pluginClass(this);
-        plugin.app = this; // Once again, cause the constructor doesn't work
+
+        // Workaround: Because the base constructor is not called, but we still want to define fields there. We create a new base plugin and copy the fields
+        const newBasePlugin = new Plugin(this);
+        Object.getOwnPropertyNames(newBasePlugin).forEach(propName => {
+            if(!plugin.hasOwnProperty(propName)) { // Field has not been redefined / initialized by subclass?
+                //@ts-ignore
+                plugin[propName] = newBasePlugin[propName];
+            }
+        })
+
         pluginClass.instance = plugin;
         this._plugins.set(pluginClass, plugin);
 
