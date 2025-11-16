@@ -8,6 +8,13 @@ import "@blueprintjs/core/lib/css/blueprint.css";
 import "@blueprintjs/icons/lib/css/blueprint-icons.css";
 
 export default class Plugin extends PvemePlugin {
+
+    /**
+     * Set this to false, if this plugin can run without such and you do all the necessary permission checks yourself. Otherwise, this plugin will just be disabled for users with no /Sys.Console permission, so it won't throw lots of errors for them.
+     * <p>Hint: You can check the user's permissions with <code>this.app.loginData.cap...</code></p>
+     */
+    needsAdminPermissions = true;
+
     /**
      * Node wide configuration for this plugin.
      * Will be stored under /etc/pve-local/manager/plugins/[plugin name].json.

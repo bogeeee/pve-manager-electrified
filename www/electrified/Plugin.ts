@@ -11,7 +11,8 @@ export class Plugin {
     app: Application
 
     /**
-     * Set this to false, if this plugin can run without such. Otherwise, it will just be disabled for users with no /Sys.Console permission, so it won't throw lots of errors.
+     * Set this to false, if this plugin can run without such and you do all the necessary permission checks yourself. Otherwise, this plugin will just be disabled for users with no /Sys.Console permission, so it won't throw lots of errors for them.
+     * <p>Hint: You can check the user's permissions with <code>this.app.loginData.cap...</code></p>
      */
     needsAdminPermissions = true;
 
@@ -224,6 +225,11 @@ export async function initializePluginConfigs(plugin: Plugin) {
                 if(initialized) {
                     return;
                 }
+
+                if(!app.userIsAdmin) {
+                    return;
+                }
+
                 await retsync2promise(() => {
                     const config = file.jsonObject || {};
 
@@ -266,6 +272,10 @@ export async function initializePluginConfigs(plugin: Plugin) {
                 get() {
                     if(cfg.isDatacenterConfig && !app.datacenter.online) {
                         throw new Error("Cannot read from datacenter config when datacenter is offline")
+                    }
+
+                    if(!app.userIsAdmin) {
+                        throw new Error("User does not have the permissions (Sys.Cosole) to read the config file");
                     }
 
                     if(!initialized) {

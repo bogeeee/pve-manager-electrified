@@ -136,6 +136,10 @@ export class Application extends AsyncConstructableClass{
 
     }
 
+    protected unregisterPlugin(plugin: Plugin,) {
+        this._plugins.delete(plugin.constructor as PluginClass)
+    }
+
     async showPluginManager() {
         await showPluginManager();
     }
@@ -191,17 +195,25 @@ export class Application extends AsyncConstructableClass{
                 window.location.reload();
             }
         }
-
-        await retsync2promise(() => this.electrifiedJsonConfig); // Fetch this once, so the next access can be without retsync
+        if(this.userIsAdmin) {
+            await retsync2promise(() => this.electrifiedJsonConfig); // Fetch this once, so the next access can be without retsync
+        }
 
         // Init plugins:
         for(const plugin of this.plugins) {
             try {
                 await initializePluginConfigs(plugin);
+
+                if(plugin.needsAdminPermissions && !this.userIsAdmin) { // Plugin makes no sense without enough permissions?
+                    this.unregisterPlugin(plugin);
+                    continue;
+                }
+
                 await plugin.init();
             }
             catch (e) {
-                await showErrorDialog(new Error(`Error initializing plugin ${plugin.name}`, {cause: e})); // Show a dialog instead of crashing the whole app which prevents the user from reconfiguring plugins
+                this.unregisterPlugin(plugin);
+                await showErrorDialog(new Error(`Error initializing plugin ${plugin.name}. See cause.`, {cause: e})); // Show a dialog instead of crashing the whole app which prevents the user from reconfiguring plugins
             }
         }
 
@@ -278,6 +290,16 @@ export class Application extends AsyncConstructableClass{
                 return token;
             }
         })
+    }
+
+    /**
+     * @returns true if user has Sys.Console permission, so basically is allowed to use all the electrified features like writing to any file.
+     */
+    get userIsAdmin() {
+        if(!this.loginData) {
+            throw new Error("User not yet logged on");
+        }
+        return this.loginData.cap.nodes["Sys.Console"] === 1
     }
 
 
