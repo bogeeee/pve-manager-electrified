@@ -15,7 +15,7 @@ import {
 } from "@blueprintjs/core";
 import "@blueprintjs/core/lib/css/blueprint.css";
 import "@blueprintjs/icons/lib/css/blueprint-icons.css";
-import { Dialog,  DialogTitle, Paper} from "@mui/material";
+import {createTheme, Dialog, DialogTitle, Paper, ThemeProvider} from "@mui/material";
 import {DialogProps} from "@mui/material/Dialog";
 import * as React from "react";
 import Draggable from 'react-draggable';
@@ -514,6 +514,14 @@ export function newDefaultWeakMap<K,V>(createDefaultValueFn: (key: K) => V): Def
     }()
 }
 
+//@ts-ignore
+const muiTheme = createTheme({
+    palette: {
+        mode: isPVEDarkTheme()?"dark":"light",
+    },
+});
+
+
 
 /**
  * More friendly way to show a modal blueprint dialog. Usage:
@@ -573,12 +581,15 @@ export async function showBlueprintDialog<T>(dialogProps: Partial<BlueprintDialo
             return <BlueprintDialog className={isPVEDarkTheme()?"bp5-dark":undefined} usePortal={true} portalContainer={document.body} isOpen={open} {...dialogProps} onClose={() => {
                     close();
                     resolve(undefined);
-                }}><ErrorBoundary fallbackRender={ErrorState}>
-                    <WatchedContentComponentFn close={close} resolve={(result) => {
-                        close();
-                        resolve(result);
-                    }}/>
+                }}>
+                <ThemeProvider theme={muiTheme}>
+                    <ErrorBoundary fallbackRender={ErrorState}>
+                        <WatchedContentComponentFn close={close} resolve={(result) => {
+                            close();
+                            resolve(result);
+                        }}/>
                     </ErrorBoundary>
+                </ThemeProvider>
                 </BlueprintDialog>
 
 
