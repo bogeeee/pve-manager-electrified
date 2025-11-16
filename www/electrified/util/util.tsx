@@ -646,20 +646,23 @@ export async function showMuiDialog<T>(title: string | React.ReactElement, dialo
                 targetDiv.remove(); // clean up target div. A bit dirty but works
             }
 
-            return <Dialog open={open} {...dialogProps}
-                           onClose={() => {
-                               close();
-                               resolve(undefined);
-                           }}
-                           PaperComponent={PaperComponent}
-                           maxWidth={false}
-                           aria-labelledby="draggable-dialog-title" {...dialogProps}>
-                <DialogTitle style={{cursor: 'move'}} id="draggable-dialog-title">{title}</DialogTitle>
-                <ContentComponent close={close} resolve={(result) => {
-                    close();
-                    resolve(result);
-                }}/>
-            </Dialog>
+            return <ThemeProvider theme={muiTheme}>
+                <Dialog open={open} {...dialogProps}
+                        onClose={() => {
+                            close();
+                            resolve(undefined);
+                        }}
+                        PaperComponent={PaperComponent}
+                        maxWidth={false}
+                        className={isPVEDarkTheme()?"bp5-dark":undefined}
+                        aria-labelledby="draggable-dialog-title" {...dialogProps}>
+                    <DialogTitle style={{cursor: 'move'}} id="draggable-dialog-title">{title}</DialogTitle>
+                    <ContentComponent close={close} resolve={(result) => {
+                        close();
+                        resolve(result);
+                    }}/>
+                </Dialog>
+            </ThemeProvider>
         }
         createRoot(targetDiv).render(<Wrapper/>);
     })
