@@ -941,7 +941,17 @@ function getCookieByName(name: string) {
 }
 
 export function isPVEDarkTheme() {
-    return getCookieByName( "PVEThemeCookie") === "proxmox-dark";
+    const themeCookie = getCookieByName( "PVEThemeCookie");
+    if( themeCookie === "proxmox-dark") {
+        return true;
+    }
+    else if(themeCookie === "crisp") {
+        return false;
+    }
+    else { // Auto?
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        return prefersDark;
+    }
 }
 
 export function InfoTooltip(props: {children: React.ReactElement}) {
