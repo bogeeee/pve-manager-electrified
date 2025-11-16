@@ -253,7 +253,7 @@ export async function initializePluginConfigs(plugin: Plugin) {
                 initialized = true;
             }
             if(cfg.isDatacenterConfig) {
-                if(app.datacenter.online) {
+                if(app.datacenter.hasQuorum) {
                     await init();
                 }
                 app.datacenter.onOnlineStatusChanged((online) => {
@@ -270,7 +270,7 @@ export async function initializePluginConfigs(plugin: Plugin) {
             // Define accessors
             Object.defineProperty(plugin, cfg.key, {
                 get() {
-                    if(cfg.isDatacenterConfig && !app.datacenter.online) {
+                    if(cfg.isDatacenterConfig && !app.datacenter.hasQuorum) {
                         throw new Error("Cannot read from datacenter config when datacenter is offline")
                     }
 
@@ -289,7 +289,7 @@ export async function initializePluginConfigs(plugin: Plugin) {
                     return file.jsonObject;
                 },
                 set(value: object) {
-                    if(cfg.isDatacenterConfig && !app.datacenter.online) {
+                    if(cfg.isDatacenterConfig && !app.datacenter.hasQuorum) {
                         throw new Error("Cannot write to from datacenter config when datacenter is offline")
                     }
                 }

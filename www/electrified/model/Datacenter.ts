@@ -26,9 +26,9 @@ export class Datacenter extends AsyncConstructableClass{
 
     /**
      * Synchronous / live
-     * @return online / cluster is in sync (from this node's perspective)
+     * @return hasQuorum / cluster is in sync (from this node's perspective)
      */
-    get online() {
+    get hasQuorum() {
         return true; // TODO
     }
 
