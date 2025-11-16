@@ -1,9 +1,10 @@
-import {Application, app} from "./Application";
+import type {Application} from "./Application";
 import {Guest} from "./model/Guest";
 import {Qemu} from "./model/Qemu";
 import {Lxc} from "./model/Lxc";
 import {Clazz} from "./util/util";
 import {retsync2promise} from "proxy-facades/retsync";
+import {getElectrifiedApp} from "./globals";
 
 export class Plugin {
     static instance: Plugin;
@@ -208,6 +209,7 @@ export function fixPluginClass(pluginClass: PluginClass): PluginClass {
  *
  */
 export async function initializePluginConfigs(plugin: Plugin) {
+    const app = getElectrifiedApp();
 
     for (const cfg of [
         /* TODO: {key: "userConfig", file: `/home/${userDir}/.pve-manager/plugins/${plugin.name}.json`}, */

@@ -16,12 +16,14 @@ import {
 import "@blueprintjs/core/lib/css/blueprint.css";
 import "@blueprintjs/icons/lib/css/blueprint-icons.css";
 import {confirm, formatDate, showBlueprintDialog, spawnAsync, throwError} from "../util/util";
-import {app, Application, gettext, t} from "../Application";
+import {getElectrifiedApp, gettext, t} from "../globals";
 import _ from "underscore";
 import {Table, TableBody, TableCell, TableContainer, TableHead, TableRow} from "@mui/material";
 import clone from "clone";
 
 export async function showPluginManager() {
+    const app = getElectrifiedApp();
+
     const result = await showBlueprintDialog({title: gettext("Electrified plugins"), style: {width: "1250px"}},(props) => {
         const state = useWatchedState(new class {
             filterByType: "all" | "installed" = "installed";

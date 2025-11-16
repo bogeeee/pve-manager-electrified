@@ -157,7 +157,7 @@ export class Application extends AsyncConstructableClass{
         // Subscribe to event and reload the page when a new build is triggered:
         await this.currentNode.electrifiedClient.withReconnect(() => electrifiedApi.onWebBuildStart(() => {window.location.reload()}));
 
-        app = this;
+        (window as any).electrifiedApp = this; // Make available for other modules
 
         // Register plugins:
         for(const entry of pluginList) {
@@ -168,9 +168,6 @@ export class Application extends AsyncConstructableClass{
                 await showErrorDialog(new Error(`Error registering plugin ${entry.packageName}. Path: ${entry.diagnosis_sourceDir || ""}`, {cause: e})); // Show a dialog instead of crashing the whole app which prevents the user from reconfiguring plugins
             }
         }
-
-
-        (window as any).electrifiedApp = this; // Make available for classic code
 
         this.setup_logoutPropagation();
 
@@ -317,25 +314,6 @@ export class Application extends AsyncConstructableClass{
             return this._addElectrifiedMenuItems(contextObj, extJsMenuItems);
         })
     }
-}
-export let app: Application
-
-export function gettext(text: string) {
-    return app.getText(text);
-}
-
-/**
- * Translates text into the current ui language. It looks it up in the electrified translation repo.
- * It uses the "taged template" syntax which allows to easily inert variables.
- * <p>
- *     Usage example: <code>t`You have ${numberOfUnread} unread messages`</code>
- * </p>
- * TODO: create an electrified and plugin-wide text repo and look up text there
- * @param englishTextTokens
- * @param values
- */
-export function t(englishTextTokens: TemplateStringsArray, ...values: any[]) {
-    return app.getTranslatedTextWithTags(englishTextTokens, ...values);
 }
 
 withErrorHandling(async () => {

@@ -23,7 +23,7 @@ import ReactDOM from "react-dom";
 import { createRoot } from 'react-dom/client';
 import {watchedComponent} from "react-deepwatch";
 import { ErrorBoundary } from "react-error-boundary";
-import {gettext} from "../Application";
+import {gettext} from "../globals";
 
 
 export async function better_fetch(...args: Parameters<typeof fetch>) {
