@@ -52,7 +52,7 @@ export class Application extends AsyncConstructableClass{
     }
 
     /**
-     * /etc/pve-local/electrified.json
+     * /etc/pve/local/electrified.json
      *
      */
     get electrifiedJsonConfig(): ElectrifiedJsonConfig {

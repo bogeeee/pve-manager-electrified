@@ -462,7 +462,7 @@ class AppServer {
     }
 
     /**
-     * From /etc/pve-local/electrified.json
+     * From /etc/pve/local/electrified.json
      * Creates file if it does not yet exist.
      */
     get electrifiedJsonConfig(): ElectrifiedJsonConfig {

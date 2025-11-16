@@ -17,7 +17,7 @@ export default class Plugin extends PvemePlugin {
 
     /**
      * Node wide configuration for this plugin.
-     * Will be stored under /etc/pve-local/manager/plugins/[plugin name].json.
+     * Will be stored under /etc/pve/local/manager/plugins/[plugin name].json.
      * This class's field is specially treated by electrified: (Deep) modifications are automatically written Modifications on disk are immediately updated to this field.
      */
     nodeConfig = {

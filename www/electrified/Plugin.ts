@@ -211,7 +211,7 @@ export async function initializePluginConfigs(plugin: Plugin) {
 
     for (const cfg of [
         /* TODO: {key: "userConfig", file: `/home/${userDir}/.pve-manager/plugins/${plugin.name}.json`}, */
-        {key: "nodeConfig", path: `/etc/pve-local/manager/plugins/${plugin.name}.json`, isDatacenterConfig: false},
+        {key: "nodeConfig", path: `/etc/pve/local/manager/plugins/${plugin.name}.json`, isDatacenterConfig: false},
         {key: "datacenterConfig", path: `/etc/pve/manager/plugins/${plugin.name}.json.`, isDatacenterConfig: true}]) {
 
         //@ts-ignore
