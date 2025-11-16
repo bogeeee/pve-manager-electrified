@@ -114,6 +114,7 @@ class AppServer {
                 sessionValidityTracking: false,
                 installSessionHandler: false,
             })
+            expressApp.use(cookieParser());
 
             expressApp.set('trust proxy', false); // When enabling this, you must also account for this in the getDestination function!!
 
