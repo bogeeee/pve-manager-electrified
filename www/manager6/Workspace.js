@@ -348,7 +348,7 @@ Ext.define('PVE.StdWorkspace', {
 				},
 			},
 			{
-				html: `<div style="height:30px;padding-top: 7px; padding-left: 2px"><img src="/pve2/images/proxmox_logo.png" height="15"/></div>`,
+				html: `<div style="height:30px;padding-top: 7px; padding-left: 2px"><img id="proxmoxlogo-small-titlebar-img" src="/pve2/images/proxmox_logo.png" height="15"/></div>`,
 			},
 			{
 				html: `<div style="width:8px;"/>`, // Some space
