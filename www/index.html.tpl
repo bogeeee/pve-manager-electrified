@@ -20,6 +20,7 @@
 
     $LANGFILE$
 
+    <script type="text/javascript" src="/electrified/diagnosis_checkAuthorizationForViteDevserver.js"></script>
     <script type="text/javascript" src="/pve2/ext6/ext-all$DEBUG_EXT_ALL$.js"></script>
     <script type="text/javascript" src="/pve2/ext6/charts$DEBUG_CHARTS$.js"></script>
 

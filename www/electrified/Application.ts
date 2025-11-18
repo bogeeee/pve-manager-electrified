@@ -177,21 +177,7 @@ export class Application extends AsyncConstructableClass{
      * Called after login or on start, with valid login ticket
      */
     async initAfterLogin() {
-        // Bug workaround: vite-devserver connection was rejected, because it had no/outdated permissions, cause they were not initialized yet.
-        const electrifiedApi = this.currentNode.electrifiedApi;
-        if(!this.webBuildState.builtWeb.buildOptions.buildStaticFiles && !(await electrifiedApi.permissionsAreUp2Date())) { // Using vite-devserver but permissions are not up2date?
-            try {
-                await electrifiedApi.ping(); // Force permissions to be up2date if there's a valid login
-            }
-            catch (e) {
-            }
 
-            if (await electrifiedApi.permissionsAreUp2Date()) { // but **now** they have become valid?
-                // We realized that the vite-devserver connection must had failed because it saw none/outdated permissions. This occurs i.e. during nodejsserver development when restarting the server.
-
-                window.location.reload();
-            }
-        }
         if(this.userIsAdmin) {
             await retsync2promise(() => this.electrifiedJsonConfig); // Fetch this once, so the next access can be without retsync
         }

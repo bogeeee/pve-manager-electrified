@@ -32,7 +32,7 @@ export class ElectrifiedSession extends ServerSession {
         csrfProtectionMode: "corsReadToken"
     }
 
-    private static remoteMethodsThatNeedNoPermissions: (keyof ElectrifiedSession)[] = ["getWebBuildState","permissionsAreUp2Date", "clearCachedPermissions", "onWebBuildStart"];
+    private static remoteMethodsThatNeedNoPermissions: (keyof ElectrifiedSession)[] = ["getWebBuildState","permissionsAreUp2Date", "clearCachedPermissions", "diagnosis_canAccessWeb", "onWebBuildStart"];
 
     static defaultRemoteMethodOptions: RemoteMethodOptions = {validateResult: false}
 
@@ -231,6 +231,25 @@ export class ElectrifiedSession extends ServerSession {
 
     @remote clearCachedPermissions() {
         this.cachedPermissions = undefined;
+    }
+
+    @remote async diagnosis_canAccessWeb() {
+        if(appServer.useViteDevServer && !appServer.viteDevServer_allowUnauthorizedClients) {
+            const cachePermissionsWereOutDated = !this.permissionsAreUp2Date();
+            try {
+                await this.checkPermission("/", "Sys.Console");
+                if(cachePermissionsWereOutDated) {
+                    return "cachePermissionsWereOutDated"; // Signal this to the client
+                }
+                return true;
+            }
+            catch (e) {
+                return false;
+            }
+        }
+        else {
+            return true;
+        }
     }
 
     /**
