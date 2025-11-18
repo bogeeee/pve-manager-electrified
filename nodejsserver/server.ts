@@ -96,7 +96,7 @@ class AppServer {
 
     protected viteDevServer!: ViteDevServer;
 
-    viteDevServer_allowUnauthorizedClients = false;
+    viteDevServer_allowUnauthorizedClients = process.env.NODE_ENV === "development";
 
     constructor() {
         spawnAsync(async () => {
