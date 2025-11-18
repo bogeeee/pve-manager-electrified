@@ -38,10 +38,9 @@ TODO: implement regular login-state polling, to propagate logouts.
 # Development mode
 
 PVE-electrified can run in development mode. Then the vite-devserver is used. You'll see it in the main toolbar then, or you can check the status under the url `https://your-pve/webBuild `.
-When not enabled, PVE-manager-electrified prevents access to the vite-devserver's paths and also does not forward websocket connections to it (to port 8055). 
-Cause this vite-devserver's API was only meant for development mode. 
-When enabled, forwarding to it is only individually allowed for users that are logged in and have `Sys.Console` permission.
-Also, a same-origin check against the request headers is performed to prevent xsrf. So switching on the vite-devserver in production is sufficiently secured (there may be valid reasons to use it, i.e. the admin wants to edit a button).    
+Because the vite-devserver, as the name says, was never meant to be used in production and can't be considered secure itself.
+So, when not enabled, or the user is not authorized with `Sys.Console` permission, PVE-manager-electrified **prevents access** to the vite-devserver's paths **and also does not forward websocket connections** to it (to port 8055). 
+For permissions, the current cookie-session is checked. Also, a same-origin check against the request headers is performed to prevent xsrf. So switching on the vite-devserver in production is sufficiently secured (there may be valid reasons to use it, i.e. the admin wants to edit a button).    
 
 The vite devserver internally listens for hmr websocket connections on port 8055. It's bound to localhost/loopback interface only👍. Still that port is always bound, even when the devserver is not used (for internal reasons, cause express is rather static and always needs the middleware object upfront).
 TODO: Add a config option to completely disable the vite devserver.

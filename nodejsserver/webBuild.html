@@ -13,6 +13,7 @@
   <form id="interactiveForm" style="display: none" onsubmit="event.preventDefault()">
       <hr/>
       <input id="useViteDevServerCheckbox" type="checkbox" onclick="rebuild({...state.builtWeb.buildOptions, buildStaticFiles: !event.target.checked})"/>Use vite devserver<br/>
+      &#160;└<input id="viteDevServer_allowUnauthorizedClients_checkbox" type="checkbox" onclick="withErrorHandling(async() => { await execElectrifiedApiMethod('setViteDevServer_allowUnauthorizedClients',[event.target.checked]);})"/>Allow unauthorized clients (not secure for production use)<br/>
       <input id="enablePlugins" type="checkbox" onclick="rebuild({...state.builtWeb.buildOptions, enablePlugins: event.target.checked})"/>Enable plugins<br/>
       <button onclick="withErrorHandling(() => rebuild(state.builtWeb.buildOptions))">Rebuild web</button>
       <button onclick="withErrorHandling(async() => { await execElectrifiedApiMethod('resetNode_modules',[]);})">Reset node_modules</button>
@@ -64,6 +65,8 @@ ${state.builtWeb.promiseState.state==="rejected"?`<b>Build failed:</b> ${state.b
                   document.getElementById("interactiveForm").style.display="block"
                   // Update checkboxes :
                   document.getElementById("useViteDevServerCheckbox").checked = !state.builtWeb.buildOptions.buildStaticFiles;
+                  document.getElementById("viteDevServer_allowUnauthorizedClients_checkbox").checked = state.viteDevServer_allowUnauthorizedClients;
+                  document.getElementById("viteDevServer_allowUnauthorizedClients_checkbox").disabled = state.builtWeb.buildOptions.buildStaticFiles;
                   document.getElementById("enablePlugins").checked = state.builtWeb.buildOptions.enablePlugins;
 
                   document.getElementById("createExamplePluginProjectButton").disabled = state.exampleUiPluginProjectExist

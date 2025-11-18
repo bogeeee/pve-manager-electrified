@@ -96,6 +96,7 @@ class AppServer {
 
     protected viteDevServer!: ViteDevServer;
 
+    viteDevServer_allowUnauthorizedClients = false;
 
     constructor() {
         spawnAsync(async () => {
@@ -176,7 +177,7 @@ class AppServer {
                         host: "127.0.0.1", // Security: bind the internal server to loopback interface only
                         clientPort: this.config.port,
                     },
-                    allowedHosts: true, // Allow all hosts. TODO: security: restrict only to users, logged in a as root.
+                    allowedHosts: true, // Allow all hosts. Access is restriced, see below
                     watch: {
                         followSymlinks: true
                     }
@@ -196,7 +197,31 @@ class AppServer {
                     },
                 ],
             });
-            expressApp.use(conditionalMiddleware(() => this.useViteDevServer, this.viteDevServer.middlewares));
+            expressApp.use(conditionalMiddleware((req) => {
+                // Note: Duplicate logic:
+                if(!this.useViteDevServer) {
+                    return false; // Don't allow
+                }
+                if(this.viteDevServer_allowUnauthorizedClients) {
+                    return true;
+                }
+                try {
+                    if (!isStrictSameSiteRequest(req)) {// Cross site?
+                        return false; // Don't allow. Prevent possible xsrf
+                    }
+
+                    const electrifiedSession = ElectrifiedSession.fromRequest_unofficial({session: (this.getExpressSessionFromIncomingmessage(req) || {})});
+                    if (!electrifiedSession) {
+                        return false; // Don't allow
+                    }
+                    electrifiedSession.checkCachedPermission("/", "Sys.Console");
+                    return true;
+                }
+                catch (e) {
+                    return false;
+                }
+
+            }, this.viteDevServer.middlewares));
 
             // (for production mode) Serve (non-modified-) bundled files:
             expressApp.use("/", conditionalMiddleware(() => !this.useViteDevServer, express.static(this.bundledWWWDir)));
@@ -222,20 +247,21 @@ class AppServer {
             // Forward vite dev server websocket connections + the rest of all websocket connections (not handled by Restfuncs)  to the original server (most simple implementation. If there's more special websocket paths, put the handlers **above** here):
             forwardWebsocketConnections(httpsServer, (req) => {
                 if(req.url?.startsWith("/viteHmr")) { // For vite ?
+                    // Note: Duplicate logic:
                     if(!this.useViteDevServer) {
                         return undefined; // Don't allow
                     }
+                    if(!this.viteDevServer_allowUnauthorizedClients) {
+                        if (!isStrictSameSiteRequest(req)) {// Cross site?
+                            return undefined; // Don't allow. Prevent possible xsrf
+                        }
 
-                    if(!isStrictSameSiteRequest(req)) {// Cross site?
-                        return undefined; // Don't allow. Prevent possible xsrf
+                        const electrifiedSession = ElectrifiedSession.fromRequest_unofficial({session: (this.getExpressSessionFromIncomingmessage(req) || {})});
+                        if (!electrifiedSession) {
+                            return undefined; // Don't allow
+                        }
+                        electrifiedSession.checkCachedPermission("/", "Sys.Console");
                     }
-
-                    const electrifiedSession = ElectrifiedSession.fromRequest_unofficial({session: (this.getExpressSessionFromIncomingmessage(req) || {})});
-                    if(!electrifiedSession) {
-                        return undefined; // Don't allow
-                    }
-                    electrifiedSession.checkCachedPermission("/", "Sys.Console");
-
                     return new WebSocket(`ws://localhost:${this.config.internalViteHmrPort}${req.url}`);
                 }
                 else if(req.url?.startsWith("/engine.io_restfuncs")) {

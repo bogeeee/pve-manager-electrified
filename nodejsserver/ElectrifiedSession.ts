@@ -82,7 +82,8 @@ export class ElectrifiedSession extends ServerSession {
                     rejectReason: appServer.builtWeb.promiseState.state === "rejected"?errorToHtml(appServer.builtWeb.promiseState.rejectReason):undefined,
                 },
             },
-            hasPermissions: this.cachedPermissions?.permissions["/"]["Sys.Console"] === 1
+            hasPermissions: this.cachedPermissions?.permissions["/"]["Sys.Console"] === 1,
+            viteDevServer_allowUnauthorizedClients: appServer.viteDevServer_allowUnauthorizedClients,
         };
     }
 
@@ -91,6 +92,10 @@ export class ElectrifiedSession extends ServerSession {
         spawnAsync(async () => {
             await appServer.buildWeb(buildOptions)
         }, false);
+    }
+
+    @remote setViteDevServer_allowUnauthorizedClients(newValue: boolean) {
+        appServer.viteDevServer_allowUnauthorizedClients = newValue;
     }
 
     @remote async onWebBuildStart(listener: ()  => void) {
