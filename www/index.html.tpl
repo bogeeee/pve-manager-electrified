@@ -5,7 +5,7 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
     <title>[% nodename %] - Proxmox Virtual Environment</title>
-    <link rel="icon" sizes="128x128" href="images/images/pve-electrified_logo.png" />
+    <link rel="icon" sizes="128x128" href="images/pve-electrified_logo.png" />
     <link rel="apple-touch-icon" sizes="128x128" href="images/pve-electrified_logo.png" />
     <!-- Urls, not under this www directory, are prefixed with 'https://remove_this_prefix', so the bundler will not touch them and not complain. The server.ts#serveIndexHtml method later removes the prefix when serving -->
     <link rel="stylesheet" type="text/css" href="https://remove_this_prefix/pve2/ext6/theme-crisp/resources/theme-crisp-all.css?ver=$CACHEBREAKER$" />
