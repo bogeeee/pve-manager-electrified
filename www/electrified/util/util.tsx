@@ -23,8 +23,15 @@ import ReactDOM from "react-dom";
 import { createRoot } from 'react-dom/client';
 import {watchedComponent} from "react-deepwatch";
 import { ErrorBoundary } from "react-error-boundary";
-import {gettext} from "../globals";
+import {getElectrifiedApp} from "../globals";
 
+function gettext(text: string) {
+    const app = getElectrifiedApp();
+    if(!app) {
+        return text; // fallback, when app failed to initialize, the util methods, especially for showing error dialogs, should still work
+    }
+    return app.getText(text);
+}
 
 export async function better_fetch(...args: Parameters<typeof fetch>) {
     const request = args[0] as any;
