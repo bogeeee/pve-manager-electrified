@@ -149,8 +149,10 @@ export class Application extends AsyncConstructableClass{
     async constructAsync() {
         console.log("Starting Proxmox VE Manager electrified");
 
+        (window as any).electrifiedApp = this; // Make available for other modules
+
         this.datacenter = await Datacenter.create();
-        this.currentNode = await Node.create(); // TODO use datacenter.nodes[...]
+        this.currentNode = this.datacenter.getNode_existing((window as any).Proxmox.NodeName || throwError("Proxmox.NodeName not set"));
 
         const electrifiedApi = this.currentNode.electrifiedApi;
         const webBuildState = this.webBuildState = await electrifiedApi.getWebBuildState();
@@ -158,7 +160,7 @@ export class Application extends AsyncConstructableClass{
         // Subscribe to event and reload the page when a new build is triggered:
         await this.currentNode.electrifiedClient.withReconnect(() => electrifiedApi.onWebBuildStart(() => {window.location.reload()}));
 
-        (window as any).electrifiedApp = this; // Make available for other modules
+
 
         // Register plugins:
         for(const entry of pluginList) {

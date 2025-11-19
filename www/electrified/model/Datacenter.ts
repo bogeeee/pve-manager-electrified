@@ -2,6 +2,7 @@ import {AsyncConstructableClass} from "../util/AsyncConstructableClass";
 import {Guest} from "./Guest";
 import {throwError} from "../util/util";
 import {Node} from "./Node"
+import {getElectrifiedApp} from "../globals";
 
 
 export class Datacenter extends AsyncConstructableClass{
@@ -17,7 +18,13 @@ export class Datacenter extends AsyncConstructableClass{
     }
 
     protected async constructAsync(): Promise<void> {
-        // TODO: construct nodes. Also see application constructor because of currentNode
+        // construct nodes:
+        this.nodes = new Map<string, Node>();
+        for(const nodeResult of (await getElectrifiedApp().api2fetch("GET", "/nodes")) as any) {
+            const name = nodeResult.node;
+            const node = await Node.create({name});
+            this.nodes.set(name, node);
+        }
     }
 
     getNode_existing(name: string) {

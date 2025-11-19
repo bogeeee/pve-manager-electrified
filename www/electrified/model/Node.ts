@@ -8,6 +8,8 @@ import {ElectrifiedRestfuncsClient} from "../util/ElectrifiedRestfuncsClient";
 import {getElectrifiedApp} from "../globals";
 
 export class Node extends AsyncConstructableClass {
+    name: string;
+
     electrifiedClient: RestfuncsClient<ElectrifiedSession> = new ElectrifiedRestfuncsClient<ElectrifiedSession>("/electrifiedAPI", {/* options */}) // TODO: path for this node. Allow other origins in the ElectrifiedSession.options but use sameSite cookies, so they cannot share the session cross site (would open xsrf attacks otherwise)
 
     /**
@@ -51,10 +53,6 @@ export class Node extends AsyncConstructableClass {
         }
         url = `/api2/json/nodes/${this.name}${url}`;
         return await getElectrifiedApp().api2fetch(method, url, params);
-    }
-
-    get name() {
-        throw new Error("TODO");
     }
 
     /**
