@@ -19,6 +19,7 @@
       <button onclick="withErrorHandling(async() => { await execElectrifiedApiMethod('resetNode_modules',[]);})">Reset node_modules</button>
       <button id="createExamplePluginProjectButton" onclick="withErrorHandling(async() => { await execElectrifiedApiMethod('createUiPluginProject',['example']);await rebuild({...state.builtWeb.buildOptions, buildStaticFiles: false});})">Create example ui plugin project</button>
       <button onclick="withErrorHandling(async() => { if(confirm('This will uninstall it and install the original pve-manager by Proxmox. Sure?')) { await execElectrifiedApiMethod('uninstallPveme',[]);}})">Uninstall pve-manager-electrified</button>
+      <button onclick="withErrorHandling(logout)">Logout</button>
   </form>
 
   <form id="loginForm" style="display: none" enctype="application/x-www-form-urlencoded" onsubmit="submitLoginForm(this); event.preventDefault();">
@@ -26,7 +27,7 @@
       <h3>Login to PVE</h3>
       Please login to PVE to use the control panel above<br/><br/>
       <strong>User name: </strong><input type="text" name="username" value="root"/> @Realm: <input type="text" name="realm" value="pam"><br/>
-      <strong>Password: </strong><input type="password" name="password"/> <br/>
+      <strong>Password: </strong><input id="loginPassword" type="password" name="password"/> <br/>
       <input type="submit" value="login"/> <span id="loginMessage"></span>
   </form>
 
@@ -104,11 +105,19 @@ ${state.builtWeb.promiseState.state==="rejected"?`<b>Build failed:</b> ${state.b
               document.cookie = `PVEAuthCookie=${escape(result.data.ticket)}; SameSite=lax; secure`
               await execElectrifiedApiMethod("ping",[]) // query/refresh the permissions
               msg = "Login successful"
+              document.getElementById("loginPassword").value="";
           } catch (e) {
               msg = "Login failed.";
           }
 
           msgSpan.textContent = msg;
+      }
+
+      async function logout() {
+          window.document.cookie = "PVEAuthCookie=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+          window.localStorage.removeItem("ProxmoxUser");
+          await execElectrifiedApiMethod("clearCachedPermissions", []);
+          document.getElementById("loginMessage").innerHTML = "";
       }
 
 
