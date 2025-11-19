@@ -15,6 +15,7 @@
       <input id="useViteDevServerCheckbox" type="checkbox" onclick="rebuild({...state.builtWeb.buildOptions, buildStaticFiles: !event.target.checked})"/>Use vite devserver<br/>
       &#160;└<input id="viteDevServer_allowUnauthorizedClients_checkbox" type="checkbox" onclick="withErrorHandling(async() => { await execElectrifiedApiMethod('setViteDevServer_allowUnauthorizedClients',[event.target.checked]);})"/>Allow unauthorized clients (not secure for production use)<br/>
       <input id="enablePlugins" type="checkbox" onclick="rebuild({...state.builtWeb.buildOptions, enablePlugins: event.target.checked})"/>Enable plugins<br/>
+      <br/>
       <button onclick="withErrorHandling(() => rebuild(state.builtWeb.buildOptions))">Rebuild web</button>
       <button onclick="withErrorHandling(async() => { await execElectrifiedApiMethod('resetNode_modules',[]);})">Reset node_modules</button>
       <button id="createExamplePluginProjectButton" onclick="withErrorHandling(async() => { await execElectrifiedApiMethod('createUiPluginProject',['example']);await rebuild({...state.builtWeb.buildOptions, buildStaticFiles: false});})">Create example ui plugin project</button>
@@ -30,6 +31,11 @@
       <strong>Password: </strong><input id="loginPassword" type="password" name="password"/> <br/>
       <input type="submit" value="login"/> <span id="loginMessage"></span>
   </form>
+
+  <hr/>
+  <h2>Plugin developer links</h2>
+  <a href="https://pve.proxmox.com/pve-docs/api-viewer/">PVE API Documentation</a> - use with: <code>this.app.api2fetch(...)</code>
+
 
   <script type="text/javascript">
       Proxmox = $PROXMOXSTATE$;

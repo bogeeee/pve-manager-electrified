@@ -1,11 +1,12 @@
 import {RestfuncsClient} from "restfuncs-client";
 
 import {
+    better_fetch,
     Clazz, errorToString,
     isPVEDarkTheme,
     returnWithErrorHandling, showBlueprintDialog, showErrorDialog,
     showResultText,
-    spawnAsync,
+    spawnAsync, throwError,
     withErrorHandling
 } from "./util/util";
 import {generated_pluginList as pluginList} from "../_generated_pluginList";
@@ -283,6 +284,62 @@ export class Application extends AsyncConstructableClass{
             throw new Error("User not yet logged on");
         }
         return this.loginData.cap.nodes["Sys.Console"] === 1
+    }
+
+    /**
+     * Calls the pve2 api. The api can be browsed here: {@link https://pve.proxmox.com/pve-docs/api-viewer/}.
+     * <p>
+     *      Example: <code>const result = await electrifiedApp.api2fetch("POST", "/nodes/myPve/lxc/820/status/stop", {skiplock: true}); // stops the guest 820 while ignoring locks</code>
+     * </p>
+     * @param method
+     * @param url path after /api2/json. Must begin with a /
+     * @param params booleans will be converted to "1" or "0". undefineds will be omitted.
+     * @returns the json result
+     * @see Node#electrifiedClient
+     */
+    async api2fetch(method: "GET" | "POST" | "PUT" | "DELETE", url: string, params?: Record<string, unknown>): Promise<unknown> {
+        // Validity check:
+        if(!url.startsWith("/")) {
+            throw new Error("Url must start with /");
+        }
+
+        // Docs: https://pve.proxmox.com/wiki/Proxmox_VE_API
+
+        // Convert params to stringParams:
+        const stringParams: Record<string, string> = {};
+        Object.keys(params || {}).forEach(key => {
+            //@ts-ignore
+            let value:unknown = params[key];
+
+            // Do conversions:
+            if(value === undefined) {
+                return;
+            }
+            if(value === true) {
+                value = "1";
+            }
+            else if(value === false) {
+                value = "0";
+            }
+
+            stringParams[key] = "" + value;
+        });
+
+        url = `/api2/json${url}${method==="GET"?("?" + new URLSearchParams(stringParams).toString()):""}`;
+        const init: RequestInit = {
+            method,
+            headers: {
+                "CSRFPreventionToken": this.loginData?.CSRFPreventionToken || (window as any).Proxmox.CSRFPreventionToken || throwError("SRFPreventionToken not set"),
+            },
+            body: (method !== "GET"?new URLSearchParams(stringParams):undefined)
+        }
+
+        const fetchResult = await better_fetch(url, init);
+        const jsonResult = await fetchResult.json();
+        if(!jsonResult || typeof jsonResult !== "object" || Object.hasOwnProperty(jsonResult.data)) {
+            throw new Error(`Illegal return value. url: ${url}, result: ${jsonResult}`);
+        }
+        return jsonResult.data;
     }
 
 
