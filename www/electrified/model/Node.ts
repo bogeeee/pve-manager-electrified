@@ -51,8 +51,7 @@ export class Node extends AsyncConstructableClass {
         if(!url.startsWith("/")) {
             throw new Error("Url must start with /");
         }
-        url = `/api2/json/nodes/${this.name}${url}`;
-        return await getElectrifiedApp().api2fetch(method, url, params);
+        return await getElectrifiedApp().api2fetch(method, `/nodes/${this.name}${url}`, params);
     }
 
     /**
