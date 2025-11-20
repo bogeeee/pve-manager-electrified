@@ -1,6 +1,6 @@
 import {AsyncConstructableClass} from "../util/AsyncConstructableClass";
 import {Guest} from "./Guest";
-import {throwError} from "../util/util";
+import {spawnAsync, throwError} from "../util/util";
 import {Node} from "./Node"
 import {getElectrifiedApp} from "../globals";
 
@@ -18,13 +18,42 @@ export class Datacenter extends AsyncConstructableClass{
     }
 
     protected async constructAsync(): Promise<void> {
-        // construct nodes:
+
         this.nodes = new Map<string, Node>();
-        for(const nodeResult of (await getElectrifiedApp().api2fetch("GET", "/nodes")) as any) {
-            const name = nodeResult.node;
-            const node = await Node.create({name});
-            this.nodes.set(name, node);
+        this.nodes.set((window as any).Proxmox.NodeName, getElectrifiedApp().currentNode); // Must re-use this instance  / don't let it auto-crate a new one
+
+        await this.handleResourceStoreDataChanged();
+        getElectrifiedApp()._resourceStore.on("datachanged", () => spawnAsync(() => this.handleResourceStoreDataChanged()));
+    }
+
+    protected async handleResourceStoreDataChanged() {
+        const nodesSeenInResourceStore = new Set<string>()
+        for(const nodeDesc of getElectrifiedApp()._resourceStore.getNodes()) {
+            const name = nodeDesc.node as string || throwError("Name not set");
+
+            nodesSeenInResourceStore.add(name);
+
+            // Create if not exists:
+            if(!this.nodes.has(name)) {
+                const node = await Node.create({name});
+                await node._initWhenLoggedOn();
+                this.nodes.set(name, node); // Create it
+            }
+
+            // Update node fields:
+            this.getNode(name)!._updateFields(nodeDesc);
         }
+
+        // Delete nodes that don't exist anymore:
+        [...this.nodes.keys()].forEach(name => {
+            if(!nodesSeenInResourceStore.has(name)) {
+                this.nodes.delete(name);
+            }
+        })
+    }
+
+    getNode(name: string) {
+        return this.nodes.get(name);
     }
 
     getNode_existing(name: string) {

@@ -6,9 +6,13 @@ import type {ElectrifiedSession} from "pveme-nodejsserver/ElectrifiedSession"
 import {Guest} from "./Guest";
 import {ElectrifiedRestfuncsClient} from "../util/ElectrifiedRestfuncsClient";
 import {getElectrifiedApp} from "../globals";
+import _ from "underscore"
 
+/**
+ * A PVE-Node. All fields are live updated.
+ */
 export class Node extends AsyncConstructableClass {
-    name: string;
+    name!: string;
 
     electrifiedClient: RestfuncsClient<ElectrifiedSession> = new ElectrifiedRestfuncsClient<ElectrifiedSession>("/electrifiedAPI", {/* options */}) // TODO: path for this node. Allow other origins in the ElectrifiedSession.options but use sameSite cookies, so they cannot share the session cross site (would open xsrf attacks otherwise)
 
@@ -18,6 +22,61 @@ export class Node extends AsyncConstructableClass {
      */
     protected files = newDefaultMap<string, File>((path) => new File(this, path));
     protected guests!: Map<number, Guest>
+
+    // *** Fields from ResourceStore / https://pve.proxmox.com/pve-docs/api-viewer/#/cluster/resources: ***
+    /**
+     * Number of available memory in bytes
+     */
+    maxmem!: number;
+    /**
+     * Used memory in bytes
+     */
+    mem!:  number;
+    /**
+     * Uptime in seconds
+     */
+    uptime!:  number;
+    /**
+     * Support level
+     */
+    level!:  string;
+    /**
+     * The cgroup mode this node operates under
+     */
+    "cgroup-mode"!:  number;
+    /**
+     * CPU utilization
+     */
+    cpu!:  number;
+    /**
+     * Number of available CPUs
+     */
+    maxcpu!:  number;
+    /**
+     * "online" or ...
+     */
+    status!:  string;
+    /**
+     * Value was provided by the ResourceStore but no further docs found
+     */
+    diskuse!:  number;
+    /**
+     *  Value was provided by the ResourceStore but no further docs found
+     */
+    memuse!:  number;
+    /**
+     *  Value was provided by the ResourceStore but no further docs found
+     */
+    running!:  boolean;
+
+    protected async constructAsync(): Promise<void> {
+        // See _initWhenLoggedIn
+        return super.constructAsync();
+    }
+
+    _initWhenLoggedOn() {
+
+    }
 
     /**
      * Let's you call electrified-specific remote methods on the server. They are defined in nodejsserver/ElectrifiedSession.ts
@@ -70,5 +129,17 @@ export class Node extends AsyncConstructableClass {
 
     getGuest_existing(id: number){
         return this.getGuest(id) || throwError(`Guest with id ${id} does not exist on node: ${this.name}`);
+    }
+
+    /**
+     * Internal
+     * @param fields fields from resource store
+     */
+    _updateFields(fields: any) {
+        const fieldsToCopy: (keyof this)[] = ["maxmem","mem", "uptime", "level", "cgroup-mode", "cpu", "maxcpu", "status", "diskuse","memuse", "running"];
+        for(const key of fieldsToCopy) {
+            //@ts-ignore
+            this[key] = fields[key];
+        }
     }
 }

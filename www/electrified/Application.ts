@@ -24,14 +24,11 @@ import {retsync2promise} from "proxy-facades/retsync";
 
 export class Application extends AsyncConstructableClass{
 
-
-    /**
-     * The live model of things in the datacenter live means, as soon, as the state on the server changes, i.e. a corresponding config file changes, it will be file-watched and pushed to here immediately.
-     */
-    datacenter!: Datacenter
+    protected _datacenter?: Datacenter
 
     /**
      * Live model, (live like {@see datacenter})) of current node where this web frontend is currently hosted.
+     * <p>This field as already available before initWhenLoggedOn. It does not have full functionality then</p>
      */
     currentNode!: Node;
 
@@ -96,6 +93,16 @@ export class Application extends AsyncConstructableClass{
 
     webBuildState!: Awaited<ReturnType<ElectrifiedSession["getWebBuildState"]>>
 
+    /**
+     * The live model of things in the datacenter live means, as soon, as the state on the server changes, i.e. a corresponding config file changes, it will be file-watched and pushed to here immediately.
+     */
+    get datacenter(): Datacenter {
+        if(!this._datacenter) {
+            throw new Error("Application has not been fully initialized yet (initWhenLoggedOn not yet called)")
+        }
+        return this._datacenter;
+    }
+
     get plugins(){
         return [...this._plugins.values()];
     }
@@ -151,16 +158,14 @@ export class Application extends AsyncConstructableClass{
 
         (window as any).electrifiedApp = this; // Make available for other modules
 
-        this.datacenter = await Datacenter.create();
-        this.currentNode = this.datacenter.getNode_existing((window as any).Proxmox.NodeName || throwError("Proxmox.NodeName not set"));
+        this.currentNode = await Node.create({name: (window as any).Proxmox.NodeName || throwError("Proxmox.NodeName not set")});
 
         const electrifiedApi = this.currentNode.electrifiedApi;
-        const webBuildState = this.webBuildState = await electrifiedApi.getWebBuildState();
+
+        this.webBuildState = await electrifiedApi.getWebBuildState();
 
         // Subscribe to event and reload the page when a new build is triggered:
         await this.currentNode.electrifiedClient.withReconnect(() => electrifiedApi.onWebBuildStart(() => {window.location.reload()}));
-
-
 
         // Register plugins:
         for(const entry of pluginList) {
@@ -179,7 +184,19 @@ export class Application extends AsyncConstructableClass{
     /**
      * Called after login or on start, with valid login ticket
      */
-    async initAfterLogin() {
+    async initWhenLoggedOn() {
+
+        // Wait till the first data is available in this.resourcestore:
+        if(this._resourceStore.getNodes().length === 0) {
+            await new Promise((resolve, reject) => {
+                this._resourceStore.on("datachanged", resolve);
+            })
+        }
+
+        await this.currentNode._initWhenLoggedOn();
+
+
+        this._datacenter = await Datacenter.create();
 
         if(this.userIsAdmin) {
             await retsync2promise(() => this.electrifiedJsonConfig); // Fetch this once, so the next access can be without retsync
@@ -218,7 +235,7 @@ export class Application extends AsyncConstructableClass{
         this.loginData = loginData;
 
         spawnAsync(async () => {
-            await this.initAfterLogin();
+            await this.initWhenLoggedOn();
         });
     }
 
@@ -237,6 +254,13 @@ export class Application extends AsyncConstructableClass{
 
     get isDarkTheme() {
         return isPVEDarkTheme();
+    }
+
+    /**
+     * Internal. The PVE.data.ResourceStore
+     */
+    get _resourceStore(): any {
+        return (window as any).PVE.data.ResourceStore;
     }
 
     /**
