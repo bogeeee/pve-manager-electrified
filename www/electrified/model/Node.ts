@@ -9,11 +9,12 @@ import {getElectrifiedApp} from "../globals";
 import _ from "underscore"
 import {Lxc} from "./Lxc";
 import {Qemu} from "./Qemu";
+import {ModelBase} from "./ModelBase";
 
 /**
  * A PVE-Node. All fields are live updated.
  */
-export class Node extends AsyncConstructableClass {
+export class Node extends ModelBase {
     name!: string;
 
     electrifiedClient!: RestfuncsClient<ElectrifiedSession>;
@@ -216,5 +217,7 @@ export class Node extends AsyncConstructableClass {
         }
 
         this.rawDataRecord = fields;
+
+        this._fireUpdate();
     }
 }

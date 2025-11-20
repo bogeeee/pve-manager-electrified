@@ -1,7 +1,8 @@
 import {AsyncConstructableClass} from "../util/AsyncConstructableClass";
 import {getElectrifiedApp} from "../globals";
+import {ModelBase} from "./ModelBase";
 
-export class Guest extends AsyncConstructableClass{
+export class Guest extends ModelBase {
     id!: number;
     name!: string;
 
@@ -106,5 +107,7 @@ export class Guest extends AsyncConstructableClass{
         this.tags = (strTags && strTags.trim() != "")?strTags.split(";"):[];
 
         this.rawDataRecord = fields;
+
+        this._fireUpdate();
     }
 }
