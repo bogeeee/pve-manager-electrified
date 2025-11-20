@@ -16,7 +16,7 @@ import {Qemu} from "./Qemu";
 export class Node extends AsyncConstructableClass {
     name!: string;
 
-    electrifiedClient: RestfuncsClient<ElectrifiedSession> = new ElectrifiedRestfuncsClient<ElectrifiedSession>("/electrifiedAPI", {/* options */}) // TODO: path for this node. Allow other origins in the ElectrifiedSession.options but use sameSite cookies, so they cannot share the session cross site (would open xsrf attacks otherwise)
+    electrifiedClient!: RestfuncsClient<ElectrifiedSession>;
 
     /**
      * Files and directories
@@ -81,7 +81,8 @@ export class Node extends AsyncConstructableClass {
 
     protected async constructAsync(): Promise<void> {
         // See _initWhenLoggedIn for a better place
-        return super.constructAsync();
+        await super.constructAsync();
+        this.electrifiedClient = new ElectrifiedRestfuncsClient<ElectrifiedSession>(this.isCurrentNode?"/electrifiedAPI":`https://${this.hostNameForBrowser}:8006/electrifiedAPI`, {/* options */}) // TODO: Allow other origins in the ElectrifiedSession.options but use sameSite cookies, so they cannot share the session cross site (would open xsrf attacks otherwise)
     }
 
     async _initWhenLoggedOn() {
@@ -179,6 +180,21 @@ export class Node extends AsyncConstructableClass {
 
     getGuest_existing(id: number){
         return this.getGuest(id) || throwError(`Guest with id ${id} does not exist on node: ${this.name}`);
+    }
+
+    get isCurrentNode() {
+        const app = getElectrifiedApp();
+        if(!app.currentNode) {
+            return true; // If we are at this early initialization phase, this must be the one and only current node
+        }
+        return this === app.currentNode;
+    }
+
+    /**
+     * Host name under which this node is reachable from the browser
+     */
+    get hostNameForBrowser() {
+        return this.name
     }
 
     /**
