@@ -190,6 +190,13 @@ export class Node extends AsyncConstructableClass {
         return this === app.currentNode;
     }
 
+    get isOnline() {
+        if(this.status === undefined) {
+            throw new Error("Not yet fully initialized");
+        }
+        return this.status === "online"
+    }
+
     /**
      * Host name under which this node is reachable from the browser
      */
