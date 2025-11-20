@@ -258,8 +258,8 @@ export async function initializePluginConfigs(plugin: Plugin) {
                 if(app.datacenter.hasQuorum) {
                     await init();
                 }
-                app.datacenter.onOnlineStatusChanged((online) => {
-                    if(online) {
+                app.datacenter.onUpdate(() => {
+                    if(app.datacenter.hasQuorum) {
                         init();
                     }
                 })

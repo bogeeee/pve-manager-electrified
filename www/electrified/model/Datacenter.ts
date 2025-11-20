@@ -3,10 +3,14 @@ import {Guest} from "./Guest";
 import {spawnAsync, throwError} from "../util/util";
 import {Node} from "./Node"
 import {getElectrifiedApp} from "../globals";
+import {ModelBase} from "./ModelBase";
 
 
-export class Datacenter extends AsyncConstructableClass{
+export class Datacenter extends ModelBase {
+    static STATUS_REFRESH_INTERVAL = 3000; // In ms
+
     nodes!: Map<string, Node>;
+    protected _hasQuorum?:boolean;
 
     getGuest(id: number): Guest | undefined {
         for(const node of this.nodes.values()) {
@@ -24,6 +28,9 @@ export class Datacenter extends AsyncConstructableClass{
 
         await this.handleResourceStoreDataChanged();
         getElectrifiedApp()._resourceStore.on("datachanged", () => spawnAsync(() => this.handleResourceStoreDataChanged()));
+
+        await this.refreshStatus();
+        setInterval(() => spawnAsync(async () => await this.refreshStatus()), Datacenter.STATUS_REFRESH_INTERVAL); // Refresh status regularly
     }
 
     protected async handleResourceStoreDataChanged() {
@@ -50,6 +57,15 @@ export class Datacenter extends AsyncConstructableClass{
                 this.nodes.delete(name);
             }
         })
+
+        this._fireUpdate();
+    }
+
+    protected async refreshStatus() {
+        const fetchResult = await getElectrifiedApp().api2fetch("GET", "/cluster/status") as any[];
+        let clusterData = fetchResult.filter(r => r.type === "cluster");
+        clusterData.length === 1 || throwError("Illegal response from server");
+        this._hasQuorum = clusterData[0].quorate == 1;
     }
 
     getNode(name: string) {
@@ -61,14 +77,20 @@ export class Datacenter extends AsyncConstructableClass{
     }
 
     /**
-     * Synchronous / live
-     * @return hasQuorum / cluster is in sync (from this node's perspective)
+     *
+     * @return hasQuorum / cluster is in sync (from this node's perspective). The value may be some seconds old.
+     * @see queryHasQuorum
      */
     get hasQuorum() {
-        return true; // TODO
+        return this._hasQuorum;
     }
 
-    onOnlineStatusChanged(listener: (online: boolean)=> void) {
-        // TODO
+    /**
+     * @return hasQuorum / cluster is in sync (from this node's perspective). The value is queried from the server
+     * @see hasQuorum
+     */
+    async queryHasQuorum() {
+        await this.refreshStatus();
+        return this.hasQuorum;
     }
 }
