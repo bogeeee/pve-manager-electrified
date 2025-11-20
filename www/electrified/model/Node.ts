@@ -1,5 +1,5 @@
 import {AsyncConstructableClass} from "../util/AsyncConstructableClass";
-import {newDefaultMap, throwError} from "../util/util";
+import {newDefaultMap, spawnAsync, throwError} from "../util/util";
 import {File} from "./File";
 import {RestfuncsClient} from "restfuncs-client";
 import type {ElectrifiedSession} from "pveme-nodejsserver/ElectrifiedSession"
@@ -7,6 +7,8 @@ import {Guest} from "./Guest";
 import {ElectrifiedRestfuncsClient} from "../util/ElectrifiedRestfuncsClient";
 import {getElectrifiedApp} from "../globals";
 import _ from "underscore"
+import {Lxc} from "./Lxc";
+import {Qemu} from "./Qemu";
 
 /**
  * A PVE-Node. All fields are live updated.
@@ -22,6 +24,14 @@ export class Node extends AsyncConstructableClass {
      */
     protected files = newDefaultMap<string, File>((path) => new File(this, path));
     protected guests!: Map<number, Guest>
+
+    /**
+     * The raw data record from the ResourceStore that was returned by the api https://pve.proxmox.com/pve-docs/api-viewer/#/cluster/resources
+     * <p>
+     *     If you find some information there, that is not also available directly as a field here, report this as a bug. I.e a new classic-pve feature that is not yet covered in electrified.
+     * </p>
+     */
+    rawDataRecord!: Record<string, unknown>
 
     // *** Fields from ResourceStore / https://pve.proxmox.com/pve-docs/api-viewer/#/cluster/resources: ***
     /**
@@ -70,12 +80,52 @@ export class Node extends AsyncConstructableClass {
     running!:  boolean;
 
     protected async constructAsync(): Promise<void> {
-        // See _initWhenLoggedIn
+        // See _initWhenLoggedIn for a better place
         return super.constructAsync();
     }
 
-    _initWhenLoggedOn() {
+    async _initWhenLoggedOn() {
+        this.guests = new Map();
+        await this.handleResourceStoreDataChanged();
+        getElectrifiedApp()._resourceStore.on("datachanged", () => spawnAsync(() => this.handleResourceStoreDataChanged()));
+    }
 
+    protected async handleResourceStoreDataChanged() {
+        const guestsSeenInResourceStore = new Set<number>()
+        for(const item of getElectrifiedApp()._resourceStore.getData().getRange()) { // Iterate all items from the resource store
+            const dataRecord: any = item.data;
+            const type = dataRecord.type as string;
+            if(dataRecord.node !== this.name) { // Not for this node?
+                continue
+            }
+            if(type === "lxc" || type == "qemu") { // is a guest?
+                const id = dataRecord.vmid as number;
+                guestsSeenInResourceStore.add(id);
+                let guest = this.getGuest(id);
+
+                if(!guest) { // Guest is new?
+                    if(type === "lxc") {
+                        guest = await Lxc.create({id});
+                    }
+                    else if(type === "qemu") {
+                        guest = await Qemu.create({id});
+                    }
+                    else {
+                        throw new Error("Unhandled type")
+                    }
+                    this.guests.set(id, guest);
+                }
+
+                guest._updateFields(dataRecord);
+            }
+        }
+
+        // Delete nodes that don't exist anymore:
+        [...this.guests.keys()].forEach(id => {
+            if(!guestsSeenInResourceStore.has(id)) {
+                this.guests.delete(id);
+            }
+        })
     }
 
     /**
@@ -141,5 +191,7 @@ export class Node extends AsyncConstructableClass {
             //@ts-ignore
             this[key] = fields[key];
         }
+
+        this.rawDataRecord = fields;
     }
 }
