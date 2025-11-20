@@ -32,9 +32,11 @@
       <input type="submit" value="login"/> <span id="loginMessage"></span>
   </form>
 
-  <hr/>
-  <h2>Plugin developer links</h2>
-  <a href="https://pve.proxmox.com/pve-docs/api-viewer/">PVE API Documentation</a> - use with: <code>this.app.api2fetch(...)</code>
+  <div id="plugin_developer_links" style="display: none">
+      <hr/>
+      <h2>Plugin developer links</h2>
+      <a href="https://pve.proxmox.com/pve-docs/api-viewer/">PVE API Documentation</a> - use with: <code>this.app.api2fetch(...)</code>
+  </div>
 
 
   <script type="text/javascript">
@@ -80,6 +82,9 @@ ${state.builtWeb.promiseState.state==="rejected"?`<b>Build failed:</b> ${state.b
 
                   // show/hide login panel:
                   document.getElementById("loginForm").style.display= state.hasPermissions?"none":"block";
+
+                  // Show section:
+                  document.getElementById("plugin_developer_links").style.display="block"
               }
               else {
                   if(state.builtWeb.promiseState.state==="rejected") {
