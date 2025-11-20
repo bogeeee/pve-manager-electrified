@@ -374,7 +374,7 @@ export class Application extends AsyncConstructableClass{
      * @param extJsMenuItems
      */
     _addElectrifiedMenuItems<I>(contextObj: object, extJsMenuItems: any[]) {
-        return {...extJsMenuItems, ...this.plugins.map(p => p._getMenuItems(contextObj)).flat()};
+        return [...extJsMenuItems, ...this.plugins.map(p => p._getMenuItems(contextObj)).flat()];
     }
 
     _addGuestElectrifiedMenuItems(info: any,extJsMenuItems: any[] ) {
