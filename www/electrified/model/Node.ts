@@ -1,6 +1,6 @@
 import {AsyncConstructableClass} from "../util/AsyncConstructableClass";
 import {newDefaultMap, spawnAsync, throwError} from "../util/util";
-import {File} from "./File";
+import {File, normalizePath} from "./File";
 import {RestfuncsClient} from "restfuncs-client";
 import type {ElectrifiedSession} from "pveme-nodejsserver/ElectrifiedSession"
 import {Guest} from "./Guest";
@@ -171,7 +171,7 @@ export class Node extends ModelBase {
      * @return File or directory
      */
     getFile(path: string): File {
-        return this.files.get(path);
+        return this.files.get(normalizePath(path));
     }
 
 

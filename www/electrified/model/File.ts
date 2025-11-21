@@ -5,6 +5,7 @@ import _ from "underscore";
 import {spawnAsync, withErrorHandling} from "../util/util";
 import {WatchedProxyFacade} from "proxy-facades";
 import {RetsyncWaitsForPromiseException} from "proxy-facades/retsync";
+import {getElectrifiedApp} from "../globals";
 
 // Copied from nodejs's BufferEncoding
 /**
@@ -31,7 +32,8 @@ export class File {
     node: Node
 
     /**
-     * Full path and filename
+     * Full path and filename. Normalized
+     * @see normalizePath
      */
     path: string
 
@@ -116,6 +118,7 @@ export class File {
                 encoding: encoding,
                 promise: (async () => {
                     await this.ensureWatchesForChangesOnDisk();
+                    await this.checkWriteAllowed();
                     await this.node.electrifiedApi.setFileContent(this.path, newValue, encoding);
                     this.cache_stringContent.clear(); // Clear values for other encodings
                     this.cache_stringContent.set(encoding, newValue);
@@ -133,6 +136,7 @@ export class File {
         if(this.exists) {
             this.removeOperation = this.removeOperation || (async () => {
                 try {
+                    await this.checkWriteAllowed();
                     await this.node.electrifiedApi.removeFile(this.path);
                     await this.cleanup();
                 }
@@ -229,6 +233,11 @@ export class File {
         this.changeListeners.delete(listener);
     }
 
+    /**
+     *
+     * @param node
+     * @param path Must be normalized. Seet {@link normalizePath}
+     */
     constructor(node: Node, path: string) {
         this.node = node;
         this.path = path;
@@ -380,6 +389,15 @@ export class File {
         }, this, `getDirectoryContents`);
     }
 
+    async checkWriteAllowed() {
+        const isClusterFile = this.path.startsWith("/etc/pve/") && !this.path.startsWith("/etc/pve/local/");
+        if(isClusterFile) {
+           if(!await getElectrifiedApp().datacenter.queryHasQuorum()) { // Cluster has no quorum? Performance note: There shouldn't be so many writes, to it's worth it to do a **fresh** check.
+               throw new Error(`Cannot modify file ${this.path}: Cluster has no quorum.`) // Node: It seems like pve's corosync is also denying write access then.
+           }
+        }
+    }
+
     async cleanup() {
         this.cache_stat = undefined;
         cleanResource(this, `stats`);
@@ -396,4 +414,38 @@ export class File {
             this.watchesForChanges = false;
         }
     }
+}
+
+/**
+ * From: https://stackoverflow.com/questions/71557013/normalize-file-path-in-javascript-front-end
+ * @param path
+ */
+export function normalizePath(path: string) {
+    // remove multiple slashes
+    path = path.replace(/\/+/g, '/');
+    // remove leading slash, will be added further
+    if (path.startsWith("/"))
+        path = path.substring(1)
+    // remove trailing slash
+    if (path.endsWith("/"))
+        path = path.slice(0, -1);
+    let segments = path.split("/");
+    let normalizedPath = "/";
+    for (let segmentIndex = 0; segmentIndex < segments.length; segmentIndex++) {
+        const segement = segments[segmentIndex];
+        if (segement === "." || segement === "") {
+            // skip single dots and empty segments
+            continue;
+        }
+        if (segement === "..") {
+            // go up one level if possible
+            normalizedPath = normalizedPath.substring(0, normalizedPath.lastIndexOf("/") + 1);
+            continue;
+        }
+        // append path segment
+        if (!normalizedPath.endsWith("/"))
+            normalizedPath = normalizedPath + "/"
+        normalizedPath = normalizedPath + segement;
+    }
+    return normalizedPath;
 }
