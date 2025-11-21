@@ -362,7 +362,7 @@ Ext.define('PVE.StdWorkspace', {
 			},
 			(!window.electrifiedApp.webBuildState.builtWeb.buildOptions.buildStaticFiles? // Served with vite-devserver?
 				{
-					html: `<div style="padding-right: 4px"><span class="fa fa-code x-btn-icon-el-default-toolbar-small"></span> <i>Serving web with the <strong>vite devserver</strong>.</i> <a target="webBuild" href="/webBuild">Open web build control panel</a></div>`
+					html: `<div style="padding-right: 8px"><span class="fa fa-code x-btn-icon-el-default-toolbar-small"></span> <i>Serving web with the <strong>vite devserver</strong>.</i> <a target="webBuild" href="/webBuild">Open web build control panel</a> <span class="fa fa-code x-btn-icon-el-default-toolbar-small"/></div>`
 				}
 			:
 				undefined
