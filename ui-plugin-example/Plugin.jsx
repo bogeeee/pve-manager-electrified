@@ -16,9 +16,23 @@ export default class Plugin extends PvemePlugin {
     needsAdminPermissions = true;
 
     /**
+     * User-wide configuration for this plugin.
+     * Will be stored in the browser's localstorage under the key plugin_[plugin name]_config.
+     * This class's field is specially treated by electrified: (Deep) modifications are automatically written. Modifications to the localstorage entry (i.e. by other browser tabs) are updated to this field.
+     *
+     * Because this field may be updated to a new object instance (on external config change), make sure to to not **hold* references to sub-objects over a long time. I.e. <WRONG>const myLongTermConst = this.userConfig.treeColumnConfigs;</WRONG>
+     */
+    userConfig = {
+        // myConfigurationProperty1: "initial value",
+        // ...
+    }
+
+    /**
      * Node wide configuration for this plugin.
      * Will be stored under /etc/pve/local/manager/plugins/[plugin name].json.
-     * This class's field is specially treated by electrified: (Deep) modifications are automatically written Modifications on disk are immediately updated to this field.
+     * This class's field is specially treated by electrified: (Deep) modifications are automatically written. Modifications on disk are immediately updated to this field.
+     *
+     * Because this field may be updated to a new object instance (on external config change), make sure to to not **hold* references to sub-objects over a long time. I.e. <WRONG>const myLongTermConst = this.nodeConfig.treeColumnConfigs;</WRONG>
      */
     nodeConfig = {
         // myConfigurationProperty1: "initial value",
@@ -29,7 +43,9 @@ export default class Plugin extends PvemePlugin {
      * Datacenter-/cluster wide configuration for this plugin.
      * Will be stored under /etc/pve/manager/plugins/[plugin name].json.
      * This class's field is specially treated by electrified: (Deep) modifications are automatically written. Modifications on disk are immediately updated to this field.
-     * Accessing this field may throw an error, if the cluster is currently out-of-sync
+     * Accessing this field may throw an error, if the cluster is currently out-of-sync.
+     *
+     * Because this field may be updated to a new object instance (on external config change), make sure to to not **hold* references to sub-objects over a long time. I.e. <WRONG>const myLongTermConst = this.datacenterConfig.treeColumnConfigs;</WRONG>
      */
     datacenterConfig = {
 

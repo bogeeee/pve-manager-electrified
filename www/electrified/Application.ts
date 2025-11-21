@@ -10,7 +10,13 @@ import {
     withErrorHandling
 } from "./util/util";
 import {generated_pluginList as pluginList} from "../_generated_pluginList";
-import {fixPluginClass, initializePluginConfigs, Plugin, PluginClass} from "./Plugin"
+import {
+    fixPluginClass,
+    initialize_nodeConfig_and_datacenterConfig,
+    initialize_userConfig,
+    Plugin,
+    PluginClass
+} from "./Plugin"
 import {Guest} from "./model/Guest";
 import {Qemu} from "./model/Qemu";
 import {Lxc} from "./model/Lxc";
@@ -205,7 +211,8 @@ export class Application extends AsyncConstructableClass{
         // Init plugins:
         for(const plugin of this.plugins) {
             try {
-                await initializePluginConfigs(plugin);
+                await initialize_userConfig(plugin);
+                await initialize_nodeConfig_and_datacenterConfig(plugin);
 
                 if(plugin.needsAdminPermissions && !this.userIsAdmin) { // Plugin makes no sense without enough permissions?
                     this.unregisterPlugin(plugin);

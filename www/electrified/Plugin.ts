@@ -5,6 +5,7 @@ import {Lxc} from "./model/Lxc";
 import {Clazz} from "./util/util";
 import {retsync2promise} from "proxy-facades/retsync";
 import {getElectrifiedApp} from "./globals";
+import {WatchedProxyFacade} from "proxy-facades";
 
 export class Plugin {
     static instance: Plugin;
@@ -208,7 +209,64 @@ export function fixPluginClass(pluginClass: PluginClass): PluginClass {
 /**
  *
  */
-export async function initializePluginConfigs(plugin: Plugin) {
+export async function initialize_userConfig(plugin: Plugin) {
+    const app = getElectrifiedApp();
+    const localStorageKey = `plugin_${plugin.name}_config`
+
+    //@ts-ignore
+    const initialConfig:object | undefined = plugin["userConfig"];
+    if(initialConfig === undefined) { // field not specified?
+        return;
+    }
+
+    const getConfigFromLocalStorage = () => {
+        try {
+            return JSON.parse(window.localStorage.getItem(localStorageKey) || "null") || {}
+        }
+        catch (e) {
+            throw new Error(`Malformed json value in localstorage under key: ${localStorageKey}`)
+        }
+    }
+
+    function write(config: object) {
+        window.localStorage.setItem(localStorageKey, JSON.stringify(config));
+    }
+
+    // *** Init config: ***
+    const config = getConfigFromLocalStorage()
+    // Shyly apply initial values:
+    Object.getOwnPropertyNames(initialConfig).forEach(propName => {
+        if (!config.hasOwnProperty(propName)) {
+            //@ts-ignore
+            config[propName] = initialConfig[propName];
+        }
+    })
+    //write:
+    if (window.localStorage.getItem(localStorageKey) === null && Object.getOwnPropertyNames(config).length == 0) {
+        // Don't write if everything is empty to not create a bunch of empty values when there's not really an interest to use them
+    } else {
+        write(config); // write
+    }
+
+
+    // Define accessors
+    Object.defineProperty(plugin, "userConfig", {
+        get() {
+            const config = getConfigFromLocalStorage();
+            const proxyFacade = new WatchedProxyFacade();
+            proxyFacade.onAfterChange(() => write(config));
+            return proxyFacade.getProxyFor(config);
+        },
+        set(value: object) {
+            write(value);
+        }
+    })
+}
+
+/**
+ *
+ */
+export async function initialize_nodeConfig_and_datacenterConfig(plugin: Plugin) {
     const app = getElectrifiedApp();
 
     for (const cfg of [
