@@ -214,7 +214,7 @@ export async function initializePluginConfigs(plugin: Plugin) {
     for (const cfg of [
         /* TODO: {key: "userConfig", file: `/home/${userDir}/.pve-manager/plugins/${plugin.name}.json`}, */
         {key: "nodeConfig", path: `/etc/pve/local/manager/plugins/${plugin.name}.json`, isDatacenterConfig: false},
-        {key: "datacenterConfig", path: `/etc/pve/manager/plugins/${plugin.name}.json.`, isDatacenterConfig: true}]) {
+        {key: "datacenterConfig", path: `/etc/pve/manager/plugins/${plugin.name}.json`, isDatacenterConfig: true}]) {
 
         //@ts-ignore
         const initialConfig:object | undefined = plugin[cfg.key];
@@ -258,12 +258,12 @@ export async function initializePluginConfigs(plugin: Plugin) {
                 if(app.datacenter.hasQuorum) {
                     await init();
                 }
-                app.datacenter.onUpdate(() => {
-                    if(app.datacenter.hasQuorum) {
-                        init();
-                    }
-                })
-
+                else {
+                    // Handle immediately when quorum is achieved (before the plugin's `await datacenter.quorumPromise` gets called)
+                    app.datacenter._earlyOnQuorumHandlers.add(async () => {
+                        await init();
+                    });
+                }
             }
             else {
                 await init()
@@ -273,7 +273,7 @@ export async function initializePluginConfigs(plugin: Plugin) {
             Object.defineProperty(plugin, cfg.key, {
                 get() {
                     if(cfg.isDatacenterConfig && !app.datacenter.hasQuorum) {
-                        throw new Error("Cannot read from datacenter config when datacenter is offline")
+                        throw new Error("Cannot read from datacenter config. Datacenter has no quorum.")
                     }
 
                     if(!app.userIsAdmin) {
@@ -292,7 +292,7 @@ export async function initializePluginConfigs(plugin: Plugin) {
                 },
                 set(value: object) {
                     if(cfg.isDatacenterConfig && !app.datacenter.hasQuorum) {
-                        throw new Error("Cannot write to from datacenter config when datacenter is offline")
+                        throw new Error("Cannot write to from datacenter config when datacenter has no quorum.")
                     }
                 }
             })

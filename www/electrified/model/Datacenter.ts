@@ -4,13 +4,23 @@ import {spawnAsync, throwError} from "../util/util";
 import {Node} from "./Node"
 import {getElectrifiedApp} from "../globals";
 import {ModelBase} from "./ModelBase";
+import {ExternalPromise} from "restfuncs-common";
 
 
 export class Datacenter extends ModelBase {
     static STATUS_REFRESH_INTERVAL = 3000; // In ms
 
     nodes!: Map<string, Node>;
-    protected _hasQuorum?:boolean;
+    /**
+     * When not true, we save the listeners that are called when flipped to true
+     * @protected
+     */
+    protected _hasQuorum:true|ExternalPromise<void> = new ExternalPromise<void>();
+
+    /**
+     * Internal. For early handlers that must execute before {@see quorumPromise}
+     */
+    _earlyOnQuorumHandlers = new Set<() => Promise<void >>();
 
     getGuest(id: number): Guest | undefined {
         for(const node of this.nodes.values()) {
@@ -65,7 +75,25 @@ export class Datacenter extends ModelBase {
         const fetchResult = await getElectrifiedApp().api2fetch("GET", "/cluster/status") as any[];
         let clusterData = fetchResult.filter(r => r.type === "cluster");
         clusterData.length === 1 || throwError("Illegal response from server");
-        this._hasQuorum = clusterData[0].quorate == 1;
+
+        const newHasQuorum = clusterData[0].quorate == 1;
+        const changed = newHasQuorum !== (this._hasQuorum === true)
+        if(newHasQuorum && this._hasQuorum !== true) { // Enter quorum?
+
+            // Call early handlers:
+            for(const l of this._earlyOnQuorumHandlers) {await l()}
+            this._earlyOnQuorumHandlers.clear();
+
+            this._hasQuorum.resolve();
+            this._hasQuorum = true;
+        }
+        else if(!newHasQuorum && this._hasQuorum === true) { // Leave quorum?
+            this._hasQuorum = new ExternalPromise<void>();
+        }
+
+        if(changed) {
+            this._fireUpdate();
+        }
     }
 
     getNode(name: string) {
@@ -82,7 +110,7 @@ export class Datacenter extends ModelBase {
      * @see queryHasQuorum
      */
     get hasQuorum() {
-        return this._hasQuorum;
+        return this._hasQuorum  === true;
     }
 
     /**
@@ -92,5 +120,18 @@ export class Datacenter extends ModelBase {
     async queryHasQuorum() {
         await this.refreshStatus();
         return this.hasQuorum;
+    }
+
+    /**
+     * Fulfilled when the datacenter has quorum
+     * <p>
+     * Usage: await app.datacenter.quorumPromise
+     * </p>
+     */
+    get quorumPromise(): Promise<void> {
+        if(this._hasQuorum === true) {
+            return (async() => {})();
+        }
+        return this._hasQuorum;
     }
 }
