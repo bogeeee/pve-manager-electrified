@@ -294,6 +294,7 @@ export async function initializePluginConfigs(plugin: Plugin) {
                     if(cfg.isDatacenterConfig && !app.datacenter.hasQuorum) {
                         throw new Error("Cannot write to datacenter-wide plugin config when datacenter has no quorum.")
                     }
+                    file.jsonObject = value;
                 }
             })
         }
