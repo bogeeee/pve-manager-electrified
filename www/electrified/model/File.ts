@@ -75,6 +75,24 @@ export class File {
     }
 
     protected setStringContent_writeOperation?: {newValue: string, encoding: BufferEncoding, promise: Promise<void>};
+
+    /**
+     * @returns the string content (interpreted as utf8)
+     * @see getStringContent
+     */
+    get content() {
+        return this.getStringContent("utf8");
+    }
+
+    /**
+     * Writes the string content utf8 encoded
+     * @param value
+     * @see setStringContent
+     */
+    set content(value: string) {
+        this.setStringContent(value, "utf8")
+    }
+
     protected removeOperation?: Promise<void>
 
     setStringContent(newValue:string, encoding: BufferEncoding) {
