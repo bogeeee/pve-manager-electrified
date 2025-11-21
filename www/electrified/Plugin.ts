@@ -273,7 +273,7 @@ export async function initializePluginConfigs(plugin: Plugin) {
             Object.defineProperty(plugin, cfg.key, {
                 get() {
                     if(cfg.isDatacenterConfig && !app.datacenter.hasQuorum) {
-                        throw new Error("Cannot read from datacenter config. Datacenter has no quorum.")
+                        throw new Error("Cannot read from datacenter-wide plugin config. Datacenter has no quorum.")
                     }
 
                     if(!app.userIsAdmin) {
@@ -292,7 +292,7 @@ export async function initializePluginConfigs(plugin: Plugin) {
                 },
                 set(value: object) {
                     if(cfg.isDatacenterConfig && !app.datacenter.hasQuorum) {
-                        throw new Error("Cannot write to from datacenter config when datacenter has no quorum.")
+                        throw new Error("Cannot write to datacenter-wide plugin config when datacenter has no quorum.")
                     }
                 }
             })
