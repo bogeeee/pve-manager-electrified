@@ -27,7 +27,7 @@ export default class WebBuildProgress extends PromiseTask<BuildResult> {
 
     buildOptions!: BuildOptions;
 
-    buildId = crypto.randomBytes(16).toString('base64').replace(/\//,'_').replace(/==$/,"");
+    buildId = crypto.randomBytes(16).toString('base64').replace(/\//g,'_').replace(/==$/g,"");
 
     diagnosis_createdAt = new Date();
 
