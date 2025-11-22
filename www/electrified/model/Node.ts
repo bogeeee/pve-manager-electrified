@@ -2,7 +2,7 @@ import {AsyncConstructableClass} from "../util/AsyncConstructableClass";
 import {newDefaultMap, spawnAsync, throwError} from "../util/util";
 import {File, normalizePath} from "./File";
 import {RestfuncsClient} from "restfuncs-client";
-import type {ElectrifiedSession} from "pveme-nodejsserver/ElectrifiedSession"
+import type {ElectrifiedSession, ExecaOptions} from "pveme-nodejsserver/ElectrifiedSession"
 import {Guest} from "./Guest";
 import {ElectrifiedRestfuncsClient} from "../util/ElectrifiedRestfuncsClient";
 import {getElectrifiedApp} from "../globals";
@@ -199,6 +199,56 @@ export class Node extends ModelBase {
     }
 
     /**
+     * Execute a shell command. You can use the tagged-template syntax, and expressions inside ${...} will be passed as an **individual** arg (stuff that sticks to it without whitespace will be included in that arg / come as a single arg). ${...} need no quoting with double-quotes.
+     * <p>
+     *     Example: <code>myNode.execShellCommand`ls -l ${myFile}`</code>
+     * </p>
+     * <p>
+     *     Example2: <code>myNode.execShellCommand`zfs list -H /rpool/pveDatasets/subvol-${myNodeId}-disk-${myDisk}`</code>
+     * </p>
+     * <p>
+     *     Default working dir is: /tmp/pve/[session-id]
+     *     If you want to specify a different working dir or other options, use <code>myNode.execCommandWithOptions({cwd: "...", shell: "/bin/bash"})`myCommand`</code>
+     * </p>
+     * @param command
+     * @param values
+     * @returns result buffer, encoded as utf8 (for a different encoding, see {@link execCommandWithOptions}
+     */
+    async execShellCommand(command: TemplateStringsArray, ...values: any[]): Promise<string> {
+        return await this.execCommandWithOptions({shell: "/bin/bash"})(command, ...values);
+    }
+
+    /**
+     * Faster than {@link execShellCommand}. See usage there. Does not spawn a shell but directly executes the executable, which is the first token.
+     * @see execShellCommand
+     */
+    async execCommand(command: TemplateStringsArray, ...values: any[]): Promise<string> {
+        return await this.execCommandWithOptions({shell: "/bin/bash"})(command, ...values);
+    }
+
+    /**
+     * Like {@link execCommand} but you can specify the options yourself. See {@link execShellCommand} for more info about the tagged template params.
+     * <p>
+     *   Usage: <code>myNode.execCommandWithOptions({cwd: "/home/myUser", shell: "/bin/bash"})`ls -l ${myFile}`</code>
+     * <p>
+     * @param options Fields will default to: encoding="utf8", cwd="/tmp/pve/[session-id]"
+     * @see execCommand
+     * @see execShellCommand
+     */
+    execCommandWithOptions(options: ExecaOptions) {
+        return async (command: TemplateStringsArray, ...values: any[]) => {
+            const cmd = taggedTemplatetoCommandArray(command, values);
+            return await this.electrifiedApi.execa(cmd[0], cmd.slice(1), options);
+        }
+    }
+
+    async execShellCommandInPopupTerminalWindow(command: TemplateStringsArray, ...values: any[]): Promise<void> {
+        throw new Error("TODO")
+    }
+
+
+
+    /**
      * Host name under which this node is reachable from the browser
      */
     get hostNameForBrowser() {
@@ -220,4 +270,70 @@ export class Node extends ModelBase {
 
         this._fireUpdate();
     }
+}
+
+
+/**
+ * Converts i.e. the expression `a b${'c c c'}d e ${'f'}` into an array ["a", "b c c cd", "e", "f"].
+ * Tokens will be squeezed together to one arg, if there is no space between them **in the template**.
+ * @param template
+ * @param values
+ */
+function taggedTemplatetoCommandArray(template: TemplateStringsArray, values: any[]) {
+    const result: string[] = [];
+    let currentArg: string | undefined = undefined; // Empty strings can also be allowed as args if they come through values
+    const flushToken = ()=> {
+        if(currentArg !== undefined) {
+            result.push(currentArg);
+            currentArg = undefined;
+        }
+    }
+    const appendToCurrentArg = (value: string) => {
+        currentArg = (currentArg || "") + value;
+    }
+
+    for (let i = 0; i < template.length; i++) {
+        const templatePart = template[i];
+
+        if(templatePart.indexOf('"') >= 0) {
+            throw new Error('You cannot not use " (double quotes) in the command expression. This is currently not supported. Instead, use the syntax: myNode.execXXXCommand`... ${myArgStringWithSpacesAndSpecialChars} ...`. ');
+        }
+
+        if(templatePart.startsWith(" ")) {
+            flushToken();
+        }
+
+        const tokens = templatePart.split(/\s+/);
+        for(let t=0;t<tokens.length;t++) {
+            const token = tokens[t];
+            if(token.trim() === "") {
+                continue;
+            }
+            if(t>0) {
+                flushToken();
+            }
+            appendToCurrentArg(token);
+        }
+
+        if(templatePart.endsWith(" ")) {
+            flushToken();
+        }
+
+
+        if (i < values.length) {
+            const value = values[i];
+            if(value === undefined || value === null) {
+                throw new Error("Illegal argument: ${" + value+ "}. Undefined or null is not allowed. You may supply an empty string inside the ${...} expression instead.")
+            }
+            const stringValue = "" + value; // Convert to string
+            appendToCurrentArg(stringValue);
+        }
+    }
+
+    flushToken();
+
+    if(result.length === 0) {
+        throw new Error("Command is empty");
+    }
+    return result;
 }

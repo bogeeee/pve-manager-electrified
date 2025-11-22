@@ -9,6 +9,7 @@ import {WebSocket, WebSocketServer, RawData} from "ws";
 import escapeHtml from "escape-html";
 import fs from "node:fs";
 import {Duplex} from "node:stream";
+import {Readable} from "stream";
 
 /**
  *
@@ -571,4 +572,20 @@ export function parseJsonFile(packageJsonFile: string): unknown {
     } catch (e) {
         throw new Error(`Error, parsing ${packageJsonFile}: ${(e as any)?.message}`, {cause: e});
     }
+}
+
+export function readStreamToBuffer(stream: Readable): Promise<Buffer> {
+    return new Promise((resolve, reject) => {
+        const chunks: any[] = [];
+
+        stream.on('data', (chunk: any) => {
+            chunks.push(chunk);
+        });
+
+        stream.on('end', () => {
+            resolve(Buffer.concat(chunks));
+        });
+
+        stream.on('error', reject);
+    });
 }

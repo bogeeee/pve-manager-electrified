@@ -8,7 +8,8 @@ import {rmSync} from "fs";
 import fs from "node:fs";
 import path from "node:path";
 import fsPromises  from "node:fs/promises";
-import {execa} from "execa";
+import {execa, Options as ExecaOptions} from "execa";
+export type {Options as ExecaOptions} from "execa";
 import {Request} from "express";
 import {RemoteMethodOptions} from "restfuncs-server";
 import _ from "underscore";
@@ -381,6 +382,30 @@ export class ElectrifiedSession extends ServerSession {
     }
 
     /**
+     * Execute a command. Same arguments as [execa](https://www.npmjs.com/package/execa)
+     * @param file
+     * @param args
+     * @param options. Fields will default to: encoding="utf8", cwd="/tmp/pve/[session-id]"
+     */
+    @remote async execa(file: string, args?: readonly string[], options?: ExecaOptions): Promise<string> {
+        // Check and fix params:
+        if(!options) {
+            options = {};
+        }
+        if(options.encoding === null) {
+            throw new Error("Encoding was set to null but returning raw buffers is not yetsupported");
+        }
+        // Default fields:
+        //@ts-ignore
+        options.encoding = options.encoding || "utf8";
+        //@ts-ignore
+        options.cwd = options.cwd || await this.getTempDir();
+
+        const result = await execa(file, args, options);
+        return result.stdout;
+    }
+
+    /**
      * @returns all available plugins from all types (sources, cluster and npm)
      */
     @remote async getPlugins(filterByType: "all" | "installed"): Promise<(PluginPackage & {codeLocation: string, updated?: string})[]> {
@@ -454,6 +479,17 @@ export class ElectrifiedSession extends ServerSession {
         }
         const result = Object.keys((await fetchResult.json() as any).versions).map(version => {return {version}});
         result.reverse();
+        return result;
+    }
+
+    /**
+     * @returns /tmp/pve/[session-id]. Dir is created.
+     */
+    @remote async getTempDir() {
+        const result = `/tmp/pve/${this.id}`
+        if(!await fileExists(result)) {
+            await fsPromises.mkdir(result, {recursive: true});
+        }
         return result;
     }
 
