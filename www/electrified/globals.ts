@@ -22,3 +22,20 @@ export function gettext(text: string) {
 export function t(englishTextTokens: TemplateStringsArray, ...values: any[]) {
     return getElectrifiedApp().getTranslatedTextWithTags(englishTextTokens, ...values);
 }
+
+// Copied from nodejs's BufferEncoding
+/**
+ *
+ */
+export type BufferEncoding =
+    | "ascii"
+    | "utf8"
+    | "utf-8"
+    | "utf16le"
+    | "ucs2"
+    | "ucs-2"
+    | "base64"
+    | "base64url"
+    | "latin1"
+    | "binary"
+    | "hex";

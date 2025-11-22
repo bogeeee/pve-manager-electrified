@@ -1,28 +1,17 @@
 import {Node} from "./Node";
-import {asyncResource2retsync, cleanResource, checkThatCallerHandlesRetsync, retsync2promise, promise2retsync} from "proxy-facades/retsync";
+import {
+    asyncResource2retsync,
+    checkThatCallerHandlesRetsync,
+    cleanResource,
+    promise2retsync,
+    retsync2promise,
+    RetsyncWaitsForPromiseException
+} from "proxy-facades/retsync";
 import {FileStats} from "pveme-nodejsserver/ElectrifiedSession";
 import _ from "underscore";
-import {spawnAsync, withErrorHandling} from "../util/util";
+import {withErrorHandling} from "../util/util";
 import {WatchedProxyFacade} from "proxy-facades";
-import {RetsyncWaitsForPromiseException} from "proxy-facades/retsync";
-import {getElectrifiedApp} from "../globals";
-
-// Copied from nodejs's BufferEncoding
-/**
- *
- */
-type BufferEncoding =
-    | "ascii"
-    | "utf8"
-    | "utf-8"
-    | "utf16le"
-    | "ucs2"
-    | "ucs-2"
-    | "base64"
-    | "base64url"
-    | "latin1"
-    | "binary"
-    | "hex";
+import {BufferEncoding, getElectrifiedApp} from "../globals";
 
 /**
  * A file or directory on a pve node, that is live-watched.
