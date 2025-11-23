@@ -137,8 +137,13 @@ ${packages.map(pkgInfo => `import {default as plugin${++index}} from ${JSON.stri
 
         const wwwSourcesDir = appServer.wwwSourceDir;
         const localSourcePackageDirs = this.buildOptions.enablePlugins?WebBuildProgress.getUiPluginSourceProjects_fixed().map(p => p.dir):[];
-        const clusterPackageDirs = this.buildOptions.enablePlugins?listSubDirs(appServer.config.clusterPackagesBaseDir, true):[];
-        const npmPluginPackageSpecs: string[] = this.buildOptions.enablePlugins?appServer.electrifiedJsonConfig.plugins.filter(p => p.codeLocation === "npm").map(p => `${p.name}@${p.version}`):[];
+        let clusterPackageDirs = this.buildOptions.enablePlugins?listSubDirs(appServer.config.clusterPackagesBaseDir, true):[];
+        let npmPluginPackageSpecs: string[] = this.buildOptions.enablePlugins?appServer.electrifiedJsonConfig.plugins.filter(p => p.codeLocation === "npm").map(p => `${p.name}@${p.version}`):[];
+
+        // Filter out overridden packages:
+        clusterPackageDirs = clusterPackageDirs.filter(c => !WebBuildProgress.getUiPluginSourceProjects_fixed().some(s => s.pkg.name === packageNameFromDir(c))); // Not those cluser packages that exist as source packages
+        npmPluginPackageSpecs = npmPluginPackageSpecs.filter(n => !clusterPackageDirs.some(c => packageNameFromDir(c) === plainPackageName(n))); // Not those from npm that exist as cluster packages
+        npmPluginPackageSpecs = npmPluginPackageSpecs.filter(n => !WebBuildProgress.getUiPluginSourceProjects_fixed().some(s => s.pkg.name === plainPackageName(n))); // Not those from npm that exist as source packages
 
         // Copy cluster packages to temp dir. This is a workaround, because otherwise npm install otherwise creates a node_modules folder with a lot of the packages and this is a performance nightmare under the corosynced path /dev/pve
         const clusterPackageTempDirs: string[] = [];
@@ -182,6 +187,14 @@ ${packages.map(pkgInfo => `import {default as plugin${++index}} from ${JSON.stri
             fs.rmSync(`${dir}/node_modules`, {force:true, recursive: true}); // remove old
             fs.symlinkSync(`${wwwSourcesDir}/node_modules`,`${dir}/node_modules`);
         });
+
+        function packageNameFromDir(dir: string) {
+            return `pveme-ui-plugin-${path.basename(dir)}`
+        }
+
+        function plainPackageName(packageSpec: string) {
+            return packageSpec.substring(0, packageSpec.indexOf("@"));
+        }
     }
 
     async checkAndFixPluginPackages() {
