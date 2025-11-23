@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import {build as viteBuild} from "vite";
 import crypto from "crypto"
 import {appServer} from './server.js';
-import {fileExists, listSubDirs, parseJsonFile} from "./util/util.js";
+import {fileExists, listSubDirs, parseJsonFile, throwError} from "./util/util.js";
 import {execa} from "execa";
 import {Buffer} from "node:buffer"
 import semver from "semver";
@@ -135,58 +135,66 @@ ${packages.map(pkgInfo => `import {default as plugin${++index}} from ${JSON.stri
         const headline = "NPM-installing packages";
         this.diagnosis_state = headline;
 
+        // Determine dirs and package specs:
         const wwwSourcesDir = appServer.wwwSourceDir;
         const localSourcePackageDirs = this.buildOptions.enablePlugins?WebBuildProgress.getUiPluginSourceProjects_fixed().map(p => p.dir):[];
         let clusterPackageDirs = this.buildOptions.enablePlugins?listSubDirs(appServer.config.clusterPackagesBaseDir, true):[];
         let npmPluginPackageSpecs: string[] = this.buildOptions.enablePlugins?appServer.electrifiedJsonConfig.plugins.filter(p => p.codeLocation === "npm").map(p => `${p.name}@${p.version}`):[];
-
         // Filter out overridden packages:
         clusterPackageDirs = clusterPackageDirs.filter(c => !WebBuildProgress.getUiPluginSourceProjects_fixed().some(s => s.pkg.name === packageNameFromDir(c))); // Not those cluser packages that exist as source packages
         npmPluginPackageSpecs = npmPluginPackageSpecs.filter(n => !clusterPackageDirs.some(c => packageNameFromDir(c) === plainPackageName(n))); // Not those from npm that exist as cluster packages
         npmPluginPackageSpecs = npmPluginPackageSpecs.filter(n => !WebBuildProgress.getUiPluginSourceProjects_fixed().some(s => s.pkg.name === plainPackageName(n))); // Not those from npm that exist as source packages
 
-        // Copy cluster packages to temp dir. This is a workaround, because otherwise npm install otherwise creates a node_modules folder with a lot of the packages and this is a performance nightmare under the corosynced path /dev/pve
-        const clusterPackageTempDirs: string[] = [];
-        for(const origDir of clusterPackageDirs) {
-            const dirName = `${path.basename(origDir)}`;
-            const packageName = `pveme-ui-plugin-${dirName}`;
+        const tempDir = `/tmp/pve/webBuild/npm/${this.buildId}`;fs.mkdirSync(tempDir, {recursive: true}); // Create temp dir
+        try {
+            // Tar source and cluster packages first before installing them. Otherwise, dependencies are not installed under the main package.  Also This is a workaround, because otherwise npm install creates a node_modules folder with a lot of the packages and this is a performance nightmare under the corosynced path: /dev/pve
+            const packedFiles: string[] = [];
+            for (const packageDir of [...localSourcePackageDirs, ...clusterPackageDirs]) {
+                const dirName = `${path.basename(packageDir)}`;
+                const packageName = `pveme-ui-plugin-${dirName}`;
 
-            // Validity check package name in package.json:
-            let pkg = parseJsonFile(`${origDir}/package.json`) as any;
-            if(pkg.name !== packageName) {
-                throw new Error(`Package name in ${origDir}/package.json does not match the name of the directory. Got: ${pkg.name}, expected: ${packageName}`);
+                this.diagnosis_state = `${headline} > packing ${packageDir}`
+
+                // Validity check package name in package.json:
+                let pkg = parseJsonFile(`${packageDir}/package.json`) as any;
+                if (pkg.name !== packageName) {
+                    throw new Error(`Package name in ${packageDir}/package.json does not match the name of the directory. Got: ${pkg.name}, expected: ${packageName}`);
+                }
+
+                // Pack file:
+                //await execa("npm", ["pack", packageDir, "--pack-destination", tempDir]);
+                const packedFile = `${tempDir}/${pkg.name}-${pkg.version}.tar`;
+                await execa("tar", ["-c", "--exclude=node_modules", "-f", packedFile, "."], {cwd: packageDir});
+                await fileExists(packedFile) || throwError("Packed file does not exist");
+
+                packedFiles.push(packedFile);
             }
 
-            fs.rmSync(`wwwSourcesDir/node_modules/${packageName}`, {force: true, recursive: true}) // Delete dir, so the contents will be freshly copied to there by npm install.
+            // Install npm packages + those from localPackageDirs + npm plugins and all their dependencies. This unpacks the tars
+            await this.execa_withProgressReport(`${headline}`, "npm", ["install", "--ignore-scripts", "--no-audit", "--save", "false", ...npmPluginPackageSpecs, appServer.thisNodejsServerDir, ...packedFiles], {cwd: wwwSourcesDir})
 
-            const tempDir = `/tmp/pve/webBuild/${this.buildId}/dummyClusterPluginPackages/${dirName}`;
-            fs.mkdirSync(tempDir, {recursive: true});
-            //fs.copyFileSync(`${origDir}/package.json`, `${tempDir}/package.json`);
-            await execa("rsync", ["-r", `${origDir}/`, tempDir]);
-            clusterPackageTempDirs.push(tempDir);
+            // Create symlinks to the local packages (instead of having copies)
+            this.diagnosis_state = `${headline} > creating symlinks to local packages`;
+            [appServer.thisNodejsServerDir, ...localSourcePackageDirs].forEach(dir => {
+                const pkg = JSON.parse(fs.readFileSync(`${dir}/package.json`, {encoding: "utf8"}));
+                fs.rmSync(`${wwwSourcesDir}/node_modules/${pkg.name}`, {recursive: true}); // remove existing folder
+                fs.symlinkSync(dir, `${wwwSourcesDir}/node_modules/${pkg.name}`); // create link
+            })
+
+            // The following works only with tsc but not with esbuild sadly. So we can only "import type" + do dependency injection to communicate with the plugin:
+            // Symlink node_modules/pveme-ui -> wwwSourceDir, so that plugin source projects which have a node_modules linked to wwwSourceDir/node_modules also find the "pveme-ui" package:
+            fs.rmSync(`${wwwSourcesDir}/node_modules/pveme-ui`, {force: true, recursive: true}); // remove old, which npm has falsely installed as a copy (still leave this line)
+            fs.symlinkSync(wwwSourcesDir, `${wwwSourcesDir}/node_modules/pveme-ui`);
+
+            // Symlink all source package's node_modules -> wwwSourceDir/node_modules:
+            localSourcePackageDirs.forEach(dir => {
+                fs.rmSync(`${dir}/node_modules`, {force: true, recursive: true}); // remove old
+                fs.symlinkSync(`${wwwSourcesDir}/node_modules`, `${dir}/node_modules`);
+            });
         }
-
-        // Install npm packages + those from localPackageDirs + npm plugins and all their dependencies. This **copies** the local packages
-        await this.execa_withProgressReport(`${headline}`, "npm", ["install", "--ignore-scripts", "--no-audit", "--save", "false", ...npmPluginPackageSpecs, appServer.thisNodejsServerDir, ...localSourcePackageDirs, ...clusterPackageTempDirs], {cwd: wwwSourcesDir})
-
-        // Create symlinks to the local packages (instead of copies)
-        this.diagnosis_state = `${headline} > creating symlinks to local packages`;
-        [appServer.thisNodejsServerDir, ...localSourcePackageDirs].forEach(dir => {
-            const pkg = JSON.parse(fs.readFileSync(`${dir}/package.json`, {encoding: "utf8"}));
-            fs.rmSync(`${wwwSourcesDir}/node_modules/${pkg.name}`, {recursive: true}); // remove existing folder
-            fs.symlinkSync(dir, `${wwwSourcesDir}/node_modules/${pkg.name}`); // create link
-        })
-
-        // The following works only with tsc but not with esbuild sadly. So we can only "import type" + do dependency injection to communicate with the plugin:
-        // Symlink node_modules/pveme-ui -> wwwSourceDir, so that plugin source projects which have a node_modules linked to wwwSourceDir/node_modules also find the "pveme-ui" package:
-        fs.rmSync(`${wwwSourcesDir}/node_modules/pveme-ui`, {force:true, recursive: true}); // remove old, which npm has falsely installed as a copy (still leave this line)
-        fs.symlinkSync(wwwSourcesDir,`${wwwSourcesDir}/node_modules/pveme-ui`);
-
-        // Symlink all source package's node_modules -> wwwSourceDir/node_modules:
-        localSourcePackageDirs.forEach(dir => {
-            fs.rmSync(`${dir}/node_modules`, {force:true, recursive: true}); // remove old
-            fs.symlinkSync(`${wwwSourcesDir}/node_modules`,`${dir}/node_modules`);
-        });
+        finally {
+            await fsPromises.rm(tempDir, {recursive: true, force: true});
+        }
 
         function packageNameFromDir(dir: string) {
             return `pveme-ui-plugin-${path.basename(dir)}`
