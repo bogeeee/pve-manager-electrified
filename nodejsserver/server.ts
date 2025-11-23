@@ -536,7 +536,7 @@ class AppServer {
 
         // Watch this.config.clusterPackagesBaseDir for creation of itsself, new project dirs and their package.json:
         watchInner(this.config.clusterPackagesBaseDir, (filePath) => {
-            return filePath.startsWith(this.config.clusterPackagesBaseDir)// Deep under dir ?
+            return filePath.startsWith(this.config.clusterPackagesBaseDir) && !filePath.match(new RegExp('^' + this.config.clusterPackagesBaseDir +'/[^/]*/node_modules'))// Deep under dir, except the node_modules folder ?
         });
 
         // Watch the npm plugin config:
