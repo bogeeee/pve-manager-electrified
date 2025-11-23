@@ -1,5 +1,5 @@
 import React, {CSSProperties, FunctionComponent, ReactNode} from "react";
-import {watchedComponent, useWatchedState, bind, load, isLoading} from "react-deepwatch";
+import {watchedComponent, useWatchedState, bind, load, isLoading, READS_INSIDE_LOADER_FN} from "react-deepwatch";
 import {
     Button,
     ButtonGroup, Checkbox,
@@ -15,7 +15,7 @@ import {
 } from "@blueprintjs/core";
 import "@blueprintjs/core/lib/css/blueprint.css";
 import "@blueprintjs/icons/lib/css/blueprint-icons.css";
-import {confirm, formatDate, showBlueprintDialog, spawnAsync, throwError} from "../util/util";
+import {confirm, formatDate, showBlueprintDialog, spawnAsync, throwError, withErrorHandling} from "../util/util";
 import {getElectrifiedApp, gettext, t} from "../globals";
 import _ from "underscore";
 import {Table, TableBody, TableCell, TableContainer, TableHead, TableRow} from "@mui/material";
@@ -218,8 +218,11 @@ export async function showPluginManager() {
                                             <Popover content={
                                                 <Menu>
                                                     {
-                                                        // Publish to all nodes in the datacenter TODO:
-                                                        plugin.codeLocation === "local"?<MenuItem text={gettext("Publish to all nodes in the datacenter")} onClick={() => {}}/>:undefined
+                                                        // Publish to all nodes in the datacenter:
+                                                        plugin.codeLocation === "local"?<MenuItem text={t`Publish to all nodes in the datacenter`} onClick={() => withErrorHandling(async() => {
+                                                            await app.datacenter.queryHasQuorum() || throwError("No quorum");
+                                                            await app.currentNode.execShellCommand`mkdir -p /etc/pve/manager/plugin-packages && rsync -r --exclude='node_modules' /root/pveme-plugin-source-projects/${shortName}/ /etc/pve/manager/plugin-packages/${shortName}`
+                                                        })}/>:undefined
                                                     }
 
                                                 </Menu>} placement="bottom">
