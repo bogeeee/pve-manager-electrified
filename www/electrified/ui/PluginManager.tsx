@@ -219,14 +219,28 @@ export async function showPluginManager() {
                                                 <Menu>
                                                     {
                                                         // Publish to all nodes in the datacenter:
-                                                        plugin.codeLocation === "local"?<MenuItem text={t`Publish to all nodes in the datacenter`} onClick={() => withErrorHandling(async() => {
-                                                            await app.datacenter.queryHasQuorum() || throwError("No quorum");
-                                                            await app.currentNode.execShellCommand`mkdir -p /etc/pve/manager/plugin-packages && rsync -r --exclude='node_modules' /root/pveme-plugin-source-projects/${shortName}/ /etc/pve/manager/plugin-packages/${shortName}`
-                                                        })}/>:undefined
+                                                        plugin.codeLocation === "local" ?
+                                                            <MenuItem text={t`Publish to all nodes in the datacenter`}
+                                                                      onClick={() => withErrorHandling(async () => {
+                                                                          await app.datacenter.queryHasQuorum() || throwError("No quorum");
+                                                                          await app.currentNode.execShellCommand`mkdir -p /etc/pve/manager/plugin-packages && rsync -r --exclude='node_modules' /root/pveme-plugin-source-projects/${shortName}/ /etc/pve/manager/plugin-packages/${shortName}`
+                                                                      })}/> : undefined
+                                                    }
+                                                    {
+                                                        // delete package
+                                                        plugin.codeLocation === "datacenter" ?
+                                                            <MenuItem text={t`Delete`}
+                                                                      onClick={() => withErrorHandling(async () => {
+                                                                          if (!await confirm(t`Delete plugin ${shortName}`, t`The plugin files will be deleted on all nodes in the datacenter.`)) {
+                                                                              return
+                                                                          }
+                                                                          await app.datacenter.queryHasQuorum() || throwError("No quorum");
+                                                                          await app.currentNode.execShellCommand`rm -r /etc/pve/manager/plugin-packages/${shortName}`
+                                                                      })}/> : undefined
                                                     }
 
                                                 </Menu>} placement="bottom">
-                                                <Button title={gettext("Actions")} alignText="start" icon="menu" endIcon="caret-down" disabled={!isInstalled || isOverridden} />
+                                                <Button title={gettext("Actions")} alignText="start" icon="menu" endIcon="caret-down" disabled={!isInstalled} />
                                             </Popover>
                                         </ButtonGroup>
                                     </TableCell>
