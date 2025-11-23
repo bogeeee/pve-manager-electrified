@@ -9,6 +9,6 @@ Ext.define('PVE.form.PermPathSelector', {
     width: 380,
 
     store: {
-	type: 'pvePermPath',
+        type: 'pvePermPath',
     },
 });

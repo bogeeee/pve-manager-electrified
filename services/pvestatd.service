@@ -2,7 +2,7 @@
 Description=PVE Status Daemon
 ConditionPathExists=/usr/bin/pvestatd
 Wants=pve-cluster.service
-After=pve-cluster.service
+After=pve-cluster.service pvenetcommit.service
 
 [Service]
 ExecStart=/usr/bin/pvestatd start

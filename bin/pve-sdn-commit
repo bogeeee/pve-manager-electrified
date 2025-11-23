@@ -1,0 +1,102 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+
+use Time::HiRes qw(usleep);
+
+use PVE::Cluster;
+use PVE::Network::SDN;
+use PVE::Network::SDN::Zones;
+use PVE::Network::SDN::Vnets;
+use PVE::Network::SDN::Subnets;
+use PVE::Network::SDN::Controllers;
+use PVE::Network::SDN::Fabrics;
+use PVE::Tools;
+
+for (my $i = 0; !PVE::Cluster::check_cfs_quorum(1); $i++) {
+    print "waiting for pmxcfs mount to appear and get quorate...\n"
+        if $i % 50 == 0;
+
+    usleep(100 * 1000);
+}
+
+sub has_pending_changes {
+    my ($pending_config) = @_;
+
+    for my $entity (values $pending_config->{ids}->%*) {
+        return 1 if $entity->{state};
+    }
+
+    return 0;
+}
+
+sub fabrics_changed {
+    my $current_config = PVE::Network::SDN::Fabrics::config();
+    my $running_config = PVE::Network::SDN::Fabrics::config(1);
+
+    my ($running_fabrics, $running_nodes) = $running_config->list_all();
+    my ($current_fabrics, $current_nodes) = $current_config->list_all();
+
+    my $pending_fabrics = PVE::Network::SDN::pending_config(
+        { fabrics => { ids => $running_fabrics } },
+        { ids => $current_fabrics },
+        'fabrics',
+    );
+
+    my $pending_nodes = PVE::Network::SDN::pending_config(
+        { nodes => { ids => $running_nodes } },
+        { ids => $current_nodes },
+        'nodes',
+    );
+
+    return has_pending_changes($pending_fabrics) || has_pending_changes($pending_nodes);
+}
+
+sub sdn_changed {
+    my $running_config = PVE::Network::SDN::running_config();
+
+    my $configs = {
+        zones => PVE::Network::SDN::Zones::config(),
+        vnets => PVE::Network::SDN::Vnets::config(),
+        subnets => PVE::Network::SDN::Subnets::config(),
+        controllers => PVE::Network::SDN::Controllers::config(),
+    };
+
+    for my $type (keys $configs->%*) {
+        my $pending_config = PVE::Network::SDN::pending_config(
+            $running_config, $configs->{$type}, $type,
+        );
+
+        return 1 if has_pending_changes($pending_config);
+    }
+
+    return fabrics_changed();
+}
+
+if (!sdn_changed()) {
+    print "No changes to SDN configuration detected, skipping reload\n";
+    exit 0;
+}
+
+my $previous_config_has_frr = PVE::Network::SDN::running_config_has_frr();
+PVE::Network::SDN::commit_config();
+
+my $new_config_has_frr = PVE::Network::SDN::running_config_has_frr();
+my $regenerate_frr = ($previous_config_has_frr || $new_config_has_frr);
+
+PVE::Network::SDN::generate_etc_network_config();
+PVE::Network::SDN::generate_dhcp_config();
+
+my $err = sub {
+    my $line = shift;
+    if ($line =~ /(warning|error): (\S+):/) {
+        print "$2 : $line \n";
+    }
+};
+
+PVE::Tools::run_command(['ifreload', '-a'], errfunc => $err);
+
+PVE::Network::SDN::generate_frr_config(1) if $regenerate_frr;
+
+exit 0;

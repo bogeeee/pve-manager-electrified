@@ -3,71 +3,71 @@ Ext.define('PVE.panel.SDNIpamBase', {
 
     type: '',
 
-    onGetValues: function(values) {
-	var me = this;
+    onGetValues: function (values) {
+        var me = this;
 
-	if (me.isCreate) {
-	    values.type = me.type;
-	} else {
-	    delete values.ipam;
-	}
+        if (me.isCreate) {
+            values.type = me.type;
+        } else {
+            delete values.ipam;
+        }
 
-	return values;
+        return values;
     },
 
-    initComponent: function() {
-	var me = this;
+    initComponent: function () {
+        var me = this;
 
-	me.callParent();
+        me.callParent();
     },
 });
 
 Ext.define('PVE.sdn.ipams.BaseEdit', {
     extend: 'Proxmox.window.Edit',
 
-    initComponent: function() {
-	var me = this;
+    initComponent: function () {
+        var me = this;
 
-	me.isCreate = !me.ipam;
+        me.isCreate = !me.ipam;
 
-	if (me.isCreate) {
-	    me.url = '/api2/extjs/cluster/sdn/ipams';
-	    me.method = 'POST';
-	} else {
-	    me.url = '/api2/extjs/cluster/sdn/ipams/' + me.ipam;
-	    me.method = 'PUT';
-	}
+        if (me.isCreate) {
+            me.url = '/api2/extjs/cluster/sdn/ipams';
+            me.method = 'POST';
+        } else {
+            me.url = '/api2/extjs/cluster/sdn/ipams/' + me.ipam;
+            me.method = 'PUT';
+        }
 
-	var ipanel = Ext.create(me.paneltype, {
-	    type: me.type,
-	    isCreate: me.isCreate,
-	    ipam: me.ipam,
-	});
+        var ipanel = Ext.create(me.paneltype, {
+            type: me.type,
+            isCreate: me.isCreate,
+            ipam: me.ipam,
+        });
 
-	Ext.apply(me, {
-	    subject: PVE.Utils.format_sdnipam_type(me.type),
-	    isAdd: true,
-	    items: [ipanel],
-	});
+        Ext.apply(me, {
+            subject: PVE.Utils.format_sdnipam_type(me.type),
+            isAdd: true,
+            items: [ipanel],
+        });
 
-	me.callParent();
+        me.callParent();
 
-	if (!me.isCreate) {
-	    me.load({
-		success: function(response, options) {
-		    var values = response.result.data;
-		    var ctypes = values.content || '';
+        if (!me.isCreate) {
+            me.load({
+                success: function (response, options) {
+                    var values = response.result.data;
+                    var ctypes = values.content || '';
 
-		    values.content = ctypes.split(',');
+                    values.content = ctypes.split(',');
 
-		    if (values.nodes) {
-			values.nodes = values.nodes.split(',');
-		    }
-		    values.enable = values.disable ? 0 : 1;
+                    if (values.nodes) {
+                        values.nodes = values.nodes.split(',');
+                    }
+                    values.enable = values.disable ? 0 : 1;
 
-		    ipanel.setValues(values);
-		},
-	    });
-	}
+                    ipanel.setValues(values);
+                },
+            });
+        }
     },
 });

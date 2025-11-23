@@ -9,8 +9,14 @@ set -e
 # installed and configured.
 
 set_lvm_conf() {
+    # shellcheck disable=SC3043
     local FORCE="$1"
     LVM_CONF_MARKER="# added by pve-manager to avoid scanning"
+
+    if [ ! -e /etc/lvm/lvm.conf ]; then
+        echo "No /etc/lvm/lvm.conf found - skipping checking the global_filter."
+        return
+    fi
 
     # keep user changes afterwards provided marker is still there..
     if grep -qLF "$LVM_CONF_MARKER" /etc/lvm/lvm.conf && test -z "$FORCE"; then
@@ -46,16 +52,21 @@ set_lvm_conf() {
         echo "Backing up lvm.conf before setting pve-manager specific settings.."
         cp -vb /etc/lvm/lvm.conf /etc/lvm/lvm.conf.bak
     fi
+    NEW_MARKER="$LVM_CONF_MARKER ZFS zvols and Ceph rbds"
     if test -n "$SET_FILTER"; then
         echo "Setting 'global_filter' in /etc/lvm/lvm.conf to prevent zvols and rbds from being scanned:"
         echo "$OLD_VALUE => $NEW_VALUE"
         if test -n "$OLD_VALUE"; then
-            sed -i -e "s/$LVM_CONF_MARKER ZFS zvols/$LVM_CONF_MARKER ZFS zvols and Ceph rbds/" /etc/lvm/lvm.conf
-            sed -i -e "s!^\([[:space:]]*\)\(global_filter[[:space:]]*=.*\)\$!\1# \2\n\1$NEW_VALUE!" /etc/lvm/lvm.conf
+            if grep -qLF "$LVM_CONF_MARKER" /etc/lvm/lvm.conf; then
+                sed -i -e "s/$LVM_CONF_MARKER ZFS zvols/$NEW_MARKER/" /etc/lvm/lvm.conf
+                sed -i -e 's!^\([[:space:]]*\)\(global_filter[[:space:]]*=.*\)$!\1# \2\n\1'"$NEW_VALUE"'!' /etc/lvm/lvm.conf
+            else
+                sed -i -e 's!^\([[:space:]]*\)\(global_filter[[:space:]]*=.*\)$!\1# \2\n\1'"$NEW_MARKER"'\n\1'"$NEW_VALUE"'!' /etc/lvm/lvm.conf
+            fi
         else
             cat >> /etc/lvm/lvm.conf <<EOF
 devices {
-     $LVM_CONF_MARKER ZFS zvols and Ceph rbds
+     $NEW_MARKER
      $NEW_VALUE
 }
 EOF
@@ -122,6 +133,13 @@ migrate_apt_auth_conf() {
     fi
 }
 
+# Copied from dh_installtmpfiles/13.24.2
+if [ "$1" = "configure" ] || [ "$1" = "abort-upgrade" ] || [ "$1" = "abort-deconfigure" ] || [ "$1" = "abort-remove" ] ; then
+       if [ -x "$(command -v systemd-tmpfiles)" ]; then
+               systemd-tmpfiles ${DPKG_ROOT:+--root="$DPKG_ROOT"} --create pve-manager.conf || true
+       fi
+fi
+
 case "$1" in
   triggered)
     # We don't print a status message here, as dpkg already said
@@ -156,16 +174,6 @@ case "$1" in
         pveam update || true
     fi
 
-    # Always try to clean old entry, even when proxmox-mail-forward entry is already present.
-    # This ensures it will still be cleaned after an upgrade following a downgrade.
-    if test -f /root/.forward; then
-        sed -i '\!|/usr/bin/pvemailforward!d' /root/.forward
-    fi
-
-    if ! test -f /root/.forward || ! grep -q '|/usr/bin/proxmox-mail-forward' /root/.forward; then
-        echo '|/usr/bin/proxmox-mail-forward' >>/root/.forward
-    fi
-
     echo "npm-install'ing dependant packages for pve-pvenodejsserver"
     npm --prefix /usr/share/pve-manager-nodejsserver prune --ignore-scripts --no-audit
 
@@ -174,7 +182,7 @@ case "$1" in
     # same as dh_systemd_enable (code copied)
 
     UNITS="pvedaemon.service pveproxy.service pvenodejsserver.service spiceproxy.service pvestatd.service pvebanner.service pvescheduler.service pve-daily-update.timer"
-    NO_RESTART_UNITS="pvenetcommit.service pve-guests.service"
+    NO_RESTART_UNITS="pvenetcommit.service pve-guests.service pve-sdn-commit.service pve-firewall-commit.service"
 
     for unit in ${UNITS} ${NO_RESTART_UNITS}; do
         deb-systemd-helper unmask "$unit" >/dev/null || true
@@ -191,20 +199,19 @@ case "$1" in
         fi
     done
 
-    # FIXME: remove after beta is over and add hunk to actively remove the repo
-    BETA_SOURCES="/etc/apt/sources.list.d/pvetest-for-beta.list"
-    if test -f "$BETA_SOURCES" && dpkg --compare-versions "$2" 'lt' '8.0.2' && dpkg --compare-versions "$2" 'gt' '8.0~'; then
-        echo "Removing the during beta added pvetest repository file again"
+    BETA_SOURCES="/etc/apt/sources.list.d/pve-test-for-beta.sources"
+    if test -f "$BETA_SOURCES" && dpkg --compare-versions "$2" 'lt' '9.0.1' && dpkg --compare-versions "$2" 'gt' '9.0~~'; then
+        printf "\nNOTE: Remove the pve-test repository, which was added during the beta phase.\nYou can (re-)add repositories on the web UI (Node -> Repositories)\n\n"
         rm -v "$BETA_SOURCES" || true
     fi
 
     if test ! -e /proxmox_install_mode && test -n "$2" && dpkg --compare-versions "$2" 'lt' '8.1.4~'; then
-        if test -e /etc/lvm/lvm.conf ; then
-            set_lvm_conf 1
-        fi
+        # TODO: remove with PVE 10
+        # pass FORCE as we want to ensure the filter for RBDs gets added to our existing one.
+        set_lvm_conf 1
+    else
+        set_lvm_conf
     fi
-
-    set_lvm_conf
 
     if test -n "$2" && dpkg --compare-versions "$2" 'lt' '8.1.11'; then
         update_ceph_conf
@@ -226,6 +233,14 @@ case "$1" in
             migrate_apt_auth_conf
         fi
     fi
+
+    if test -n "$2" && dpkg --compare-versions "$2" 'lt' '9.0.4'; then
+        if test -e /etc/lvm/lvm.conf && grep "^\s*thin_check_options" /etc/lvm/lvm.conf | grep -qv -- "--clear-needs-check-flag"; then
+            printf '\nNOTE: Detected override for 'thin_check_options' without '--clear-needs-check-flag' option in /etc/lvm/lvm.conf\n'
+            printf 'Add the option to the override or thin pools with minor issues might not automatically activate anymore!\n\n'
+        fi
+    fi
+
     ;;
 
   abort-upgrade|abort-remove|abort-deconfigure)

@@ -10,7 +10,7 @@ After=pve-storage.target
 ExecStart=/usr/bin/pvescheduler start
 ExecStop=/usr/bin/pvescheduler stop
 ExecReload=/usr/bin/pvescheduler restart
-PIDFile=/var/run/pvescheduler.pid
+PIDFile=/run/pvescheduler.pid
 KillMode=process
 Type=forking
 

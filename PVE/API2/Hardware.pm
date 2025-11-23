@@ -11,47 +11,46 @@ use PVE::API2::Hardware::USB;
 
 use base qw(PVE::RESTHandler);
 
-__PACKAGE__->register_method ({
+__PACKAGE__->register_method({
     subclass => "PVE::API2::Hardware::PCI",
     path => 'pci',
 });
 
-__PACKAGE__->register_method ({
+__PACKAGE__->register_method({
     subclass => "PVE::API2::Hardware::USB",
     path => 'usb',
 });
 
-__PACKAGE__->register_method ({
+__PACKAGE__->register_method({
     name => 'index',
     path => '',
     method => 'GET',
     description => "Index of hardware types",
     permissions => {
-	user => 'all',
+        user => 'all',
     },
     parameters => {
-	additionalProperties => 0,
-	properties => {
-	    node => get_standard_option('pve-node'),
-	},
+        additionalProperties => 0,
+        properties => {
+            node => get_standard_option('pve-node'),
+        },
     },
     returns => {
-	type => 'array',
-	items => {
-	    type => "object",
-	    properties => { type => { type => 'string'} },
-	},
-	links => [ { rel => 'child', href => "{type}" } ],
+        type => 'array',
+        items => {
+            type => "object",
+            properties => { type => { type => 'string' } },
+        },
+        links => [{ rel => 'child', href => "{type}" }],
     },
     code => sub {
-	my ($param) = @_;
+        my ($param) = @_;
 
-	my $res = [
-	    { type => 'pci' },
-	    { type => 'usb' },
-	];
+        my $res = [
+            { type => 'pci' }, { type => 'usb' },
+        ];
 
-	return $res;
-    }
+        return $res;
+    },
 });
 

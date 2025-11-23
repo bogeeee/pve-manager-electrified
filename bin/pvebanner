@@ -33,4 +33,4 @@ print ISSUE $banner;
 
 close(ISSUE);
 
-exit (0);
+exit(0);

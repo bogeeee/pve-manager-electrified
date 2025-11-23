@@ -1,8 +1,28 @@
 <html>
     <body>
-        {{error-message}}
+        {{error}}
         <h1 style="font-size: 1.2em">Details</h1>
-        {{table guest-table}}
+        <table style="border: 1px solid;border-collapse=collapse;">
+            <tr>
+                <th style="border: 1px solid;border-collapse=collapse;">VMID</th>
+                <th style="border: 1px solid;border-collapse=collapse;">Name</th>
+                <th style="border: 1px solid;border-collapse=collapse;">Status</th>
+                <th style="border: 1px solid;border-collapse=collapse;">Time</th>
+                <th style="border: 1px solid;border-collapse=collapse;">Size</th>
+                <th style="border: 1px solid;border-collapse=collapse;">Filename</th>
+            </tr>
+        {{#each guest-table.data}}
+            <tr>
+                <td style="border: 1px solid;border-collapse=collapse;">{{this.vmid}}</th>
+                <td style="border: 1px solid;border-collapse=collapse;">{{this.name}}</th>
+                <td style="border: 1px solid;border-collapse=collapse;">{{this.status}}</th>
+                <td style="border: 1px solid;border-collapse=collapse;">{{duration this.time}}</th>
+                <td style="border: 1px solid;border-collapse=collapse;">{{human-bytes this.size}}</th>
+                <td style="border: 1px solid;border-collapse=collapse;">{{this.filename}}</th>
+            </tr>
+        {{/each}}
+        </table>
+        <br/>
         Total running time: {{duration total-time}}<br/>
         Total size: {{human-bytes total-size}}<br/>
         <h1 style="font-size: 1.2em">Logs</h1>

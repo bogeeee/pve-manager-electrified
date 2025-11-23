@@ -1,0 +1,24 @@
+<svg version="1.1" viewBox="-13 -13 26 26" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<style>
+        @keyframes frames {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        .spinner { animation: frames 1.2s steps(12, jump-start) infinite; }
+</style>
+<g stroke-linecap="round" stroke-width="2">
+<path class="spinner" id="a" d="m0 -8 0,4"/>
+<use transform="rotate(30)" xlink:href="#a" stroke="#eaeaea"/>
+<use transform="rotate(60)" xlink:href="#a" stroke="#d4d4d4"/>
+<use transform="rotate(90)" xlink:href="#a" stroke="#bfbfbf"/>
+<use transform="rotate(120)" xlink:href="#a" stroke="#aaaaaa"/>
+<use transform="rotate(150)" xlink:href="#a" stroke="#959595"/>
+<use transform="rotate(180)" xlink:href="#a" stroke="#808080"/>
+<use transform="rotate(210)" xlink:href="#a" stroke="#6a6a6a"/>
+<use transform="rotate(240)" xlink:href="#a" stroke="#555555"/>
+<use transform="rotate(270)" xlink:href="#a" stroke="#404040"/>
+<use transform="rotate(300)" xlink:href="#a" stroke="#2a2a2a"/>
+<use transform="rotate(330)" xlink:href="#a" stroke="#151515"/>
+<use transform="rotate(360)" xlink:href="#a" stroke="#000000"/>
+</g>
+</svg>

@@ -6,6 +6,7 @@ use warnings;
 use POSIX qw(isnan isinf);
 use Scalar::Util 'looks_like_number';
 use IO::Socket::IP;
+use IO::Socket::SSL qw(SSL_VERIFY_NONE);
 use LWP::UserAgent;
 use HTTP::Request;
 
@@ -21,64 +22,68 @@ sub type {
 
 sub properties {
     return {
-	organization => {
-	    description => "The InfluxDB organization. Only necessary when using the http v2 api."
-	       ." Has no meaning when using v2 compatibility api.",
-	    type => 'string',
-	    optional => 1,
-	},
-	bucket => {
-	    description => "The InfluxDB bucket/db. Only necessary when using the http v2 api.",
-	    type => 'string',
-	    optional => 1,
-	},
-	token => {
-	    description => "The InfluxDB access token. Only necessary when using the http v2 api."
-	        ." If the v2 compatibility api is used, use 'user:password' instead.",
-	    type => 'string',
-	    optional => 1,
-	},
-	'api-path-prefix' => {
-	    description => "An API path prefix inserted between '<host>:<port>/' and '/api2/'."
-	        ." Can be useful if the InfluxDB service runs behind a reverse proxy.",
-	    type => 'string',
-	    optional => 1,
-	},
-	influxdbproto => {
-	    type => 'string',
-	    enum => ['udp', 'http', 'https'],
-	    default => 'udp',
-	    optional => 1,
-	},
-	'max-body-size' => {
-	    description => "InfluxDB max-body-size in bytes. Requests are batched up to this size.",
-	    type => 'integer',
-	    minimum => 1,
-	    default => 25_000_000,
-	},
-	'verify-certificate' => {
-	    description => "Set to 0 to disable certificate verification for https endpoints.",
-	    type => 'boolean',
-	    optional => 1,
-	    default => 1,
-	},
+        organization => {
+            description =>
+                "The InfluxDB organization. Only necessary when using the http v2 api."
+                . " Has no meaning when using v2 compatibility api.",
+            type => 'string',
+            optional => 1,
+        },
+        bucket => {
+            description => "The InfluxDB bucket/db. Only necessary when using the http v2 api.",
+            type => 'string',
+            optional => 1,
+        },
+        token => {
+            description =>
+                "The InfluxDB access token. Only necessary when using the http v2 api."
+                . " If the v2 compatibility api is used, use 'user:password' instead.",
+            type => 'string',
+            optional => 1,
+        },
+        'api-path-prefix' => {
+            description => "An API path prefix inserted between '<host>:<port>/' and '/api2/'."
+                . " Can be useful if the InfluxDB service runs behind a reverse proxy.",
+            type => 'string',
+            optional => 1,
+        },
+        influxdbproto => {
+            type => 'string',
+            enum => ['udp', 'http', 'https'],
+            default => 'udp',
+            optional => 1,
+        },
+        'max-body-size' => {
+            description =>
+                "InfluxDB max-body-size in bytes. Requests are batched up to this size.",
+            type => 'integer',
+            minimum => 1,
+            default => 25_000_000,
+        },
+        'verify-certificate' => {
+            description => "Set to 0 to disable certificate verification for https endpoints.",
+            type => 'boolean',
+            optional => 1,
+            default => 1,
+        },
     };
 }
+
 sub options {
     return {
-	server => {},
-	port => {},
-	mtu => { optional => 1 },
-	disable => { optional => 1 },
-	organization => { optional => 1},
-	bucket => { optional => 1},
-	token => { optional => 1},
-	influxdbproto => { optional => 1},
-	timeout => { optional => 1},
-	'max-body-size' => { optional => 1 },
-	'api-path-prefix' => { optional => 1 },
-	'verify-certificate' => { optional => 1 },
-   };
+        server => {},
+        port => {},
+        mtu => { optional => 1 },
+        disable => { optional => 1 },
+        organization => { optional => 1 },
+        bucket => { optional => 1 },
+        token => { optional => 1 },
+        influxdbproto => { optional => 1 },
+        timeout => { optional => 1 },
+        'max-body-size' => { optional => 1 },
+        'api-path-prefix' => { optional => 1 },
+        'verify-certificate' => { optional => 1 },
+    };
 }
 
 my $set_ssl_opts = sub {
@@ -86,10 +91,10 @@ my $set_ssl_opts = sub {
 
     my $cert_verify = $cfg->{'verify-certificate'} // 1;
     if (!$cert_verify) {
-	$ua->ssl_opts(
-	    verify_hostname => 0,
-	    SSL_verify_mode => IO::Socket::SSL::SSL_VERIFY_NONE,
-	);
+        $ua->ssl_opts(
+            verify_hostname => 0,
+            SSL_verify_mode => SSL_VERIFY_NONE,
+        );
     }
 
     return;
@@ -110,8 +115,8 @@ sub update_qemu_status {
     $ctime *= 1000000000;
 
     my $object = "object=qemu,vmid=$vmid,nodename=$nodename";
-    if($data->{name} && $data->{name} ne '') {
-	$object .= ",host=$data->{name}";
+    if ($data->{name} && $data->{name} ne '') {
+        $object .= ",host=$data->{name}";
     }
     $object =~ s/\s/\\ /g;
 
@@ -125,8 +130,8 @@ sub update_lxc_status {
     $ctime *= 1000000000;
 
     my $object = "object=lxc,vmid=$vmid,nodename=$nodename";
-    if($data->{name} && $data->{name} ne '') {
-	$object .= ",host=$data->{name}";
+    if ($data->{name} && $data->{name} ne '') {
+        $object .= ",host=$data->{name}";
     }
     $object =~ s/\s/\\ /g;
 
@@ -140,8 +145,8 @@ sub update_storage_status {
     $ctime *= 1000000000;
 
     my $object = "object=storages,nodename=$nodename,host=$storeid";
-    if($data->{type} && $data->{type} ne '') {
-	$object .= ",type=$data->{type}";
+    if ($data->{type} && $data->{type} ne '') {
+        $object .= ",type=$data->{type}";
     }
     $object =~ s/\s/\\ /g;
 
@@ -152,7 +157,7 @@ sub _send_batch_size {
     my ($class, $cfg) = @_;
     my $proto = $cfg->{influxdbproto} // 'udp';
     if ($proto ne 'udp') {
-	return $cfg->{'max-body-size'} // 25_000_000;
+        return $cfg->{'max-body-size'} // 25_000_000;
     }
 
     return $class->SUPER::_send_batch_size($cfg);
@@ -163,20 +168,20 @@ sub send {
 
     my $proto = $cfg->{influxdbproto} // 'udp';
     if ($proto eq 'udp') {
-	return $class->SUPER::send($connection, $data, $cfg);
+        return $class->SUPER::send($connection, $data, $cfg);
     } elsif ($proto =~ m/^https?$/) {
-	my $ua = LWP::UserAgent->new();
-	$set_ssl_opts->($cfg, $ua);
-	$ua->timeout($cfg->{timeout} // 1);
-	$connection->content($data);
-	my $response = $ua->request($connection);
+        my $ua = LWP::UserAgent->new();
+        $set_ssl_opts->($cfg, $ua);
+        $ua->timeout($cfg->{timeout} // 1);
+        $connection->content($data);
+        my $response = $ua->request($connection);
 
-	if (!$response->is_success) {
-	    my $err = $response->status_line;
-	    die "$err\n";
-	}
+        if (!$response->is_success) {
+            my $err = $response->status_line;
+            die "$err\n";
+        }
     } else {
-	die "invalid protocol\n";
+        die "invalid protocol\n";
     }
 
     return;
@@ -186,7 +191,7 @@ sub _disconnect {
     my ($class, $connection, $cfg) = @_;
     my $proto = $cfg->{influxdbproto} // 'udp';
     if ($proto eq 'udp') {
-	return $class->SUPER::_disconnect($connection, $cfg);
+        return $class->SUPER::_disconnect($connection, $cfg);
     }
 
     return;
@@ -197,11 +202,11 @@ sub _get_v2url {
     my ($proto, $host, $port) = $cfg->@{qw(influxdbproto server port)};
     my $api_prefix = $cfg->{'api-path-prefix'} // '/';
     if ($api_prefix ne '/' && $api_prefix =~ m!^/*(.+)/*$!) {
-	$api_prefix = "/$1/";
+        $api_prefix = "/$1/";
     }
 
     if ($api_path ne 'health') {
-	$api_path = "api/v2/${api_path}";
+        $api_path = "api/v2/${api_path}";
     }
 
     return "${proto}://${host}:${port}${api_prefix}${api_path}";
@@ -215,27 +220,27 @@ sub _connect {
     my $proto = $cfg->{influxdbproto} // 'udp';
 
     if ($proto eq 'udp') {
-	my $socket = IO::Socket::IP->new(
-	    PeerAddr    => $host,
-	    PeerPort    => $port,
-	    Proto       => 'udp',
-	) || die "couldn't create influxdb socket [$host]:$port - $@\n";
+        my $socket = IO::Socket::IP->new(
+            PeerAddr => $host,
+            PeerPort => $port,
+            Proto => 'udp',
+        ) || die "couldn't create influxdb socket [$host]:$port - $@\n";
 
-	$socket->blocking(0);
+        $socket->blocking(0);
 
-	return $socket;
+        return $socket;
     } elsif ($proto =~ m/^https?$/) {
-	my $token = get_credentials($id, 1);
-	my $org = $cfg->{organization} // 'proxmox';
-	my $bucket = $cfg->{bucket} // 'proxmox';
-	my $url = _get_v2url($cfg, "write?org=${org}&bucket=${bucket}");
+        my $token = get_credentials($id, 1);
+        my $org = $cfg->{organization} // 'proxmox';
+        my $bucket = $cfg->{bucket} // 'proxmox';
+        my $url = _get_v2url($cfg, "write?org=${org}&bucket=${bucket}");
 
-	my $req = HTTP::Request->new(POST => $url);
-	if (defined($token)) {
-	    $req->header( "Authorization", "Token $token");
-	}
+        my $req = HTTP::Request->new(POST => $url);
+        if (defined($token)) {
+            $req->header("Authorization", "Token $token");
+        }
 
-	return $req;
+        return $req;
     }
 
     die "cannot connect to InfluxDB: invalid protocol '$proto'\n";
@@ -249,25 +254,25 @@ sub test_connection {
 
     my $proto = $cfg->{influxdbproto} // 'udp';
     if ($proto eq 'udp') {
-	return $class->SUPER::test_connection($cfg, $id);
+        return $class->SUPER::test_connection($cfg, $id);
     } elsif ($proto =~ m/^https?$/) {
-	my $url = _get_v2url($cfg, "health");
-	my $ua = LWP::UserAgent->new();
-	$set_ssl_opts->($cfg, $ua);
-	$ua->timeout($cfg->{timeout} // 1);
-	# in the initial add connection test, the token may still be in $cfg
-	my $token = $cfg->{token} // get_credentials($id, 1);
-	if (defined($token)) {
-	    $ua->default_header("Authorization" => "Token $token");
-	}
-	my $response = $ua->get($url);
+        my $url = _get_v2url($cfg, "health");
+        my $ua = LWP::UserAgent->new();
+        $set_ssl_opts->($cfg, $ua);
+        $ua->timeout($cfg->{timeout} // 1);
+        # in the initial add connection test, the token may still be in $cfg
+        my $token = $cfg->{token} // get_credentials($id, 1);
+        if (defined($token)) {
+            $ua->default_header("Authorization" => "Token $token");
+        }
+        my $response = $ua->get($url);
 
-	if (!$response->is_success) {
-	    my $err = $response->status_line;
-	    die "$err\n";
-	}
+        if (!$response->is_success) {
+            my $err = $response->status_line;
+            die "$err\n";
+        }
     } else {
-	die "invalid protocol\n";
+        die "invalid protocol\n";
     }
 
     return;
@@ -277,40 +282,42 @@ sub build_influxdb_payload {
     my ($class, $txn, $data, $ctime, $tags, $excluded, $measurement, $instance) = @_;
 
     # 'abc' and '123' are both valid hostnames/tags, that confuses influx's type detection
-    my $to_quote = { name => 1, tags => 1, };
+    my $to_quote = { name => 1, tags => 1 };
 
     my @values = ();
 
     foreach my $key (sort keys %$data) {
-	next if defined($excluded) && $excluded->{$key};
-	my $value = $data->{$key};
-	next if !defined($value);
+        next if defined($excluded) && $excluded->{$key};
+        my $value = $data->{$key};
+        next if !defined($value);
 
-	if (!ref($value) && $value ne '') {
-	    # value is scalar
+        if (!ref($value) && $value ne '') {
+            # value is scalar
 
-	    if (defined(my $v = prepare_value($value, $to_quote->{$key}))) {
-		push @values, "$key=$v";
-	    }
-	} elsif (ref($value) eq 'HASH') {
-	    # value is a hash
+            if (defined(my $v = prepare_value($value, $to_quote->{$key}))) {
+                push @values, "$key=$v";
+            }
+        } elsif (ref($value) eq 'HASH') {
+            # value is a hash
 
-	    if (!defined($measurement)) {
-		build_influxdb_payload($class, $txn, $value, $ctime, $tags, $excluded, $key);
-	    } elsif(!defined($instance)) {
-		build_influxdb_payload($class, $txn, $value, $ctime, $tags, $excluded, $measurement, $key);
-	    } else {
-		push @values, get_recursive_values($value);
-	    }
-	}
+            if (!defined($measurement)) {
+                build_influxdb_payload($class, $txn, $value, $ctime, $tags, $excluded, $key);
+            } elsif (!defined($instance)) {
+                build_influxdb_payload(
+                    $class, $txn, $value, $ctime, $tags, $excluded, $measurement, $key,
+                );
+            } else {
+                push @values, get_recursive_values($value);
+            }
+        }
     }
 
     if (@values > 0) {
-	my $mm = $measurement // 'system';
-	my $tagstring = $tags;
-	$tagstring .= ",instance=$instance" if defined($instance);
-	my $valuestr = join(',', @values);
-	$class->add_metric_data($txn, "$mm,$tagstring $valuestr $ctime\n");
+        my $mm = $measurement // 'system';
+        my $tagstring = $tags;
+        $tagstring .= ",instance=$instance" if defined($instance);
+        my $valuestr = join(',', @values);
+        $class->add_metric_data($txn, "$mm,$tagstring $valuestr $ctime\n");
     }
 }
 
@@ -320,14 +327,14 @@ sub get_recursive_values {
     my @values = ();
 
     foreach my $key (keys %$hash) {
-	my $value = $hash->{$key};
-	if(ref($value) eq 'HASH') {
-	    push(@values, get_recursive_values($value));
-	} elsif (!ref($value) && $value ne '') {
-	    if (defined(my $v = prepare_value($value))) {
-		push @values, "$key=$v";
-	    }
-	}
+        my $value = $hash->{$key};
+        if (ref($value) eq 'HASH') {
+            push(@values, get_recursive_values($value));
+        } elsif (!ref($value) && $value ne '') {
+            if (defined(my $v = prepare_value($value))) {
+                push @values, "$key=$v";
+            }
+        }
     }
 
     return @values;
@@ -338,13 +345,13 @@ sub prepare_value {
 
     # don't treat value like a number if quote is 1
     if (!$force_quote && looks_like_number($value)) {
-	if (isnan($value) || isinf($value)) {
-	    # we cannot send influxdb NaN or Inf
-	    return undef;
-	}
+        if (isnan($value) || isinf($value)) {
+            # we cannot send influxdb NaN or Inf
+            return undef;
+        }
 
-	# influxdb also accepts 1.0e+10, etc.
-	return $value;
+        # influxdb also accepts 1.0e+10, etc.
+        return $value;
     }
 
     # non-numeric values require to be quoted, so escape " with \"
@@ -365,8 +372,8 @@ sub delete_credentials {
     my ($id) = @_;
 
     if (my $cred_file = cred_file_name($id)) {
-	unlink($cred_file)
-	    or warn "removing influxdb credentials file '$cred_file' failed: $!\n";
+        unlink($cred_file)
+            or warn "removing influxdb credentials file '$cred_file' failed: $!\n";
     }
 
     return;
@@ -399,9 +406,9 @@ sub on_add_hook {
     my $token = $sensitive_opts->{token};
 
     if (defined($token)) {
-	set_credentials($id, $token);
+        set_credentials($id, $token);
     } else {
-	delete_credentials($id);
+        delete_credentials($id);
     }
 
     return undef;
@@ -413,9 +420,9 @@ sub on_update_hook {
 
     my $token = $sensitive_opts->{token};
     if (defined($token)) {
-	set_credentials($id, $token);
+        set_credentials($id, $token);
     } else {
-	delete_credentials($id);
+        delete_credentials($id);
     }
 
     return undef;
@@ -428,6 +435,5 @@ sub on_delete_hook {
 
     return undef;
 }
-
 
 1;

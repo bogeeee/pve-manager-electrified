@@ -1,0 +1,8 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+
+use PVE::CLI::pve_network_interface_pinning;
+
+PVE::CLI::pve_network_interface_pinning->run_cli_handler();

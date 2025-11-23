@@ -3,6 +3,7 @@ include ../../defines.mk
 PERLSOURCE = 			\
 	Graphite.pm		\
 	InfluxDB.pm		\
+	OpenTelemetry.pm	\
 	Plugin.pm
 
 all:

@@ -3,21 +3,23 @@ package PVE::API2::Replication;
 use warnings;
 use strict;
 
-use PVE::JSONSchema qw(get_standard_option);
-use PVE::RPCEnvironment;
+use PVE::Cluster;
+use PVE::Exception qw(raise_perm_exc);
 use PVE::Format qw(render_timestamp);
-use PVE::ProcFSTools;
-
-use PVE::ReplicationConfig;
-use PVE::ReplicationState;
-use PVE::Replication;
-use PVE::QemuConfig;
-use PVE::QemuServer;
+use PVE::INotify;
+use PVE::JSONSchema qw(get_standard_option);
 use PVE::LXC::Config;
 use PVE::LXC;
 use PVE::Notify;
-
+use PVE::ProcFSTools;
+use PVE::QemuConfig;
+use PVE::QemuServer;
+use PVE::ReplicationConfig;
+use PVE::ReplicationState;
+use PVE::Replication;
 use PVE::RESTHandler;
+use PVE::RPCEnvironment;
+use PVE::Tools;
 
 use base qw(PVE::RESTHandler);
 
@@ -27,11 +29,11 @@ our $lookup_guest_class = sub {
     my ($vmtype) = @_;
 
     if ($vmtype eq 'qemu') {
-	return 'PVE::QemuConfig';
+        return 'PVE::QemuConfig';
     } elsif ($vmtype eq 'lxc') {
-	return 'PVE::LXC::Config';
+        return 'PVE::LXC::Config';
     } else {
-	die "unknown guest type '$vmtype' - internal error";
+        die "unknown guest type '$vmtype' - internal error";
     }
 };
 
@@ -42,37 +44,36 @@ sub run_single_job {
     my $local_node = PVE::INotify::nodename();
 
     my $code = sub {
-	$now //= time();
+        $now //= time();
 
-	my $cfg = PVE::ReplicationConfig->new();
+        my $cfg = PVE::ReplicationConfig->new();
 
-	my $jobcfg = $cfg->{ids}->{$jobid};
-	die "no such job '$jobid'\n" if !$jobcfg;
+        my $jobcfg = $cfg->{ids}->{$jobid};
+        die "no such job '$jobid'\n" if !$jobcfg;
 
-	die "internal error - not implemented" if $jobcfg->{type} ne 'local';
+        die "internal error - not implemented" if $jobcfg->{type} ne 'local';
 
-	die "job '$jobid' is disabled\n" if $jobcfg->{disable};
+        die "job '$jobid' is disabled\n" if $jobcfg->{disable};
 
-	my $vms = PVE::Cluster::get_vmlist();
-	my $vmid = $jobcfg->{guest};
+        my $vms = PVE::Cluster::get_vmlist();
+        my $vmid = $jobcfg->{guest};
 
-	die "no such guest '$vmid'\n" if !$vms->{ids}->{$vmid};
+        die "no such guest '$vmid'\n" if !$vms->{ids}->{$vmid};
 
-	die "guest '$vmid' is not on local node\n"
-	    if $vms->{ids}->{$vmid}->{node} ne $local_node;
+        die "guest '$vmid' is not on local node\n"
+            if $vms->{ids}->{$vmid}->{node} ne $local_node;
 
-	die "unable to sync to local node\n" if $jobcfg->{target} eq $local_node;
+        die "unable to sync to local node\n" if $jobcfg->{target} eq $local_node;
 
-	my $vmtype = $vms->{ids}->{$vmid}->{type};
+        my $vmtype = $vms->{ids}->{$vmid}->{type};
 
-	my $guest_class = $lookup_guest_class->($vmtype);
-	PVE::Replication::run_replication($guest_class, $jobcfg, $now, $now, $logfunc);
+        my $guest_class = $lookup_guest_class->($vmtype);
+        PVE::Replication::run_replication($guest_class, $jobcfg, $now, $now, $logfunc);
     };
 
     my $res = PVE::Tools::lock_file($pvesr_lock_path, 60, $code);
     die $@ if $@;
 }
-
 
 # TODO: below two should probably part of the general job framework/plugin system
 my sub _should_mail_at_failcount {
@@ -87,11 +88,10 @@ my sub _should_mail_at_failcount {
     # failing job is re-tried every half hour, try to send one mail after 1, 2, 4, 8, etc. days
     my $i = 1;
     while ($i * 48 < $fail_count) {
-	$i = $i * 2;
+        $i = $i * 2;
     }
     return $i * 48 == $fail_count;
-};
-
+}
 
 my sub _handle_job_err {
     my ($job, $err, $mail) = @_;
@@ -112,29 +112,25 @@ my sub _handle_job_err {
     # The replication job is run every 15 mins if no schedule is set.
     my $schedule = $job->{schedule} // '*/15';
 
-    my $template_data = {
-	"failure-count" => $fail_count,
-	"last-sync"     => $jobstate->{last_sync},
-	"next-sync"     => $next_sync,
-	"job-id"        => $job->{id},
-	"job-target"    => $job->{target},
-	"job-schedule"  => $schedule,
-	"error"         => $err,
-    };
+    my $template_data = PVE::Notify::common_template_data();
+    $template_data->{"failure-count"} = $fail_count;
+    $template_data->{"last-sync"} = $jobstate->{last_sync};
+    $template_data->{"job-id"} = $job->{id};
+    $template_data->{"job-target"} = $job->{target};
+    $template_data->{"job-schedule"} = $schedule;
+    $template_data->{"error"} = $err;
 
     my $metadata_fields = {
-	type => "replication",
-	"job-id" => $job->{id},
-	# Hostname (without domain part)
-	hostname => PVE::INotify::nodename(),
+        type => "replication",
+        "job-id" => $job->{id},
+        # Hostname (without domain part)
+        hostname => PVE::INotify::nodename(),
     };
 
     eval {
-	PVE::Notify::error(
-	    "replication",
-	    $template_data,
-	    $metadata_fields
-	);
+        PVE::Notify::error(
+            "replication", $template_data, $metadata_fields,
+        );
 
     };
     warn ": $@" if $@;
@@ -147,22 +143,24 @@ sub run_jobs {
     my $iteration = $now // time();
 
     my $code = sub {
-	my $start_time = $now // time();
+        my $start_time = $now // time();
 
-	PVE::ReplicationState::purge_old_states();
+        PVE::ReplicationState::purge_old_states();
 
-	while (my $jobcfg = PVE::ReplicationState::get_next_job($iteration, $start_time)) {
-	    my $guest_class = $lookup_guest_class->($jobcfg->{vmtype});
+        while (my $jobcfg = PVE::ReplicationState::get_next_job($iteration, $start_time)) {
+            my $guest_class = $lookup_guest_class->($jobcfg->{vmtype});
 
-	    eval {
-		PVE::Replication::run_replication($guest_class, $jobcfg, $iteration, $start_time, $logfunc, $verbose);
-	    };
-	    if (my $err = $@) {
-		_handle_job_err($jobcfg, $err, $mail);
-	    }
+            eval {
+                PVE::Replication::run_replication(
+                    $guest_class, $jobcfg, $iteration, $start_time, $logfunc, $verbose,
+                );
+            };
+            if (my $err = $@) {
+                _handle_job_err($jobcfg, $err, $mail);
+            }
 
-	    $start_time = $now // time();
-	}
+            $start_time = $now // time();
+        }
     };
 
     my $res = PVE::Tools::lock_file($pvesr_lock_path, 60, $code);
@@ -179,215 +177,224 @@ my $extract_job_status = sub {
     $data->{id} = $jobid;
 
     foreach my $k (qw(last_sync last_try fail_count error duration)) {
-	$data->{$k} = $state->{$k} if defined($state->{$k});
+        $data->{$k} = $state->{$k} if defined($state->{$k});
     }
 
     if ($state->{pid} && $state->{ptime}) {
-	if (PVE::ProcFSTools::check_process_running($state->{pid}, $state->{ptime})) {
-	    $data->{pid} = $state->{pid};
-	}
+        if (PVE::ProcFSTools::check_process_running($state->{pid}, $state->{ptime})) {
+            $data->{pid} = $state->{pid};
+        }
     }
 
     return $data;
 };
 
-__PACKAGE__->register_method ({
+__PACKAGE__->register_method({
     name => 'status',
     path => '',
     method => 'GET',
     description => "List status of all replication jobs on this node.",
     permissions => {
-	description => "Requires the VM.Audit permission on /vms/<vmid>.",
-	user => 'all',
+        description => "Requires the VM.Audit permission on /vms/<vmid>.",
+        user => 'all',
     },
     protected => 1,
     proxyto => 'node',
     parameters => {
-	additionalProperties => 0,
-	properties => {
-	    node => get_standard_option('pve-node'),
-	    guest => get_standard_option('pve-vmid', {
-		optional => 1,
-		description => "Only list replication jobs for this guest.",
-	    }),
-	},
+        additionalProperties => 0,
+        properties => {
+            node => get_standard_option('pve-node'),
+            guest => get_standard_option(
+                'pve-vmid',
+                {
+                    optional => 1,
+                    description => "Only list replication jobs for this guest.",
+                },
+            ),
+        },
     },
     returns => {
-	type => 'array',
-	items => {
-	    type => "object",
-	    properties => {
-		id => { type => 'string' },
-	    },
-	},
-	links => [ { rel => 'child', href => "{id}" } ],
+        type => 'array',
+        items => {
+            type => "object",
+            properties => {
+                id => { type => 'string' },
+            },
+        },
+        links => [{ rel => 'child', href => "{id}" }],
     },
     code => sub {
-	my ($param) = @_;
+        my ($param) = @_;
 
-	my $rpcenv = PVE::RPCEnvironment::get();
-	my $authuser = $rpcenv->get_user();
+        my $rpcenv = PVE::RPCEnvironment::get();
+        my $authuser = $rpcenv->get_user();
 
-	my $jobs = PVE::ReplicationState::job_status(1);
+        my $jobs = PVE::ReplicationState::job_status(1);
 
-	my $res = [];
-	foreach my $id (sort keys %$jobs) {
-	    my $data = $extract_job_status->($jobs->{$id}, $id);
-	    my $guest = $data->{guest};
-	    next if defined($param->{guest}) && $guest != $param->{guest};
-	    next if !$rpcenv->check($authuser, "/vms/$guest", [ 'VM.Audit' ]);
-	    push @$res, $data;
-	}
+        my $res = [];
+        foreach my $id (sort keys %$jobs) {
+            my $data = $extract_job_status->($jobs->{$id}, $id);
+            my $guest = $data->{guest};
+            next if defined($param->{guest}) && $guest != $param->{guest};
+            next if !$rpcenv->check($authuser, "/vms/$guest", ['VM.Audit'], 1);
+            push @$res, $data;
+        }
 
-	return $res;
-    }});
+        return $res;
+    },
+});
 
-__PACKAGE__->register_method ({
+__PACKAGE__->register_method({
     name => 'index',
     path => '{id}',
     method => 'GET',
     permissions => { user => 'all' },
     description => "Directory index.",
     parameters => {
-	additionalProperties => 0,
-	properties => {
-	    id => get_standard_option('pve-replication-id'),
-	    node => get_standard_option('pve-node'),
-	},
+        additionalProperties => 0,
+        properties => {
+            id => get_standard_option('pve-replication-id'),
+            node => get_standard_option('pve-node'),
+        },
     },
     returns => {
-	type => 'array',
-	items => {
-	    type => "object",
-	    properties => {},
-	},
-	links => [ { rel => 'child', href => "{name}" } ],
+        type => 'array',
+        items => {
+            type => "object",
+            properties => {},
+        },
+        links => [{ rel => 'child', href => "{name}" }],
     },
     code => sub {
-	my ($param) = @_;
+        my ($param) = @_;
 
-	return [
-	    { name => 'schedule_now' },
-	    { name => 'log' },
-	    { name => 'status' },
-	    ];
-    }});
+        return [
+            { name => 'schedule_now' }, { name => 'log' }, { name => 'status' },
+        ];
+    },
+});
 
-
-__PACKAGE__->register_method ({
+__PACKAGE__->register_method({
     name => 'job_status',
     path => '{id}/status',
     method => 'GET',
     description => "Get replication job status.",
     permissions => {
-	description => "Requires the VM.Audit permission on /vms/<vmid>.",
-	user => 'all',
+        description => "Requires the VM.Audit permission on /vms/<vmid>.",
+        user => 'all',
     },
     protected => 1,
     proxyto => 'node',
     parameters => {
-	additionalProperties => 0,
-	properties => {
-	    id => get_standard_option('pve-replication-id'),
-	    node => get_standard_option('pve-node'),
-	},
+        additionalProperties => 0,
+        properties => {
+            id => get_standard_option('pve-replication-id'),
+            node => get_standard_option('pve-node'),
+        },
     },
     returns => {
-	type => "object",
-	properties => {},
+        type => "object",
+        properties => {},
     },
     code => sub {
-	my ($param) = @_;
+        my ($param) = @_;
 
-	my $rpcenv = PVE::RPCEnvironment::get();
-	my $authuser = $rpcenv->get_user();
+        my $rpcenv = PVE::RPCEnvironment::get();
+        my $authuser = $rpcenv->get_user();
 
-	my $jobs = PVE::ReplicationState::job_status(1);
-	my $jobid = $param->{id};
-	my $jobcfg = $jobs->{$jobid};
+        my $jobs = PVE::ReplicationState::job_status(1);
+        my $jobid = $param->{id};
+        my $jobcfg = $jobs->{$jobid};
 
-	die "no such replication job '$jobid'\n" if !defined($jobcfg);
+        die "no such replication job '$jobid'\n" if !defined($jobcfg);
 
-	my $data = $extract_job_status->($jobcfg, $jobid);
-	my $guest = $data->{guest};
+        my $data = $extract_job_status->($jobcfg, $jobid);
+        my $guest = $data->{guest};
 
-	raise_perm_exc() if !$rpcenv->check($authuser, "/vms/$guest", [ 'VM.Audit' ]);
+        $rpcenv->check($authuser, "/vms/$guest", ['VM.Audit']);
 
-	return $data;
-    }});
+        return $data;
+    },
+});
 
 __PACKAGE__->register_method({
     name => 'read_job_log',
     path => '{id}/log',
     method => 'GET',
     permissions => {
-	description => "Requires the VM.Audit permission on /vms/<vmid>, or 'Sys.Audit' on '/nodes/<node>'",
-	user => 'all',
+        description =>
+            "Requires the VM.Audit permission on /vms/<vmid>, or 'Sys.Audit' on '/nodes/<node>'",
+        user => 'all',
     },
     protected => 1,
     description => "Read replication job log.",
     proxyto => 'node',
     parameters => {
-	additionalProperties => 0,
-	properties => {
-	    id => get_standard_option('pve-replication-id'),
-	    node => get_standard_option('pve-node'),
-	    start => {
-		type => 'integer',
-		minimum => 0,
-		optional => 1,
-	    },
-	    limit => {
-		type => 'integer',
-		minimum => 0,
-		optional => 1,
-	    },
-	},
+        additionalProperties => 0,
+        properties => {
+            id => get_standard_option('pve-replication-id'),
+            node => get_standard_option('pve-node'),
+            start => {
+                type => 'integer',
+                minimum => 0,
+                optional => 1,
+            },
+            limit => {
+                type => 'integer',
+                minimum => 0,
+                optional => 1,
+            },
+        },
     },
     returns => {
-	type => 'array',
-	items => {
-	    type => "object",
-	    properties => {
-		n => {
-		  description=>  "Line number",
-		  type=> 'integer',
-		},
-		t => {
-		  description=>  "Line text",
-		  type => 'string',
-		}
-	    }
-	}
+        type => 'array',
+        items => {
+            type => "object",
+            properties => {
+                n => {
+                    description => "Line number",
+                    type => 'integer',
+                },
+                t => {
+                    description => "Line text",
+                    type => 'string',
+                },
+            },
+        },
     },
     code => sub {
-	my ($param) = @_;
+        my ($param) = @_;
 
-	my $rpcenv = PVE::RPCEnvironment::get();
-	my $authuser = $rpcenv->get_user();
+        my $rpcenv = PVE::RPCEnvironment::get();
+        my $authuser = $rpcenv->get_user();
 
-	my $jobid = $param->{id};
-	my $filename = PVE::ReplicationState::job_logfile_name($jobid);
+        my $jobid = $param->{id};
+        my $filename = PVE::ReplicationState::job_logfile_name($jobid);
 
-	my $cfg = PVE::ReplicationConfig->new();
-	my $data = $cfg->{ids}->{$jobid};
+        my $cfg = PVE::ReplicationConfig->new();
+        my $data = $cfg->{ids}->{$jobid};
 
-	die "no such replication job '$jobid'\n" if !defined($data);
+        die "no such replication job '$jobid'\n" if !defined($data);
 
-	my $node = $param->{node};
+        my $node = $param->{node};
 
-	my $vmid = $data->{guest};
-	raise_perm_exc() if (!($rpcenv->check($authuser, "/vms/$vmid", [ 'VM.Audit' ]) ||
-			       $rpcenv->check($authuser, "/nodes/$node", [ 'Sys.Audit' ])));
+        my $vmid = $data->{guest};
+        raise_perm_exc()
+            if (!(
+                $rpcenv->check($authuser, "/vms/$vmid", ['VM.Audit'], 1)
+                || $rpcenv->check($authuser, "/nodes/$node", ['Sys.Audit'], 1)
+            ));
 
-	my ($count, $lines) = PVE::Tools::dump_logfile($filename, $param->{start}, $param->{limit});
+        my ($count, $lines) =
+            PVE::Tools::dump_logfile($filename, $param->{start}, $param->{limit});
 
-	$rpcenv->set_result_attrib('total', $count);
+        $rpcenv->set_result_attrib('total', $count);
 
-	return $lines;
-    }});
+        return $lines;
+    },
+});
 
-__PACKAGE__->register_method ({
+__PACKAGE__->register_method({
     name => 'schedule_now',
     path => '{id}/schedule_now',
     method => 'POST',
@@ -395,30 +402,37 @@ __PACKAGE__->register_method ({
     proxyto => 'node',
     protected => 1,
     permissions => {
-	check => ['perm', '/storage', ['Datastore.Allocate']],
+        description => "Requires the VM.Replicate permission on /vms/<vmid>.",
+        user => 'all',
     },
     parameters => {
-	additionalProperties => 0,
-	properties => {
-	    id => get_standard_option('pve-replication-id'),
-	    node => get_standard_option('pve-node'),
-	},
+        additionalProperties => 0,
+        properties => {
+            id => get_standard_option('pve-replication-id'),
+            node => get_standard_option('pve-node'),
+        },
     },
     returns => {
-	type => 'string',
+        type => 'string',
     },
     code => sub {
-	my ($param) = @_;
+        my ($param) = @_;
 
-	my $jobid = $param->{id};
+        my $rpcenv = PVE::RPCEnvironment::get();
+        my $authuser = $rpcenv->get_user();
 
-	my $cfg = PVE::ReplicationConfig->new();
-	my $jobcfg = $cfg->{ids}->{$jobid};
+        my $jobid = $param->{id};
+        my ($vmid) = PVE::ReplicationConfig::parse_replication_job_id($jobid);
+        $rpcenv->check($authuser, "/vms/$vmid", ['VM.Replicate']);
 
-	die "no such replication job '$jobid'\n" if !defined($jobcfg);
+        my $cfg = PVE::ReplicationConfig->new();
+        my $jobcfg = $cfg->{ids}->{$jobid};
 
-	PVE::ReplicationState::schedule_job_now($jobcfg);
+        die "no such replication job '$jobid'\n" if !defined($jobcfg);
 
-    }});
+        PVE::ReplicationState::schedule_job_now($jobcfg);
+
+    },
+});
 
 1;

@@ -2,7 +2,7 @@ Ext.define('PVE.dc.GroupEdit', {
     extend: 'Proxmox.window.Edit',
     alias: ['widget.pveDcGroupEdit'],
 
-    initComponent: function() {
+    initComponent: function () {
         var me = this;
 
         me.isCreate = !me.groupid;
@@ -24,18 +24,18 @@ Ext.define('PVE.dc.GroupEdit', {
             method: method,
             items: [
                 {
-		    xtype: me.isCreate ? 'proxmoxtextfield' : 'displayfield',
-		    fieldLabel: gettext('Name'),
-		    name: 'groupid',
-		    value: me.groupid,
-		    allowBlank: false,
-		},
+                    xtype: me.isCreate ? 'proxmoxtextfield' : 'displayfield',
+                    fieldLabel: gettext('Name'),
+                    name: 'groupid',
+                    value: me.groupid,
+                    allowBlank: false,
+                },
                 {
-		    xtype: 'textfield',
-		    fieldLabel: gettext('Comment'),
-		    name: 'comment',
-		    allowBlank: true,
-		},
+                    xtype: 'textfield',
+                    fieldLabel: gettext('Comment'),
+                    name: 'comment',
+                    allowBlank: true,
+                },
             ],
         });
 

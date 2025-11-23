@@ -23,7 +23,7 @@ use PVE::API2::ACME;
 use PVE::API2::APT;
 use PVE::API2::Subscription;
 
-initlog ('pveupdate', 'daemon');
+initlog('pveupdate', 'daemon');
 
 die "please run as root\n" if $> != 0;
 
@@ -41,13 +41,13 @@ my $nodename = PVE::INotify::nodename();
 
 eval { PVE::API2::Subscription->update({ node => $nodename }); };
 if (my $err = $@) {
-    syslog ('err', "update subscription info failed: $err");
+    syslog('err', "update subscription info failed: $err");
 }
 
 my $dccfg = PVE::Cluster::cfs_read_file('datacenter.cfg');
 eval { PVE::APLInfo::update($dccfg->{http_proxy}); };
 if (my $err = $@) {
-    syslog ('err', "update appliance info failed - see /var/log/pveam.log for details");
+    syslog('err', "update appliance info failed - see /var/log/pveam.log for details");
 }
 
 my $info = eval { PVE::API2::Subscription::read_etc_subscription() };
@@ -66,65 +66,79 @@ if ($notify_on eq 'auto') {
 }
 eval { PVE::API2::APT->update_database({ node => $nodename, notify => $notify, quiet => 1 }); };
 if (my $err = $@) {
-    syslog ('err', "update apt database failed: $err");
+    syslog('err', "update apt database failed: $err");
 }
 
 eval {
     my $node_config = PVE::NodeConfig::load_config($nodename);
     my $acme_node_config = PVE::NodeConfig::get_acme_conf($node_config);
     if ($acme_node_config && $acme_node_config->{domains}) {
-	my $cert = PVE::CertHelpers::cert_path_prefix($nodename).".pem";
-	if (-e $cert) {
-	    if (PVE::Certificate::check_expiry($cert, time() + 30*24*60*60)) {
-		PVE::API2::ACME->renew_certificate({ node => $nodename });
-	    } else {
-		syslog ('info', 'Custom certificate does not expire soon, skipping ACME renewal.');
-	    }
-	} else {
-	    syslog ('info', 'ACME config found for node, but no custom certificate exists. Skipping ACME renewal until initial certificate has been deployed.');
-	}
+        my $cert = PVE::CertHelpers::cert_path_prefix($nodename) . ".pem";
+        if (-e $cert) {
+            if (PVE::Certificate::check_expiry($cert, time() + 30 * 24 * 60 * 60)) {
+                PVE::API2::ACME->renew_certificate({ node => $nodename });
+            } else {
+                syslog(
+                    'info',
+                    'Custom certificate does not expire soon, skipping ACME renewal.',
+                );
+            }
+        } else {
+            syslog(
+                'info',
+                'ACME config found for node, but no custom certificate exists. Skipping ACME renewal until initial certificate has been deployed.',
+            );
+        }
     }
 };
-syslog ('err', "Renewing ACME certificate failed: $@") if $@;
+syslog('err', "Renewing ACME certificate failed: $@") if $@;
 
 eval {
-    my $certpath = PVE::CertHelpers::default_cert_path_prefix($nodename).".pem";
+    my $certpath = PVE::CertHelpers::default_cert_path_prefix($nodename) . ".pem";
     my $capath = "/etc/pve/pve-root-ca.pem";
 
     my $renew = sub {
-	my ($msg) = @_;
+        my ($msg) = @_;
 
-	# get CA info
-	my $cainfo = PVE::Certificate::get_certificate_info($capath);
+        # get CA info
+        my $cainfo = PVE::Certificate::get_certificate_info($capath);
 
-	# get cert and check issuer and chain metadata
-	my $certinfo = PVE::Certificate::get_certificate_info($certpath);
-	if ($certinfo->{issuer} ne $cainfo->{subject}) {
-	    die "SSL certificate ($certpath) is not issued by root CA ($capath)!\n";
-	}
+        # get cert and check issuer and chain metadata
+        my $certinfo = PVE::Certificate::get_certificate_info($certpath);
+        if ($certinfo->{issuer} ne $cainfo->{subject}) {
+            die "SSL certificate ($certpath) is not issued by root CA ($capath)!\n";
+        }
 
-	# check if cert is really signed by the ca
-	# TODO: replace by low level ssleay interface if version 1.86 is available
-	PVE::Tools::run_command(['/usr/bin/openssl', 'verify', '-CAfile', $capath, $certpath]);
+        # check if cert is really signed by the ca
+        # TODO: replace by low level ssleay interface if version 1.86 is available
+        my $cmd = [
+            '/usr/bin/openssl', 'verify', '-no_check_time', '-CAfile', $capath, '--', $certpath,
+        ];
+        PVE::Tools::run_command($cmd);
 
-	print "PVE certificate $msg\n";
-	# create new certificate
-	my $ip = PVE::Cluster::remote_node_ip($nodename);
-	PVE::Cluster::Setup::gen_pve_ssl_cert(1, $nodename, $ip);
+        print "PVE certificate $msg\n";
+        # create new certificate
+        my $ip = PVE::Cluster::remote_node_ip($nodename);
+        PVE::Cluster::Setup::gen_pve_ssl_cert(1, $nodename, $ip);
 
-	print "Restarting pveproxy after renewing certificate\n";
-	PVE::Tools::run_command(['systemctl', 'reload-or-restart', 'pveproxy']);
+        print "Restarting pveproxy after renewing certificate\n";
+        PVE::Tools::run_command(['systemctl', 'reload-or-restart', 'pveproxy']);
     };
 
-    if (PVE::Certificate::check_expiry($certpath, time() + 14*24*60*60)) {
-	# expires in next 2 weeks
-	$renew->("expires soon, renewing...");
-    } elsif (!PVE::Certificate::check_expiry($certpath, time() + 2*365*24*60*60)) {
-	# expires in more than 2 years
-	$renew->("expires in more than 2 years, renewing to reduce certificate life-span for client compatibility...");
+    if (PVE::Certificate::check_expiry($certpath)) {
+        # already expired
+        $renew->("expired, renewing...");
+    } elsif (PVE::Certificate::check_expiry($certpath, time() + 14 * 24 * 60 * 60)) {
+        # expires in next 2 weeks
+        $renew->("expires soon, renewing...");
+    } elsif (!PVE::Certificate::check_expiry($certpath, time() + 2 * 365 * 24 * 60 * 60)) {
+        # expires in more than 2 years
+        $renew->(
+            "expires in more than 2 years, renewing to reduce certificate life-span for client compatibility..."
+        );
     }
 };
-syslog ('err', "Checking/Renewing SSL certificate failed: $@") if $@;
+syslog('err', "Checking/Renewing SSL certificate failed: $@") if $@;
 
 sub cleanup_tasks {
 
@@ -136,10 +150,10 @@ sub cleanup_tasks {
 
     my $endtime = 0;
     while (defined(my $line = <$fh>)) {
-	if ($line =~ m/^(\S+)(\s([0-9A-Za-z]{8})(\s(\S.*))?)?$/) {
-	    $endtime = hex($3);
-	    last;
-	}
+        if ($line =~ m/^(\S+)(\s([0-9A-Za-z]{8})(\s(\S.*))?)?$/) {
+            $endtime = hex($3);
+            last;
+        }
     }
     close($fh);
 
@@ -150,27 +164,27 @@ sub cleanup_tasks {
     my $count = 0;
 
     my $wanted = sub {
-	my $filename = $_;
+        my $filename = $_;
 
-	return if $filename !~ m/^UPID:/;
+        return if $filename !~ m/^UPID:/;
 
-	my $st;
-	if (($st = stat($filename)) && ($st->mtime < $endtime)) {
-	    unlink($filename);
-	    $count++;
-	}
+        my $st;
+        if (($st = stat($filename)) && ($st->mtime < $endtime)) {
+            unlink($filename);
+            $count++;
+        }
     };
 
     foreach my $subdir (qw(0 1 2 3 4 5 6 7 8 9 A B C D E F)) {
-	my $path = "$taskdir/$subdir";
-	find($wanted, $path);
+        my $path = "$taskdir/$subdir";
+        find($wanted, $path);
     }
 
     if ($count) {
-	syslog('info', "cleanup removed $count task logs");
+        syslog('info', "cleanup removed $count task logs");
     }
 }
 
 cleanup_tasks();
 
-exit (0);
+exit(0);

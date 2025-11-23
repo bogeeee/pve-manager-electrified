@@ -4,42 +4,42 @@ Ext.define('PVE.sdn.IpamEditInputPanel', {
 
     isCreate: false,
 
-    onGetValues: function(values) {
-	let me = this;
+    onGetValues: function (values) {
+        let _me = this;
 
-	if (!values.vmid) {
-	    delete values.vmid;
-	}
+        if (!values.vmid) {
+            delete values.vmid;
+        }
 
-	return values;
+        return values;
     },
 
     items: [
-	{
-	    xtype: 'pmxDisplayEditField',
-	    name: 'vmid',
-	    fieldLabel: 'VMID',
-	    allowBlank: false,
-	    editable: false,
-	    cbind: {
-		hidden: '{isCreate}',
-	    },
-	},
-	{
-	    xtype: 'pmxDisplayEditField',
-	    name: 'mac',
-	    fieldLabel: 'MAC',
-	    allowBlank: false,
-	    cbind: {
-		editable: '{isCreate}',
-	    },
-	},
-	{
-	    xtype: 'proxmoxtextfield',
-	    name: 'ip',
-	    fieldLabel: gettext('IP Address'),
-	    allowBlank: false,
-	},
+        {
+            xtype: 'pmxDisplayEditField',
+            name: 'vmid',
+            fieldLabel: 'VMID',
+            allowBlank: false,
+            editable: false,
+            cbind: {
+                hidden: '{isCreate}',
+            },
+        },
+        {
+            xtype: 'pmxDisplayEditField',
+            name: 'mac',
+            fieldLabel: 'MAC',
+            allowBlank: false,
+            cbind: {
+                editable: '{isCreate}',
+            },
+        },
+        {
+            xtype: 'proxmoxtextfield',
+            name: 'ip',
+            fieldLabel: gettext('IP Address'),
+            allowBlank: false,
+        },
     ],
 });
 
@@ -54,27 +54,25 @@ Ext.define('PVE.sdn.IpamEdit', {
 
     url: '/cluster/sdn/vnets',
 
-    submitUrl: function(url, values) {
-	return `${url}/${values.vnet}/ips`;
+    submitUrl: function (url, values) {
+        return `${url}/${values.vnet}/ips`;
     },
 
-    initComponent: function() {
-	var me = this;
+    initComponent: function () {
+        var me = this;
 
-	me.method = me.isCreate ? 'POST' : 'PUT';
+        me.method = me.isCreate ? 'POST' : 'PUT';
 
-	let ipanel = Ext.create('PVE.sdn.IpamEditInputPanel', {
-	    isCreate: me.isCreate,
-	});
+        let ipanel = Ext.create('PVE.sdn.IpamEditInputPanel', {
+            isCreate: me.isCreate,
+        });
 
-	Ext.apply(me, {
-	    items: [
-		ipanel,
-	    ],
-	});
+        Ext.apply(me, {
+            items: [ipanel],
+        });
 
-	me.callParent();
+        me.callParent();
 
-	ipanel.setValues(me.mapping);
+        ipanel.setValues(me.mapping);
     },
 });

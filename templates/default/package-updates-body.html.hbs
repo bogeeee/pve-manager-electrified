@@ -1,6 +1,19 @@
 <html>
     <body>
         The following updates are available:
-        {{table updates}}
+        <table style="border: 1px solid;border-collapse=collapse;margin-top: 5px;">
+            <tr>
+                <th style="border: 1px solid;border-collapse=collapse;">Package Name</th>
+                <th style="border: 1px solid;border-collapse=collapse;">Installed Version</th>
+                <th style="border: 1px solid;border-collapse=collapse;">Available Version</th>
+            </tr>
+        {{#each available-updates.data}}
+            <tr>
+                <td style="border: 1px solid;border-collapse=collapse;">{{this.package-name}}</th>
+                <td style="border: 1px solid;border-collapse=collapse;">{{this.installed-version}}</th>
+                <td style="border: 1px solid;border-collapse=collapse;">{{this.available-version}}</th>
+            </tr>
+        {{/each}}
+        </table>
     </body>
 </html>

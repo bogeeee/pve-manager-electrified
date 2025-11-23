@@ -1,272 +1,304 @@
 Ext.define('PVE.panel.MultiDiskPanel', {
     extend: 'Ext.panel.Panel',
 
-    setNodename: function(nodename) {
-	this.items.each((panel) => panel.setNodename(nodename));
+    mixins: ['Proxmox.Mixin.CBind'],
+
+    setNodename: function (nodename) {
+        this.items.each((panel) => panel.setNodename(nodename));
     },
 
     border: false,
     bodyBorder: false,
 
+    importDisk: false, // allow import panel
+
     layout: 'card',
 
     controller: {
-	xclass: 'Ext.app.ViewController',
+        xclass: 'Ext.app.ViewController',
 
-	vmconfig: {},
+        vmconfig: {},
 
-	onAdd: function() {
-	    let me = this;
-	    me.lookup('addButton').setDisabled(true);
-	    me.addDisk();
-	    let count = me.lookup('grid').getStore().getCount() + 1; // +1 is from ide2
-	    me.lookup('addButton').setDisabled(count >= me.maxCount);
-	},
+        onAdd: function () {
+            this.addDiskChecked(false);
+        },
 
-	getNextFreeDisk: function(vmconfig) {
-	    throw "implement in subclass";
-	},
+        onImport: function () {
+            this.addDiskChecked(true);
+        },
 
-	addPanel: function(itemId, vmconfig, nextFreeDisk) {
-	    throw "implement in subclass";
-	},
+        addDiskChecked: function (importDisk) {
+            let me = this;
+            me.lookup('addButton').setDisabled(true);
+            me.lookup('addImportButton').setDisabled(true);
+            me.addDisk(importDisk);
+            let count = me.lookup('grid').getStore().getCount() + 1; // +1 is from ide2
+            me.lookup('addButton').setDisabled(count >= me.maxCount);
+            me.lookup('addImportButton').setDisabled(count >= me.maxCount);
+        },
 
-	// define in subclass
-	diskSorter: undefined,
+        getNextFreeDisk: function (vmconfig) {
+            throw 'implement in subclass';
+        },
 
-	addDisk: function() {
-	    let me = this;
-	    let grid = me.lookup('grid');
-	    let store = grid.getStore();
+        addPanel: function (itemId, vmconfig, nextFreeDisk, importDisk) {
+            throw 'implement in subclass';
+        },
 
-	    // get free disk id
-	    let vmconfig = me.getVMConfig(true);
-	    let nextFreeDisk = me.getNextFreeDisk(vmconfig);
-	    if (!nextFreeDisk) {
-		return;
-	    }
+        // define in subclass
+        diskSorter: undefined,
 
-	    // add store entry + panel
-	    let itemId = 'disk-card-' + ++Ext.idSeed;
-	    let rec = store.add({
-		name: nextFreeDisk.confid,
-		itemId,
-	    })[0];
+        addDisk: function (importDisk) {
+            let me = this;
+            let grid = me.lookup('grid');
+            let store = grid.getStore();
 
-	    let panel = me.addPanel(itemId, vmconfig, nextFreeDisk);
-	    panel.updateVMConfig(vmconfig);
+            // get free disk id
+            let vmconfig = me.getVMConfig(true);
+            let nextFreeDisk = me.getNextFreeDisk(vmconfig);
+            if (!nextFreeDisk) {
+                return;
+            }
 
-	    // we need to setup a validitychange handler, so that we can show
-	    // that a disk has invalid fields
-	    let fields = panel.query('field');
-	    fields.forEach((el) => el.on('validitychange', () => {
-		let valid = fields.every((field) => field.isValid());
-		rec.set('valid', valid);
-		me.checkValidity();
-	    }));
+            // add store entry + panel
+            let itemId = 'disk-card-' + ++Ext.idSeed;
+            let rec = store.add({
+                name: nextFreeDisk.confid,
+                itemId,
+            })[0];
 
-	    store.sort(me.diskSorter);
+            let panel = me.addPanel(itemId, vmconfig, nextFreeDisk, importDisk);
+            panel.updateVMConfig(vmconfig);
 
-	    // select if the panel added is the only one
-	    if (store.getCount() === 1) {
-		grid.getSelectionModel().select(0, false);
-	    }
-	},
+            // we need to setup a validitychange handler, so that we can show
+            // that a disk has invalid fields
+            let fields = panel.query('field');
+            fields.forEach((el) =>
+                el.on('validitychange', () => {
+                    let valid = fields.every((field) => field.isValid());
+                    rec.set('valid', valid);
+                    me.checkValidity();
+                }),
+            );
 
-	getBaseVMConfig: function() {
-	    throw "implement in subclass";
-	},
+            store.sort(me.diskSorter);
 
-	getVMConfig: function(all) {
-	    let me = this;
+            // select if the panel added is the only one
+            if (store.getCount() === 1) {
+                grid.getSelectionModel().select(0, false);
+            }
+        },
 
-	    let vmconfig = me.getBaseVMConfig();
+        getBaseVMConfig: function () {
+            throw 'implement in subclass';
+        },
 
-	    me.lookup('grid').getStore().each((rec) => {
-		if (all || rec.get('valid')) {
-		    vmconfig[rec.get('name')] = rec.get('itemId');
-		}
-	    });
+        getVMConfig: function (all) {
+            let me = this;
 
-	    return vmconfig;
-	},
+            let vmconfig = me.getBaseVMConfig();
 
-	checkValidity: function() {
-	    let me = this;
-	    let valid = me.lookup('grid').getStore().findExact('valid', false) === -1;
-	    me.lookup('validationfield').setValue(valid);
-	},
+            me.lookup('grid')
+                .getStore()
+                .each((rec) => {
+                    if (all || rec.get('valid')) {
+                        vmconfig[rec.get('name')] = rec.get('itemId');
+                    }
+                });
 
-	updateVMConfig: function() {
-	    let me = this;
-	    let view = me.getView();
-	    let grid = me.lookup('grid');
-	    let store = grid.getStore();
+            return vmconfig;
+        },
 
-	    let vmconfig = me.getVMConfig();
+        checkValidity: function () {
+            let me = this;
+            let valid = me.lookup('grid').getStore().findExact('valid', false) === -1;
+            me.lookup('validationfield').setValue(valid);
+        },
 
-	    let valid = true;
+        updateVMConfig: function () {
+            let me = this;
+            let view = me.getView();
+            let grid = me.lookup('grid');
+            let store = grid.getStore();
 
-	    store.each((rec) => {
-		let itemId = rec.get('itemId');
-		let name = rec.get('name');
-		let panel = view.getComponent(itemId);
-		if (!panel) {
-		    throw "unexpected missing panel";
-		}
+            let vmconfig = me.getVMConfig();
 
-		// copy config for each panel and remote its own id
-		let panel_vmconfig = Ext.apply({}, vmconfig);
-		if (panel_vmconfig[name] === itemId) {
-		    delete panel_vmconfig[name];
-		}
+            let valid = true;
 
-		if (!rec.get('valid')) {
-		    valid = false;
-		}
+            store.each((rec) => {
+                let itemId = rec.get('itemId');
+                let name = rec.get('name');
+                let panel = view.getComponent(itemId);
+                if (!panel) {
+                    throw 'unexpected missing panel';
+                }
 
-		panel.updateVMConfig(panel_vmconfig);
-	    });
+                // copy config for each panel and remote its own id
+                let panel_vmconfig = Ext.apply({}, vmconfig);
+                if (panel_vmconfig[name] === itemId) {
+                    delete panel_vmconfig[name];
+                }
 
-	    me.lookup('validationfield').setValue(valid);
+                if (!rec.get('valid')) {
+                    valid = false;
+                }
 
-	    return vmconfig;
-	},
+                panel.updateVMConfig(panel_vmconfig);
+            });
 
-	onChange: function(panel, newVal) {
-	    let me = this;
-	    let store = me.lookup('grid').getStore();
+            me.lookup('validationfield').setValue(valid);
 
-	    let el = store.findRecord('itemId', panel.itemId, 0, false, true, true);
-	    if (el.get('name') === newVal) {
-		// do not update if there was no change
-		return;
-	    }
+            return vmconfig;
+        },
 
-	    el.set('name', newVal);
-	    el.commit();
+        onChange: function (panel, newVal) {
+            let me = this;
+            let store = me.lookup('grid').getStore();
 
-	    store.sort(me.diskSorter);
+            let el = store.findRecord('itemId', panel.itemId, 0, false, true, true);
+            if (el.get('name') === newVal) {
+                // do not update if there was no change
+                return;
+            }
 
-	    // so that it happens after the layouting
-	    setTimeout(function() {
-		me.updateVMConfig();
-	    }, 10);
-	},
+            el.set('name', newVal);
+            el.commit();
 
-	onRemove: function(tableview, rowIndex, colIndex, item, event, record) {
-	    let me = this;
-	    let grid = me.lookup('grid');
-	    let store = grid.getStore();
-	    let removed_idx = store.indexOf(record);
+            store.sort(me.diskSorter);
 
-	    let selection = grid.getSelection()[0];
-	    let selected_idx = store.indexOf(selection);
+            // so that it happens after the layouting
+            setTimeout(function () {
+                me.updateVMConfig();
+            }, 10);
+        },
 
-	    if (selected_idx === removed_idx) {
-		let newidx = store.getCount() > removed_idx + 1 ? removed_idx + 1: removed_idx - 1;
-		grid.getSelectionModel().select(newidx, false);
-	    }
+        onRemove: function (tableview, rowIndex, colIndex, item, event, record) {
+            let me = this;
+            let grid = me.lookup('grid');
+            let store = grid.getStore();
+            let removed_idx = store.indexOf(record);
 
-	    store.remove(record);
-	    me.getView().remove(record.get('itemId'));
-	    me.lookup('addButton').setDisabled(false);
-	    me.updateVMConfig();
-	    me.checkValidity();
-	},
+            let selection = grid.getSelection()[0];
+            let selected_idx = store.indexOf(selection);
 
-	onSelectionChange: function(grid, selection) {
-	    let me = this;
-	    if (!selection || selection.length < 1) {
-		return;
-	    }
+            if (selected_idx === removed_idx) {
+                let newidx = store.getCount() > removed_idx + 1 ? removed_idx + 1 : removed_idx - 1;
+                grid.getSelectionModel().select(newidx, false);
+            }
 
-	    me.getView().setActiveItem(selection[0].data.itemId);
-	},
+            store.remove(record);
+            me.getView().remove(record.get('itemId'));
+            me.lookup('addButton').setDisabled(false);
+            me.lookup('addImportButton').setDisabled(false);
+            me.updateVMConfig();
+            me.checkValidity();
+        },
 
-	control: {
-	    'inputpanel': {
-		diskidchange: 'onChange',
-	    },
-	    'grid[reference=grid]': {
-		selectionchange: 'onSelectionChange',
-	    },
-	},
+        onSelectionChange: function (grid, selection) {
+            let me = this;
+            if (!selection || selection.length < 1) {
+                return;
+            }
 
-	init: function(view) {
-	    let me = this;
-	    me.onAdd();
-	    me.lookup('grid').getSelectionModel().select(0, false);
-	},
+            me.getView().setActiveItem(selection[0].data.itemId);
+        },
+
+        control: {
+            inputpanel: {
+                diskidchange: 'onChange',
+            },
+            'grid[reference=grid]': {
+                selectionchange: 'onSelectionChange',
+            },
+        },
+
+        init: function (view) {
+            let me = this;
+            me.onAdd();
+            me.lookup('grid').getSelectionModel().select(0, false);
+        },
     },
 
     dockedItems: [
-	{
-	    xtype: 'container',
-	    layout: {
-		type: 'vbox',
-		align: 'stretch',
-	    },
-	    dock: 'left',
-	    border: false,
-	    width: 130,
-	    items: [
-		{
-		    xtype: 'grid',
-		    hideHeaders: true,
-		    reference: 'grid',
-		    flex: 1,
-		    emptyText: gettext('No Disks'),
-		    margin: '0 0 5 0',
-		    store: {
-			fields: ['name', 'itemId', 'valid'],
-			data: [],
-		    },
-		    columns: [
-			{
-			    dataIndex: 'name',
-			    renderer: function(val, md, rec) {
-				let warn = '';
-				if (!rec.get('valid')) {
-				    warn = ' <i class="fa warning fa-warning"></i>';
-				}
-				return val + warn;
-			    },
-			    flex: 1,
-			},
-			{
-			    xtype: 'actioncolumn',
-			    width: 30,
-			    align: 'center',
-			    menuDisabled: true,
-			    items: [
-				{
-				    iconCls: 'x-fa fa-trash critical',
-				    tooltip: 'Delete',
-				    handler: 'onRemove',
-				    isActionDisabled: 'deleteDisabled',
-				},
-			    ],
-			},
-		    ],
-		},
-		{
-		    xtype: 'button',
-		    reference: 'addButton',
-		    text: gettext('Add'),
-		    iconCls: 'fa fa-plus-circle',
-		    handler: 'onAdd',
-		},
-		{
-		    // dummy field to control wizard validation
-		    xtype: 'textfield',
-		    hidden: true,
-		    reference: 'validationfield',
-		    submitValue: false,
-		    value: true,
-		    validator: (val) => !!val,
-		},
-	    ],
-	},
+        {
+            xtype: 'container',
+            layout: {
+                type: 'vbox',
+                align: 'stretch',
+            },
+            dock: 'left',
+            border: false,
+            width: 130,
+            cbind: {}, // for nested cbinds
+            items: [
+                {
+                    xtype: 'grid',
+                    hideHeaders: true,
+                    reference: 'grid',
+                    flex: 1,
+                    emptyText: gettext('No Disks'),
+                    margin: '0 0 5 0',
+                    store: {
+                        fields: ['name', 'itemId', 'valid'],
+                        data: [],
+                    },
+                    columns: [
+                        {
+                            dataIndex: 'name',
+                            renderer: function (val, md, rec) {
+                                let warn = '';
+                                if (!rec.get('valid')) {
+                                    warn = ' <i class="fa warning fa-warning"></i>';
+                                }
+                                return val + warn;
+                            },
+                            flex: 1,
+                        },
+                        {
+                            xtype: 'actioncolumn',
+                            width: 30,
+                            align: 'center',
+                            menuDisabled: true,
+                            items: [
+                                {
+                                    iconCls: 'x-fa fa-trash critical',
+                                    tooltip: 'Delete',
+                                    handler: 'onRemove',
+                                    isActionDisabled: 'deleteDisabled',
+                                },
+                            ],
+                        },
+                    ],
+                },
+                {
+                    xtype: 'button',
+                    reference: 'addButton',
+                    text: gettext('Add'),
+                    iconCls: 'fa fa-plus-circle',
+                    handler: 'onAdd',
+                },
+                {
+                    xtype: 'button',
+                    reference: 'addImportButton',
+                    text: gettext('Import'),
+                    iconCls: 'fa fa-cloud-download',
+                    handler: 'onImport',
+                    margin: '5 0 0 0',
+                    cbind: {
+                        disabled: '{!importDisk}',
+                        hidden: '{!importDisk}',
+                    },
+                },
+                {
+                    // dummy field to control wizard validation
+                    xtype: 'textfield',
+                    hidden: true,
+                    reference: 'validationfield',
+                    submitValue: false,
+                    value: true,
+                    validator: (val) => !!val,
+                },
+            ],
+        },
     ],
 });

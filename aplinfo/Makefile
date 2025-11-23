@@ -2,9 +2,8 @@
 DOCDIR=/usr/share/doc/pve-manager/
 
 TRUSTED_KEYS=				\
-	proxmox-release-6.x.pubkey 	\
-	proxmox-release-bullseye.pubkey	\
 	proxmox-release-bookworm.gpg	\
+	proxmox-release-trixie.gpg	\
 	release@turnkeylinux.com.pubkey
 
 all:
@@ -17,11 +16,13 @@ install: aplinfo.dat trustedkeys.gpg
 .PHONY: update
 update:
 	rm -f aplinfo.dat
-	wget http://download.proxmox.com/images/aplinfo-pve-8.dat -O aplinfo.dat.tmp
+	wget http://download.proxmox.com/images/aplinfo-pve-9.dat -O aplinfo.dat.tmp
 	mv aplinfo.dat.tmp aplinfo.dat
 
 trustedkeys.gpg: $(TRUSTED_KEYS)
-	sq keyring join --binary -o $@.tmp *.pubkey proxmox-release-bookworm.gpg
+	sq keyring merge --output $(basename $@).asc.tmp $(TRUSTED_KEYS)
+	sq packet dearmor $(basename $@).asc.tmp --output $@.tmp
+	rm $(basename $@).asc.tmp
 	mv $@.tmp $@
 
 .PHONY: clean

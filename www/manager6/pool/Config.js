@@ -4,41 +4,41 @@ Ext.define('PVE.pool.Config', {
 
     onlineHelp: 'pveum_pools',
 
-    initComponent: function() {
+    initComponent: function () {
         var me = this;
 
-	var pool = me.pveSelNode.data.pool;
-	if (!pool) {
-	    throw "no pool specified";
-	}
+        var pool = me.pveSelNode.data.pool;
+        if (!pool) {
+            throw 'no pool specified';
+        }
 
-	Ext.apply(me, {
-	    title: Ext.String.format(gettext("Resource Pool") + ': ' + pool),
-	    hstateid: 'pooltab',
-	    items: [
-		{
-		    title: gettext('Summary'),
-		    iconCls: 'fa fa-book',
-		    xtype: 'pvePoolSummary',
-		    itemId: 'summary',
-		},
-		{
-		    title: gettext('Members'),
-		    xtype: 'pvePoolMembers',
-		    iconCls: 'fa fa-th',
-		    pool: pool,
-		    itemId: 'members',
-		},
-		{
-		    xtype: 'pveACLView',
-		    title: gettext('Permissions'),
-		    iconCls: 'fa fa-unlock',
-		    itemId: 'permissions',
-		    path: '/pool/' + pool,
-		},
-	    ],
-	});
+        Ext.apply(me, {
+            title: Ext.String.format(gettext('Resource Pool') + ': ' + pool),
+            hstateid: 'pooltab',
+            items: [
+                {
+                    title: gettext('Summary'),
+                    iconCls: 'fa fa-book',
+                    xtype: 'pvePoolSummary',
+                    itemId: 'summary',
+                },
+                {
+                    title: gettext('Members'),
+                    xtype: 'pvePoolMembers',
+                    iconCls: 'fa fa-th',
+                    pool: pool,
+                    itemId: 'members',
+                },
+                {
+                    xtype: 'pveACLView',
+                    title: gettext('Permissions'),
+                    iconCls: 'fa fa-unlock',
+                    itemId: 'permissions',
+                    path: '/pool/' + pool,
+                },
+            ],
+        });
 
-	me.callParent();
-   },
+        me.callParent();
+    },
 });

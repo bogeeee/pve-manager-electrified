@@ -14,12 +14,17 @@ sub setup_environment {
 }
 
 # Note: use string 'vmid' as $arg_param option, to allow vmid lists
-our $cmddef = [ 'PVE::API2::VZDump', 'vzdump', 'vmid', undef,
-		sub {
-		    my $upid = shift;
-		    exit(0) if $upid eq 'OK';
-		    my $status = PVE::Tools::upid_read_status($upid);
-		    exit(PVE::Tools::upid_status_is_error($status) ? -1 : 0);
-		}];
+our $cmddef = [
+    'PVE::API2::VZDump',
+    'vzdump',
+    'vmid',
+    undef,
+    sub {
+        my $upid = shift;
+        exit(0) if $upid eq 'OK';
+        my $status = PVE::Tools::upid_read_status($upid);
+        exit(PVE::Tools::upid_status_is_error($status) ? -1 : 0);
+    },
+];
 
 1;

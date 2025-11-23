@@ -10,7 +10,7 @@ Ext.define('PVE.form.VlanField', {
 
     allowBlank: true,
 
-    getSubmitData: function() {
+    getSubmitData: function () {
         var me = this,
             data = null,
             val;
@@ -20,21 +20,21 @@ Ext.define('PVE.form.VlanField', {
                 data = {};
                 data[me.getName()] = val;
             } else if (me.deleteEmpty) {
-		data = {};
+                data = {};
                 data.delete = me.getName();
-	    }
+            }
         }
         return data;
     },
 
-    initComponent: function() {
-	var me = this;
+    initComponent: function () {
+        var me = this;
 
-	Ext.apply(me, {
-	    minValue: 1,
-	    maxValue: 4094,
-	});
+        Ext.apply(me, {
+            minValue: 1,
+            maxValue: 4094,
+        });
 
-	me.callParent();
+        me.callParent();
     },
 });

@@ -1,11 +1,13 @@
 include ../../../defines.mk
 
-SUBDIRS=Mapping
+SUBDIRS=Mapping		\
+	BulkAction
 
 # for node independent, cluster-wide applicable, API endpoints
 # ensure we do not conflict with files shipped by pve-cluster!!
 PERLSOURCE= 			\
 	BackupInfo.pm		\
+	BulkAction.pm		\
 	MetricServer.pm		\
 	Mapping.pm		\
 	Notifications.pm		\

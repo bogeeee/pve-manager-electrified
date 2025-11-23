@@ -1,6 +1,6 @@
 include ../../defines.mk
 
-ESLINT ?= $(if $(shell command -v pve-eslint), pve-eslint, eslint)
+BIOME ?= proxmox-biome
 
 JSSRC= 							\
 	Parser.js					\
@@ -35,6 +35,7 @@ JSSRC= 							\
 	form/ContentTypeSelector.js			\
 	form/ControllerSelector.js			\
 	form/DayOfWeekSelector.js			\
+	form/DirMapSelector.js				\
 	form/DiskFormatSelector.js			\
 	form/DiskStorageSelector.js			\
 	form/FileSelector.js				\
@@ -70,7 +71,7 @@ JSSRC= 							\
 	form/SecurityGroupSelector.js			\
 	form/SnapshotSelector.js			\
 	form/SpiceEnhancementSelector.js		\
-	form/StorageScanNodeSelector.js	    		\
+	form/StorageScanNodeSelector.js			\
 	form/StorageSelector.js				\
 	form/TFASelector.js				\
 	form/TokenSelector.js 				\
@@ -99,9 +100,11 @@ JSSRC= 							\
 	grid/ResourceGrid.js				\
 	panel/ConfigPanel.js				\
 	panel/BackupAdvancedOptions.js			\
+	panel/BackupNotificationOptions.js		\
 	panel/BackupJobPrune.js				\
 	panel/HealthWidget.js				\
 	panel/IPSet.js					\
+	panel/IPView.js					\
 	panel/RunningChart.js				\
 	panel/StatusPanel.js				\
 	panel/GuestStatusView.js			\
@@ -118,6 +121,7 @@ JSSRC= 							\
 	window/BulkAction.js				\
 	window/CephInstall.js				\
 	window/Clone.js					\
+	window/ConfirmRemoveResource.js			\
 	window/FirewallEnableEdit.js			\
 	window/FirewallLograteEdit.js			\
 	window/LoginWindow.js				\
@@ -129,24 +133,29 @@ JSSRC= 							\
 	window/Settings.js				\
 	window/Snapshot.js				\
 	window/StartupEdit.js				\
-	window/DownloadUrlToStorage.js 			\
+	window/DownloadUrlToStorage.js			\
 	window/UploadToStorage.js 			\
 	window/ScheduleSimulator.js			\
 	window/Wizard.js				\
-	window/GuestDiskReassign.js				\
+	window/GuestDiskReassign.js			\
 	window/GuestStop.js				\
 	window/TreeSettingsEdit.js			\
 	window/PCIMapEdit.js				\
 	window/USBMapEdit.js				\
+	window/DirMapEdit.js				\
 	window/GuestImport.js				\
 	ha/Fencing.js					\
-	ha/GroupEdit.js					\
-	ha/GroupSelector.js				\
-	ha/Groups.js					\
 	ha/ResourceEdit.js				\
 	ha/Resources.js					\
+	ha/RuleEdit.js					\
+	ha/RuleErrorsModal.js				\
+	ha/Rules.js					\
 	ha/Status.js					\
 	ha/StatusView.js				\
+	ha/rules/NodeAffinityRuleEdit.js		\
+	ha/rules/NodeAffinityRules.js			\
+	ha/rules/ResourceAffinityRuleEdit.js		\
+	ha/rules/ResourceAffinityRules.js		\
 	dc/ACLView.js					\
 	dc/ACMEClusterView.js				\
 	dc/AuthEditBase.js				\
@@ -158,6 +167,7 @@ JSSRC= 							\
 	dc/Backup.js					\
 	dc/Cluster.js					\
 	dc/ClusterEdit.js				\
+	dc/CmdMenu.js					\
 	dc/Config.js					\
 	dc/CorosyncLinkEdit.js				\
 	dc/GroupEdit.js					\
@@ -188,12 +198,14 @@ JSSRC= 							\
 	dc/RealmSyncJob.js				\
 	dc/PCIMapView.js				\
 	dc/USBMapView.js				\
+	dc/DirMapView.js				\
 	lxc/CmdMenu.js					\
 	lxc/Config.js					\
 	lxc/CreateWizard.js				\
 	lxc/DeviceEdit.js				\
 	lxc/DNS.js					\
 	lxc/FeaturesEdit.js				\
+	lxc/EnvEdit.js				\
 	lxc/MPEdit.js					\
 	lxc/MPResize.js					\
 	lxc/Network.js					\
@@ -231,7 +243,6 @@ JSSRC= 							\
 	pool/Config.js					\
 	pool/StatusView.js				\
 	pool/Summary.js					\
-	qemu/AgentIPView.js				\
 	qemu/AudioEdit.js				\
 	qemu/BootOrderEdit.js				\
 	qemu/CDEdit.js					\
@@ -267,19 +278,26 @@ JSSRC= 							\
 	qemu/SevEdit.js					\
 	qemu/Smbios1Edit.js				\
 	qemu/SystemEdit.js				\
+	qemu/TdxEdit.js					\
 	qemu/USBEdit.js					\
+	qemu/VirtiofsEdit.js				\
 	sdn/Browser.js					\
+	sdn/NetworkBrowser.js					\
 	sdn/ControllerView.js				\
 	sdn/Status.js					\
 	sdn/StatusView.js				\
 	sdn/VnetEdit.js					\
 	sdn/VnetView.js					\
-	sdn/VnetACLView.js					\
+	sdn/VnetACLView.js				\
 	sdn/VnetPanel.js				\
 	sdn/SubnetEdit.js				\
 	sdn/SubnetView.js				\
 	sdn/ZoneContentView.js				\
 	sdn/ZoneContentPanel.js				\
+	sdn/ZoneBridgesPanel.js				\
+	sdn/ZoneBridgeView.js				\
+	sdn/EvpnZoneIpVrfPanel.js	\
+	sdn/EvpnZoneMacVrfPanel.js	\
 	sdn/FirewallPanel.js				\
 	sdn/FirewallVnetView.js				\
 	sdn/ZoneView.js					\
@@ -303,6 +321,18 @@ JSSRC= 							\
 	sdn/zones/SimpleEdit.js				\
 	sdn/zones/VlanEdit.js				\
 	sdn/zones/VxlanEdit.js				\
+	sdn/FabricsView.js				\
+	sdn/FabricsContentView.js			\
+	sdn/fabrics/Common.js				\
+	sdn/fabrics/InterfacePanel.js			\
+	sdn/fabrics/NodeEdit.js				\
+	sdn/fabrics/FabricEdit.js			\
+	sdn/fabrics/openfabric/InterfacePanel.js	\
+	sdn/fabrics/openfabric/NodeEdit.js		\
+	sdn/fabrics/openfabric/FabricEdit.js		\
+	sdn/fabrics/ospf/InterfacePanel.js		\
+	sdn/fabrics/ospf/NodeEdit.js			\
+	sdn/fabrics/ospf/FabricEdit.js			\
 	storage/ContentView.js				\
 	storage/BackupView.js				\
 	storage/Base.js					\
@@ -310,7 +340,6 @@ JSSRC= 							\
 	storage/CIFSEdit.js				\
 	storage/CephFSEdit.js				\
 	storage/DirEdit.js				\
-	storage/GlusterFsEdit.js			\
 	storage/ImageView.js				\
 	storage/IScsiEdit.js				\
 	storage/LVMEdit.js				\
@@ -334,8 +363,9 @@ all:
 
 
 
+OnlineHelpInfo.js: ARGS ?= $(if $(ALLOW_MISSING),--allow-missing,)
 OnlineHelpInfo.js: $(JSSRC) $(WIDGETKIT)
-	/usr/bin/asciidoc-pve scan-extjs $^ >$@.tmp
+	/usr/bin/asciidoc-pve scan-extjs $(ARGS) $^ >$@.tmp
 	mv $@.tmp $@
 
 .PHONY: install

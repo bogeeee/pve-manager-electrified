@@ -3,14 +3,14 @@ Ext.define('PVE.form.PCISelector', {
     xtype: 'pvePCISelector',
 
     store: {
-	fields: ['id', 'vendor_name', 'device_name', 'vendor', 'device', 'iommugroup', 'mdev'],
-	filterOnLoad: true,
-	sorters: [
-	    {
-		property: 'id',
-		direction: 'ASC',
-	    },
-	],
+        fields: ['id', 'vendor_name', 'device_name', 'vendor', 'device', 'iommugroup', 'mdev'],
+        filterOnLoad: true,
+        sorters: [
+            {
+                property: 'id',
+                direction: 'ASC',
+            },
+        ],
     },
 
     autoSelect: false,
@@ -22,71 +22,70 @@ Ext.define('PVE.form.PCISelector', {
     onLoadCallBack: undefined,
 
     listConfig: {
-	minHeight: 80,
-	width: 800,
-	columns: [
-	    {
-		header: 'ID',
-		dataIndex: 'id',
-		width: 100,
-	    },
-	    {
-		header: gettext('IOMMU Group'),
-		dataIndex: 'iommugroup',
-		renderer: v => v === -1 ? '-' : v,
-		width: 75,
-	    },
-	    {
-		header: gettext('Vendor'),
-		dataIndex: 'vendor_name',
-		flex: 2,
-	    },
-	    {
-		header: gettext('Device'),
-		dataIndex: 'device_name',
-		flex: 6,
-	    },
-	    {
-		header: gettext('Mediated Devices'),
-		dataIndex: 'mdev',
-		flex: 1,
-		renderer: function(val) {
-		    return Proxmox.Utils.format_boolean(!!val);
-		},
-	    },
-	],
+        minHeight: 80,
+        width: 800,
+        columns: [
+            {
+                header: 'ID',
+                dataIndex: 'id',
+                width: 100,
+            },
+            {
+                header: gettext('IOMMU Group'),
+                dataIndex: 'iommugroup',
+                renderer: (v) => (v === -1 ? '-' : v),
+                width: 75,
+            },
+            {
+                header: gettext('Vendor'),
+                dataIndex: 'vendor_name',
+                flex: 2,
+            },
+            {
+                header: gettext('Device'),
+                dataIndex: 'device_name',
+                flex: 6,
+            },
+            {
+                header: gettext('Mediated Devices'),
+                dataIndex: 'mdev',
+                flex: 1,
+                renderer: function (val) {
+                    return Proxmox.Utils.format_boolean(!!val);
+                },
+            },
+        ],
     },
 
-    setNodename: function(nodename) {
-	var me = this;
+    setNodename: function (nodename) {
+        var me = this;
 
-	if (!nodename || me.nodename === nodename) {
-	    return;
-	}
+        if (!nodename || me.nodename === nodename) {
+            return;
+        }
 
-	me.nodename = nodename;
+        me.nodename = nodename;
 
-	me.store.setProxy({
-	    type: 'proxmox',
-	    url: '/api2/json/nodes/' + me.nodename + '/hardware/pci',
-	});
+        me.store.setProxy({
+            type: 'proxmox',
+            url: '/api2/json/nodes/' + me.nodename + '/hardware/pci',
+        });
 
-	me.store.load();
+        me.store.load();
     },
 
-    initComponent: function() {
-	var me = this;
+    initComponent: function () {
+        var me = this;
 
-	var nodename = me.nodename;
-	me.nodename = undefined;
+        var nodename = me.nodename;
+        me.nodename = undefined;
 
         me.callParent();
 
-	if (me.onLoadCallBack !== undefined) {
-	    me.mon(me.getStore(), 'load', me.onLoadCallBack);
-	}
+        if (me.onLoadCallBack !== undefined) {
+            me.mon(me.getStore(), 'load', me.onLoadCallBack);
+        }
 
-	me.setNodename(nodename);
+        me.setNodename(nodename);
     },
 });
-

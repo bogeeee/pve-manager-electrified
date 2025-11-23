@@ -9,44 +9,48 @@ use PVE::SectionConfig;
 
 use base qw(PVE::SectionConfig);
 
-cfs_register_file('status.cfg',
+cfs_register_file(
+    'status.cfg',
     sub { __PACKAGE__->parse_config(@_); },
-    sub { __PACKAGE__->write_config(@_); }
+    sub { __PACKAGE__->write_config(@_); },
 );
 
 my $defaultData = {
     propertyList => {
-	id => {
-	    description => "The ID of the entry.",
-	    type => 'string', format => 'pve-configid',
-	},
-	type => { 
-	    description => "Plugin type.",
-	    type => 'string', format => 'pve-configid',
-	},
-	disable => {
-	    description => "Flag to disable the plugin.",
-	    type => 'boolean',
-	    optional => 1,
-	},
-	server => {
-	    type => 'string', format => 'address',
-	    description => "server dns name or IP address",
-	},
-	port => {
-	    type => 'integer',
-	    description => "server network port",
-	    minimum => 1,
-	    maximum => 64*1024,
-	},
-	mtu => {
-	    type => 'integer',
-	    description => "MTU for metrics transmission over UDP",
-	    default => 1500,
-	    minimum => 512,
-	    maximum => 64*1024,
-	    optional => 1,
-	},
+        id => {
+            description => "The ID of the entry.",
+            type => 'string',
+            format => 'pve-configid',
+        },
+        type => {
+            description => "Plugin type.",
+            type => 'string',
+            format => 'pve-configid',
+        },
+        disable => {
+            description => "Flag to disable the plugin.",
+            type => 'boolean',
+            optional => 1,
+        },
+        server => {
+            type => 'string',
+            format => 'address',
+            description => "server dns name or IP address",
+        },
+        port => {
+            type => 'integer',
+            description => "server network port",
+            minimum => 1,
+            maximum => 64 * 1024,
+        },
+        mtu => {
+            type => 'integer',
+            description => "MTU for metrics transmission over UDP",
+            default => 1500,
+            minimum => 512,
+            maximum => 64 * 1024,
+            optional => 1,
+        },
     },
 };
 
@@ -58,13 +62,13 @@ sub parse_section_header {
     my ($class, $line) = @_;
 
     if ($line =~ m/^(\S+):\s*(\S+)?\s*$/) {
-	my $type = lc($1);
-	my $id = $2 // $type;
-	my $errmsg = undef; # set if you want to skip whole section
-	eval { PVE::JSONSchema::pve_verify_configid($id) };
-	$errmsg = $@ if $@;
-	my $config = {}; # to return additional attributes
-	return ($type, $id, $errmsg, $config);
+        my $type = lc($1);
+        my $id = $2 // $type;
+        my $errmsg = undef; # set if you want to skip whole section
+        eval { PVE::JSONSchema::pve_verify_configid($id) };
+        $errmsg = $@ if $@;
+        my $config = {}; # to return additional attributes
+        return ($type, $id, $errmsg, $config);
     }
     return undef;
 }
@@ -99,7 +103,7 @@ sub add_metric_data {
     my $dataq_len = length($txn->{data}) // 0;
 
     if (($dataq_len + $data_length) >= $batch_size) {
-	$class->flush_data($txn);
+        $class->flush_data($txn);
     }
     $txn->{data} //= '';
     $txn->{data} .= "$data";
@@ -109,8 +113,8 @@ sub flush_data {
     my ($class, $txn) = @_;
 
     if (!$txn->{connection}) {
-	return if !$txn->{data}; # OK, if data was already sent/flushed
-	die "cannot flush metric data, no connection available!\n";
+        return if !$txn->{data}; # OK, if data was already sent/flushed
+        die "cannot flush metric data, no connection available!\n";
     }
     return if !defined($txn->{data}) || $txn->{data} eq '';
 
@@ -123,7 +127,7 @@ sub send {
     my ($class, $connection, $data, $cfg) = @_;
 
     defined($connection->send($data))
-	or die "failed to send metrics: $!\n";
+        or die "failed to send metrics: $!\n";
 }
 
 sub test_connection {

@@ -1,8 +1,0 @@
-#!/usr/bin/perl
-
-use strict;
-use warnings;
-
-use PVE::CLI::pve7to8;
-
-PVE::CLI::pve7to8->run_cli_handler();

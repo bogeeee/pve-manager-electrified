@@ -3,47 +3,48 @@ Ext.define('PVE.qemu.SerialnputPanel', {
 
     autoComplete: false,
 
-    setVMConfig: function(vmconfig) {
-	var me = this, i;
-	me.vmconfig = vmconfig;
+    setVMConfig: function (vmconfig) {
+        var me = this,
+            i;
+        me.vmconfig = vmconfig;
 
-	for (i = 0; i < 4; i++) {
-	    var port = 'serial' + i.toString();
-	    if (!me.vmconfig[port]) {
-		me.down('field[name=serialid]').setValue(i);
-		break;
-	    }
-	}
+        for (i = 0; i < 4; i++) {
+            let port = 'serial' + i.toString();
+            if (!me.vmconfig[port]) {
+                me.down('field[name=serialid]').setValue(i);
+                break;
+            }
+        }
     },
 
-    onGetValues: function(values) {
-	var me = this;
+    onGetValues: function (values) {
+        var _me = this;
 
-	var id = 'serial' + values.serialid;
-	delete values.serialid;
-	values[id] = 'socket';
-	return values;
+        var id = 'serial' + values.serialid;
+        delete values.serialid;
+        values[id] = 'socket';
+        return values;
     },
 
     items: [
-	{
-	    xtype: 'proxmoxintegerfield',
-	    name: 'serialid',
-	    fieldLabel: gettext('Serial Port'),
-	    minValue: 0,
-	    maxValue: 3,
-	    allowBlank: false,
-	    validator: function(id) {
-		if (!this.rendered) {
-		    return true;
-		}
-		let view = this.up('panel');
-		if (view.vmconfig !== undefined && Ext.isDefined(view.vmconfig['serial' + id])) {
-			return "This device is already in use.";
-		}
-		return true;
-	    },
-	},
+        {
+            xtype: 'proxmoxintegerfield',
+            name: 'serialid',
+            fieldLabel: gettext('Serial Port'),
+            minValue: 0,
+            maxValue: 3,
+            allowBlank: false,
+            validator: function (id) {
+                if (!this.rendered) {
+                    return true;
+                }
+                let view = this.up('panel');
+                if (view.vmconfig !== undefined && Ext.isDefined(view.vmconfig['serial' + id])) {
+                    return 'This device is already in use.';
+                }
+                return true;
+            },
+        },
     ],
 });
 
@@ -56,24 +57,24 @@ Ext.define('PVE.qemu.SerialEdit', {
 
     subject: gettext('Serial Port'),
 
-    initComponent: function() {
-	var me = this;
+    initComponent: function () {
+        var me = this;
 
-	// for now create of (socket) serial port only
-	me.isCreate = true;
+        // for now create of (socket) serial port only
+        me.isCreate = true;
 
-	var ipanel = Ext.create('PVE.qemu.SerialnputPanel', {});
+        var ipanel = Ext.create('PVE.qemu.SerialnputPanel', {});
 
-	Ext.apply(me, {
-	    items: [ipanel],
-	});
+        Ext.apply(me, {
+            items: [ipanel],
+        });
 
-	me.callParent();
+        me.callParent();
 
-	me.load({
-	    success: function(response, options) {
-		ipanel.setVMConfig(response.result.data);
-	    },
-	});
+        me.load({
+            success: function (response, options) {
+                ipanel.setVMConfig(response.result.data);
+            },
+        });
     },
 });

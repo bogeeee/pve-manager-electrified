@@ -4,17 +4,18 @@
 # This can also be added as a line in /etc/vzdump.conf
 # e.g. 'script: /usr/local/bin/vzdump-hook-script.pl'
 
-
 use strict;
 
-print "HOOK: " . join (' ', @ARGV) . "\n";
+print "HOOK: " . join(' ', @ARGV) . "\n";
 
 my $phase = shift;
 
-if ($phase eq 'job-init' ||
-    $phase eq 'job-start' ||
-    $phase eq 'job-end'  ||
-    $phase eq 'job-abort') {
+if (
+    $phase eq 'job-init'
+    || $phase eq 'job-start'
+    || $phase eq 'job-end'
+    || $phase eq 'job-abort'
+) {
 
     # undef for Proxmox Backup Server storages
     # undef in phase 'job-init' except when --dumpdir is used directly
@@ -30,21 +31,23 @@ if ($phase eq 'job-init' ||
 
     # example: wake up remote storage node and enable storage
     if ($phase eq 'job-init') {
-	#system("wakeonlan AA:BB:CC:DD:EE:FF");
-	#sleep(30);
-	#system ("/sbin/pvesm set $storeid --disable 0") == 0 ||
-	#    die "enabling storage $storeid failed";
+        #system("wakeonlan AA:BB:CC:DD:EE:FF");
+        #sleep(30);
+        #system ("/sbin/pvesm set $storeid --disable 0") == 0 ||
+        #    die "enabling storage $storeid failed";
     }
 
     # do what you want
 
-} elsif ($phase eq 'backup-start' ||
-	 $phase eq 'backup-end' ||
-	 $phase eq 'backup-abort' ||
-	 $phase eq 'log-end' ||
-	 $phase eq 'pre-stop' ||
-	 $phase eq 'pre-restart' ||
-	 $phase eq 'post-restart') {
+} elsif (
+    $phase eq 'backup-start'
+    || $phase eq 'backup-end'
+    || $phase eq 'backup-abort'
+    || $phase eq 'log-end'
+    || $phase eq 'pre-stop'
+    || $phase eq 'pre-restart'
+    || $phase eq 'post-restart'
+) {
 
     my $mode = shift; # stop/suspend/snapshot
 
@@ -69,7 +72,7 @@ if ($phase eq 'job-init' ||
 
     print "HOOK-ENV: ";
     for my $var (qw(vmtype dumpdir storeid hostname target logfile)) {
-	print "$var=$ENV{uc($var)};" if defined($ENV{uc($var)});
+        print "$var=$ENV{uc($var)};" if defined($ENV{ uc($var) });
     }
     print "\n";
 
@@ -91,4 +94,4 @@ if ($phase eq 'job-init' ||
 
 }
 
-exit (0);
+exit(0);

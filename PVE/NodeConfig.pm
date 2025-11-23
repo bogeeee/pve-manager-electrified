@@ -15,25 +15,31 @@ my $MAXDOMAINS = 5;
 
 my $node_config_lock = '/var/lock/pvenode.lock';
 
-PVE::JSONSchema::register_format('pve-acme-domain', sub {
-    my ($domain, $noerr) = @_;
+PVE::JSONSchema::register_format(
+    'pve-acme-domain',
+    sub {
+        my ($domain, $noerr) = @_;
 
-    my $label = qr/[a-z0-9][a-z0-9_-]*/i;
+        my $label = qr/[a-z0-9][a-z0-9_-]*/i;
 
-    return $domain if $domain =~ /^$label(?:\.$label)+$/;
-    return undef if $noerr;
-    die "value '$domain' does not look like a valid domain name!\n";
-});
+        return $domain if $domain =~ /^$label(?:\.$label)+$/;
+        return undef if $noerr;
+        die "value '$domain' does not look like a valid domain name!\n";
+    },
+);
 
-PVE::JSONSchema::register_format('pve-acme-alias', sub {
-    my ($alias, $noerr) = @_;
+PVE::JSONSchema::register_format(
+    'pve-acme-alias',
+    sub {
+        my ($alias, $noerr) = @_;
 
-    my $label = qr/[a-z0-9_][a-z0-9_-]*/i;
+        my $label = qr/[a-z0-9_][a-z0-9_-]*/i;
 
-    return $alias if $alias =~ /^$label(?:\.$label)+$/;
-    return undef if $noerr;
-    die "value '$alias' does not look like a valid alias name!\n";
-});
+        return $alias if $alias =~ /^$label(?:\.$label)+$/;
+        return undef if $noerr;
+        die "value '$alias' does not look like a valid alias name!\n";
+    },
+);
 
 sub config_file {
     my ($node) = @_;
@@ -66,8 +72,8 @@ sub lock_config {
 
     # make sure configuration file is up-to-date
     my $code = sub {
-	PVE::Cluster::cfs_update();
-	$realcode->(@_);
+        PVE::Cluster::cfs_update();
+        $realcode->(@_);
     };
 
     my $res = lock_file($node_config_lock, 10, $code, @param);
@@ -79,45 +85,54 @@ sub lock_config {
 
 my $confdesc = {
     description => {
-	type => 'string',
-	description => "Description for the Node. Shown in the web-interface node notes panel."
-	    ." This is saved as comment inside the configuration file.",
-	maxLength => 64 * 1024,
-	optional => 1,
+        type => 'string',
+        description => "Description for the Node. Shown in the web-interface node notes panel."
+            . " This is saved as comment inside the configuration file.",
+        maxLength => 64 * 1024,
+        optional => 1,
     },
     'startall-onboot-delay' => {
-	description => 'Initial delay in seconds, before starting all the Virtual Guests with on-boot enabled.',
-	type => 'integer',
-	minimum => 0,
-	maximum => 300,
-	default => 0,
-	optional => 1,
+        description =>
+            'Initial delay in seconds, before starting all the Virtual Guests with on-boot enabled.',
+        type => 'integer',
+        minimum => 0,
+        maximum => 300,
+        default => 0,
+        optional => 1,
+    },
+    'ballooning-target' => {
+        description => 'RAM usage target for ballooning (in percent of total memory)',
+        type => 'integer',
+        minimum => 0,
+        maximum => 100,
+        default => 80,
+        optional => 1,
     },
 };
 
 my $wakeonlan_desc = {
     mac => {
-	type => 'string',
-	description => 'MAC address for wake on LAN',
-	format => 'mac-addr',
-	format_description => 'MAC address',
-	default_key => 1,
+        type => 'string',
+        description => 'MAC address for wake on LAN',
+        format => 'mac-addr',
+        format_description => 'MAC address',
+        default_key => 1,
     },
     'bind-interface' => {
-	type => 'string',
-	description => 'Bind to this interface when sending wake on LAN packet',
-	default => 'The interface carrying the default route',
-	format => 'pve-iface',
-	format_description => 'bind interface',
-	optional => 1,
+        type => 'string',
+        description => 'Bind to this interface when sending wake on LAN packet',
+        default => 'The interface carrying the default route',
+        format => 'pve-iface',
+        format_description => 'bind interface',
+        optional => 1,
     },
     'broadcast-address' => {
-	type => 'string',
-	description => 'IPv4 broadcast address to use when sending wake on LAN packet',
-	default => '255.255.255.255',
-	format => 'ipv4',
-	format_description => 'IPv4 broadcast address',
-	optional => 1,
+        type => 'string',
+        description => 'IPv4 broadcast address to use when sending wake on LAN packet',
+        default => '255.255.255.255',
+        format => 'ipv4',
+        format_description => 'IPv4 broadcast address',
+        optional => 1,
     },
 };
 
@@ -130,37 +145,37 @@ $confdesc->{wakeonlan} = {
 
 my $acme_domain_desc = {
     domain => {
-	type => 'string',
-	format => 'pve-acme-domain',
-	format_description => 'domain',
-	description => 'domain for this node\'s ACME certificate',
-	default_key => 1,
+        type => 'string',
+        format => 'pve-acme-domain',
+        format_description => 'domain',
+        description => 'domain for this node\'s ACME certificate',
+        default_key => 1,
     },
     plugin => {
-	type => 'string',
-	format => 'pve-configid',
-	description => 'The ACME plugin ID',
-	format_description => 'name of the plugin configuration',
-	optional => 1,
-	default => 'standalone',
+        type => 'string',
+        format => 'pve-configid',
+        description => 'The ACME plugin ID',
+        format_description => 'name of the plugin configuration',
+        optional => 1,
+        default => 'standalone',
     },
     alias => {
-	type => 'string',
-	format => 'pve-acme-alias',
-	format_description => 'domain',
-	description => 'Alias for the Domain to verify ACME Challenge over DNS',
-	optional => 1,
+        type => 'string',
+        format => 'pve-acme-alias',
+        format_description => 'domain',
+        description => 'Alias for the Domain to verify ACME Challenge over DNS',
+        optional => 1,
     },
 };
 
 my $acmedesc = {
     account => get_standard_option('pve-acme-account-name'),
     domains => {
-	type => 'string',
-	format => 'pve-acme-domain-list',
-	format_description => 'domain[;domain;...]',
-	description => 'List of domains for this node\'s ACME certificate',
-	optional => 1,
+        type => 'string',
+        format => 'pve-acme-domain-list',
+        format_description => 'domain[;domain;...]',
+        description => 'List of domains for this node\'s ACME certificate',
+        optional => 1,
     },
 };
 
@@ -171,14 +186,14 @@ $confdesc->{acme} = {
     optional => 1,
 };
 
-for my $i (0..$MAXDOMAINS) {
+for my $i (0 .. $MAXDOMAINS) {
     $confdesc->{"acmedomain$i"} = {
-	type => 'string',
-	description => 'ACME domain and validation plugin',
-	format => $acme_domain_desc,
-	optional => 1,
+        type => 'string',
+        description => 'ACME domain and validation plugin',
+        format => $acme_domain_desc,
+        optional => 1,
     };
-};
+}
 
 my $conf_schema = {
     type => 'object',
@@ -204,17 +219,17 @@ sub write_node_config {
     # add description as comment to top of file
     my $descr = $conf->{description} || '';
     foreach my $cl (split(/\n/, $descr)) {
-	$raw .= '#' .  PVE::Tools::encode_text($cl) . "\n";
+        $raw .= '#' . PVE::Tools::encode_text($cl) . "\n";
     }
 
     for my $key (sort keys %$conf) {
-	next if ($key eq 'description');
-	next if ($key eq 'digest');
+        next if ($key eq 'description');
+        next if ($key eq 'digest');
 
-	my $value = $conf->{$key};
-	die "detected invalid newline inside property '$key'\n"
-	    if $value =~ m/\n/;
-	$raw .= "$key: $value\n";
+        my $value = $conf->{$key};
+        die "detected invalid newline inside property '$key'\n"
+            if $value =~ m/\n/;
+        $raw .= "$key: $value\n";
     }
 
     return $raw;
@@ -227,10 +242,10 @@ sub get_wakeonlan_config {
 
     my $res = {};
     if (defined($node_conf->{wakeonlan})) {
-	$res = eval {
-	    PVE::JSONSchema::parse_property_string($wakeonlan_desc, $node_conf->{wakeonlan})
-	};
-	die $@ if $@;
+        $res = eval {
+            PVE::JSONSchema::parse_property_string($wakeonlan_desc, $node_conf->{wakeonlan});
+        };
+        die $@ if $@;
     }
 
     return $res;
@@ -246,55 +261,52 @@ sub get_acme_conf {
 
     my $res = {};
     if (defined($node_conf->{acme})) {
-	$res = eval {
-	    PVE::JSONSchema::parse_property_string($acmedesc, $node_conf->{acme})
-	};
-	if (my $err = $@) {
-	    return undef if $noerr;
-	    die $err;
-	}
-	my $standalone_domains = delete($res->{domains}) // '';
-	$res->{domains} = {};
-	for my $domain (split(";", $standalone_domains)) {
-	    $domain = lc($domain);
-	    die "duplicate domain '$domain' in ACME config properties\n"
-		if defined($res->{domains}->{$domain});
+        $res = eval { PVE::JSONSchema::parse_property_string($acmedesc, $node_conf->{acme}) };
+        if (my $err = $@) {
+            return undef if $noerr;
+            die $err;
+        }
+        my $standalone_domains = delete($res->{domains}) // '';
+        $res->{domains} = {};
+        for my $domain (split(";", $standalone_domains)) {
+            $domain = lc($domain);
+            die "duplicate domain '$domain' in ACME config properties\n"
+                if defined($res->{domains}->{$domain});
 
-	    $res->{domains}->{$domain}->{plugin} = 'standalone';
-	    $res->{domains}->{$domain}->{_configkey} = 'acme';
-	}
+            $res->{domains}->{$domain}->{plugin} = 'standalone';
+            $res->{domains}->{$domain}->{_configkey} = 'acme';
+        }
     }
 
     $res->{account} //= 'default';
 
-    for my $index (0..$MAXDOMAINS) {
-	my $domain_rec = $node_conf->{"acmedomain$index"};
-	next if !defined($domain_rec);
+    for my $index (0 .. $MAXDOMAINS) {
+        my $domain_rec = $node_conf->{"acmedomain$index"};
+        next if !defined($domain_rec);
 
-	my $parsed = eval {
-	    PVE::JSONSchema::parse_property_string($acme_domain_desc, $domain_rec)
-	};
-	if (my $err = $@) {
-	    return undef if $noerr;
-	    die $err;
-	}
-	my $domain = lc(delete $parsed->{domain});
-	if (my $exists = $res->{domains}->{$domain}) {
-	    return undef if $noerr;
-	    die "duplicate domain '$domain' in ACME config properties"
-	        ." 'acmedomain$index' and '$exists->{_configkey}'\n";
-	}
-	$parsed->{plugin} //= 'standalone';
+        my $parsed =
+            eval { PVE::JSONSchema::parse_property_string($acme_domain_desc, $domain_rec) };
+        if (my $err = $@) {
+            return undef if $noerr;
+            die $err;
+        }
+        my $domain = lc(delete $parsed->{domain});
+        if (my $exists = $res->{domains}->{$domain}) {
+            return undef if $noerr;
+            die "duplicate domain '$domain' in ACME config properties"
+                . " 'acmedomain$index' and '$exists->{_configkey}'\n";
+        }
+        $parsed->{plugin} //= 'standalone';
 
-	my $plugin_id = $parsed->{plugin};
-	if ($plugin_id ne 'standalone') {
-	    my $plugins = PVE::API2::ACMEPlugin::load_config();
-	    die "plugin '$plugin_id' for domain '$domain' not found!\n"
-		if !$plugins->{ids}->{$plugin_id};
-	}
+        my $plugin_id = $parsed->{plugin};
+        if ($plugin_id ne 'standalone') {
+            my $plugins = PVE::API2::ACMEPlugin::load_config();
+            die "plugin '$plugin_id' for domain '$domain' not found!\n"
+                if !$plugins->{ids}->{$plugin_id};
+        }
 
-	$parsed->{_configkey} = "acmedomain$index";
-	$res->{domains}->{$domain} = $parsed;
+        $parsed->{_configkey} = "acmedomain$index";
+        $res->{domains}->{$domain} = $parsed;
     }
 
     return $res;

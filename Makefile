@@ -30,6 +30,12 @@ RSYNC_PARAMS=--delete
 all: $(SUBDIRS)
 	set -e && for i in $(SUBDIRS); do $(MAKE) -C $$i; done
 
+.PHONY: tidy
+tidy:
+	git ls-files ':*.p[ml]'| xargs -n4 -P0 proxmox-perltidy
+	$(MAKE) -C bin tidy
+	$(MAKE) -C www tidy
+
 .PHONY: check
 check: bin test www
 	$(MAKE) -C bin check
@@ -82,7 +88,7 @@ distclean: clean
 .PHONY: clean
 clean:
 	set -e && for i in $(SUBDIRS); do $(MAKE) -C $$i $@; done
-	rm -f $(PACKAGE)*.tar* country.dat *.deb *.dsc *.build *.buildinfo *.changes
+	rm -f $(PACKAGE)*.tar* *.deb *.dsc *.build *.buildinfo *.changes
 	rm -rf dest $(PACKAGE)-[0-9]*/
 	rm -rf $(BUILDDIR).tmp
 	rm -rf $(BUILDDIR)

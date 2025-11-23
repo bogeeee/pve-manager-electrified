@@ -6,34 +6,34 @@ use POSIX;
 use Getopt::Long;
 use PVE::API2::APT;
 
-my $pkgarray = PVE::API2::APT->versions({ node => 'localhost'});
+my $pkgarray = PVE::API2::APT->versions({ node => 'localhost' });
 my $pkglist = {};
 foreach my $pkg (@$pkgarray) {
-    $pkglist->{$pkg->{Package}} = $pkg;
+    $pkglist->{ $pkg->{Package} } = $pkg;
 }
 
 sub print_status {
     my ($pkg) = @_;
 
-    my $pkginfo =  $pkglist->{$pkg};
+    my $pkginfo = $pkglist->{$pkg};
 
     if (!$pkginfo) {
-	print "$pkg: unknown package - internal error\n";
-	return;
+        print "$pkg: unknown package - internal error\n";
+        return;
     }
     my $version = "not correctly installed";
     if ($pkginfo->{OldVersion} && $pkginfo->{CurrentState} eq 'Installed') {
-	$version = $pkginfo->{OldVersion};
+        $version = $pkginfo->{OldVersion};
     } elsif ($pkginfo->{CurrentState} eq 'ConfigFiles') {
-	$version = 'residual config';
+        $version = 'residual config';
     }
 
     if ($pkginfo->{RunningKernel}) {
-	print "$pkg: $version (running kernel: $pkginfo->{RunningKernel})\n";
+        print "$pkg: $version (running kernel: $pkginfo->{RunningKernel})\n";
     } elsif ($pkginfo->{ManagerVersion}) {
-	print "$pkg: $version (running version: $pkginfo->{ManagerVersion})\n";
+        print "$pkg: $version (running version: $pkginfo->{ManagerVersion})\n";
     } else {
-	print "$pkg: $version\n";
+        print "$pkg: $version\n";
     }
 }
 
@@ -47,23 +47,22 @@ sub print_usage {
 
 my $opt_verbose;
 
-if (!GetOptions ('verbose' => \$opt_verbose)) {
-    print_usage ();
-    exit (-1);
+if (!GetOptions('verbose' => \$opt_verbose)) {
+    print_usage();
+    exit(-1);
 }
 
-if (scalar (@ARGV) != 0) {
-    print_usage ();
-    exit (-1);
+if (scalar(@ARGV) != 0) {
+    print_usage();
+    exit(-1);
 }
 
-my $ver =  PVE::pvecfg::package() . '/' . PVE::pvecfg::version_text();
+my $ver = PVE::pvecfg::package() . '/' . PVE::pvecfg::version_text();
 my (undef, undef, $kver) = POSIX::uname();
-
 
 if (!$opt_verbose) {
     print "$ver (running kernel: $kver)\n";
-    exit (0);
+    exit(0);
 }
 
 foreach my $pkg (@$pkgarray) {

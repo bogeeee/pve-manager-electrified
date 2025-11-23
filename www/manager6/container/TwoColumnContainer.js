@@ -9,8 +9,8 @@ Ext.define('PVE.container.TwoColumnContainer', {
     alias: 'widget.pveTwoColumnContainer',
 
     layout: {
-	type: 'hbox',
-	align: 'begin',
+        type: 'hbox',
+        align: 'begin',
     },
 
     // The default ratio of the start widget. It an be an integer or a floating point number
@@ -31,27 +31,27 @@ Ext.define('PVE.container.TwoColumnContainer', {
     // same as fields in a panel
     padding: '0 0 5 0',
 
-    initComponent: function() {
-	let me = this;
+    initComponent: function () {
+        let me = this;
 
-	if (!me.startColumn) {
-	    throw "no start widget configured";
-	}
-	if (!me.endColumn) {
-	    throw "no end widget configured";
-	}
+        if (!me.startColumn) {
+            throw 'no start widget configured';
+        }
+        if (!me.endColumn) {
+            throw 'no end widget configured';
+        }
 
-	Ext.apply(me, {
-	    items: [
-		Ext.applyIf({ flex: me.startFlex }, me.startColumn),
-		{
-		    xtype: 'box',
-		    width: me.columnPadding,
-		},
-		Ext.applyIf({ flex: me.endFlex }, me.endColumn),
-	    ],
-	});
+        Ext.apply(me, {
+            items: [
+                Ext.applyIf({ flex: me.startFlex }, me.startColumn),
+                {
+                    xtype: 'box',
+                    width: me.columnPadding,
+                },
+                Ext.applyIf({ flex: me.endFlex }, me.endColumn),
+            ],
+        });
 
-	me.callParent();
+        me.callParent();
     },
 });

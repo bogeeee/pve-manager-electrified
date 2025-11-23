@@ -2,7 +2,7 @@
 
 $ENV{'PATH'} = '/sbin:/bin:/usr/sbin:/usr/bin';
 
-delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};  
+delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
 
 use strict;
 use warnings;
@@ -20,11 +20,11 @@ $SIG{'__WARN__'} = sub {
 };
 
 my $prepare = sub {
-    my $rundir="/var/run/pveproxy";
+    my $rundir = "/var/run/pveproxy";
     if (mkdir($rundir, 0700)) { # only works at first start if we are root)
-	my $gid = getgrnam('www-data') || die "getgrnam failed - $!\n";
-	my $uid = getpwnam('www-data') || die "getpwnam failed - $!\n";
-	chown($uid, $gid, $rundir);
+        my $gid = getgrnam('www-data') || die "getgrnam failed - $!\n";
+        my $uid = getpwnam('www-data') || die "getpwnam failed - $!\n";
+        chown($uid, $gid, $rundir);
     }
 };
 

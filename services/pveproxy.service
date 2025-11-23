@@ -13,6 +13,7 @@ After=ssh.service
 [Service]
 ExecStartPre=-/usr/bin/pvecm updatecerts --silent
 ExecStart=/usr/bin/pveproxy start
+ExecStartPost=-sh -c '[ ! -e /var/log/pveam.log ] && /usr/bin/pveupdate'
 ExecStop=/usr/bin/pveproxy stop
 ExecReload=/usr/bin/pveproxy restart
 PIDFile=/run/pveproxy/pveproxy.pid

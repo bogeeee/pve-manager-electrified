@@ -1,0 +1,178 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+
+use Getopt::Long;
+use Term::ANSIColor;
+
+use PVE::CLI::pve8to9;
+
+use PVE::RPCEnvironment;
+use PVE::Tools qw(run_command);
+
+my $is_tty = (-t STDOUT);
+
+my $level2color = {
+    pass => 'green',
+    warn => 'yellow',
+    fail => 'bold red',
+};
+
+my $log_line = sub {
+    my ($level, $line) = @_;
+
+    my $color = $level2color->{$level} // '';
+    print color($color) if $is_tty && $color && $color ne '';
+
+    print uc($level), ': ' if defined($level);
+    print "$line\n";
+
+    print color('reset') if $is_tty;
+};
+
+sub log_pass { $log_line->('pass', @_); }
+sub log_info { $log_line->('info', @_); }
+sub log_warn { $log_line->('warn', @_); }
+sub log_fail { $log_line->('fail', @_); }
+
+sub main {
+    my $assume_yes = 0;
+
+    if (!GetOptions('assume-yes|y', \$assume_yes)) {
+        print "USAGE $0 [ --assume-yes | -y ]\n";
+        exit(-1);
+    }
+
+    PVE::RPCEnvironment->setup_default_cli_env();
+
+    my $cfg = PVE::Storage::config();
+    my $storage_info = PVE::Storage::storage_info($cfg);
+
+    my $got_error = 0;
+    my $skipped_storage = 0;
+    my $still_found_autoactivated_lvs = 0;
+    my $did_work = 0;
+
+    log_info("Starting with PVE 9, autoactivation will be disabled for new LVM/LVM-thin guest "
+        . "volumes. This script disables autoactivation for existing LVM/LVM-thin guest volumes."
+    );
+
+    for my $storeid (sort keys %$storage_info) {
+        eval {
+            my $scfg = PVE::Storage::storage_config($cfg, $storeid);
+            my $type = $scfg->{type};
+            return if $type ne 'lvm' && $type ne 'lvmthin';
+
+            my $info = $storage_info->{$storeid};
+            if (!$info->{enabled} || !$info->{active}) {
+                log_info("storage '$storeid' ($type) is disabled or inactive");
+                return;
+            }
+
+            my $vgname = $scfg->{vgname};
+            die "unexpected empty VG name (storage '$storeid')\n" if !$vgname;
+
+            my $autoactivated_lvs =
+                PVE::CLI::pve8to9::query_autoactivated_lvm_guest_volumes($cfg, $storeid, $vgname);
+            if (scalar(@$autoactivated_lvs) == 0) {
+                log_pass("all guest volumes on storage '$storeid' have "
+                    . "autoactivation disabled");
+                return;
+            }
+
+            print "Disable autoactivation on "
+                . scalar(@$autoactivated_lvs)
+                . " guest volumes on storage '$storeid'? (y/N)? ";
+
+            my $continue;
+            if ($assume_yes) {
+                print "Assuming 'yes' because '--assume-yes' was passed.\n";
+                $continue = 1;
+            } elsif ($is_tty) {
+                my $answer = <STDIN>;
+                $continue = defined($answer) && $answer =~ m/^\s*y(?:es)?\s*$/i;
+            } else {
+                print "Assuming 'no'. Pass '--assume-yes' to always assume 'yes'.\n";
+                $continue = 0;
+            }
+
+            if (!$continue) {
+                $skipped_storage = 1;
+                log_warn("Skipping '$storeid' as requested ...\n");
+                return;
+            }
+
+            # in order to avoid holding the lock for too long at a time, update LVs in batches of 32
+            # and release the lock in between
+            my $plugin = PVE::Storage::Plugin->lookup($scfg->{type});
+            while (@$autoactivated_lvs) {
+                my @current_lvs = splice @$autoactivated_lvs, 0, 32;
+                $plugin->cluster_lock_storage(
+                    $storeid,
+                    $scfg->{shared},
+                    undef,
+                    sub {
+                        for my $lvname (@current_lvs) {
+                            log_info("disabling autoactivation for $vgname/$lvname on storage "
+                                . "'$storeid'...");
+                            my $cmd = [
+                                '/sbin/lvchange', '--setautoactivation', 'n', "$vgname/$lvname",
+                            ];
+
+                            eval { run_command($cmd); };
+                            my $err = $@;
+                            die "could not disable autoactivation for $vgname/$lvname: $err\n"
+                                if $err;
+
+                            $did_work = 1;
+                        }
+                    },
+                );
+            }
+
+            # new LVs might have been created in the meantime while the lock was not held
+            my $still_autoactivated_lvs =
+                PVE::CLI::pve8to9::query_autoactivated_lvm_guest_volumes($cfg, $storeid, $vgname);
+            if (scalar(@$still_autoactivated_lvs) == 0) {
+                log_pass("all guest volumes on storage '$storeid' now have "
+                    . "autoactivation disabled");
+            } else {
+                $still_found_autoactivated_lvs = 1;
+                log_warn("some guest volumes on storage '$storeid' still have "
+                    . "autoactivation enabled");
+            }
+        };
+
+        my $err = $@;
+        if ($err) {
+            $got_error = 1;
+            log_fail("could not disable autoactivation on enabled storage '$storeid': $err");
+        }
+    }
+
+    my $exit_code;
+    if ($got_error) {
+        $exit_code = 1;
+        log_fail("at least one error was encountered");
+    } elsif ($skipped_storage) {
+        $exit_code = 1;
+        log_warn("at least one enabled and active LVM/LVM-thin storage was skipped. "
+            . "Please run this script again!");
+    } elsif ($still_found_autoactivated_lvs) {
+        $exit_code = 1;
+        log_warn("some guest volumes still have autoactivation enabled. "
+            . "Please run this script again!");
+    } elsif ($did_work) {
+        $exit_code = 0;
+        log_pass("successfully disabled autoactivation for existing guest volumes on all "
+            . "enabled and active LVM/LVM-thin storages.");
+    } else {
+        $exit_code = 0;
+        log_pass("all existing guest volumes on enabled and active LVM/LVM-thin storages "
+            . "already have autoactivation disabled.");
+    }
+    exit($exit_code);
+}
+
+main();

@@ -23,45 +23,48 @@ sub test_rpc {
     my ($host) = @_;
 
     for (my $i = 0; $i < $qcount; $i++) {
-	eval {
-	    my ($page, $response, %reply_headers)
-                = get_https($host, 8006, '/api2/json',   
-                       make_headers(Cookie => "PVEAuthCookie=$ticket"));
-	    die "$response\n" if $response !~ m/200 OK/;
-	};
+        eval {
+            my ($page, $response, %reply_headers) = get_https(
+                $host,
+                8006,
+                '/api2/json',
+                make_headers(Cookie => "PVEAuthCookie=$ticket"),
+            );
+            die "$response\n" if $response !~ m/200 OK/;
+        };
 
-	my $err = $@;
+        my $err = $@;
 
-	if ($err) {
+        if ($err) {
 
-	    print "ERROR: $err\n";
-	    last;
-	}
+            print "ERROR: $err\n";
+            last;
+        }
     }
 }
 
 sub run_tests {
     my ($host) = @_;
-    
+
     my $workers;
 
     my $starttime = [gettimeofday];
 
     for (my $i = 0; $i < $wcount; $i++) {
-	if (my $pid = fork ()) {
-	    $workers->{$pid} = 1;
-	} else {
-	    test_rpc ($host);
-	    exit (0);
-	}
+        if (my $pid = fork()) {
+            $workers->{$pid} = 1;
+        } else {
+            test_rpc($host);
+            exit(0);
+        }
     }
 
     # wait for children
     1 while (wait > 0);
 
-    my $elapsed = int(tv_interval ($starttime) * 1000);
+    my $elapsed = int(tv_interval($starttime) * 1000);
 
-    my $tpq = $elapsed / ($wcount*$qcount);
+    my $tpq = $elapsed / ($wcount * $qcount);
 
     print "$host: $tpq ms per query\n";
 }

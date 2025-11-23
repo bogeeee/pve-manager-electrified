@@ -13,7 +13,6 @@ use PVE::RPCEnvironment;
 my $ceph_cfg_file = 'ceph.conf';
 my $keyring_value = '/etc/pve/ceph/$cluster.$name.keyring';
 
-
 sub try_adapt_cfg {
     my ($cfg) = @_;
 
@@ -23,38 +22,37 @@ sub try_adapt_cfg {
     print("Checking whether the configuration for '$entity' needs to be updated.\n");
 
     my $add_keyring = sub {
-	print("Setting keyring path to '$keyring_value'.\n");
-	$cfg->{$entity}->{keyring} = $keyring_value;
+        print("Setting keyring path to '$keyring_value'.\n");
+        $cfg->{$entity}->{keyring} = $keyring_value;
     };
 
     if (!exists($cfg->{$entity})) {
-	print("Adding missing section for '$entity'.\n");
-	$add_keyring->();
-	return 1;
+        print("Adding missing section for '$entity'.\n");
+        $add_keyring->();
+        return 1;
     }
 
     if (exists($cfg->{$entity}->{key})) {
-	print("Removing existing usage of key.\n");
-	delete($cfg->{$entity}->{key});
-	$removed_key = 1;
+        print("Removing existing usage of key.\n");
+        delete($cfg->{$entity}->{key});
+        $removed_key = 1;
     }
 
     if (!exists($cfg->{$entity}->{keyring})) {
-	print("Keyring path is missing from configuration.\n");
-	$add_keyring->();
-	return 1;
+        print("Keyring path is missing from configuration.\n");
+        $add_keyring->();
+        return 1;
     }
 
     my $current_keyring_value = $cfg->{$entity}->{keyring};
     if ($current_keyring_value ne $keyring_value) {
-	print("Current keyring path differs from expected path.\n");
-	$add_keyring->();
-	return 1;
+        print("Current keyring path differs from expected path.\n");
+        $add_keyring->();
+        return 1;
     }
 
     return $removed_key;
 }
-
 
 sub main {
     # PVE::RADOS expects an active RPC Environment because it forks itself
@@ -68,15 +66,13 @@ sub main {
 
     my $ceph_cfg_path = PVE::Ceph::Tools::get_config('pve_ceph_cfgpath');
     if (PVE::Ceph::Tools::check_ceph_installed('ceph_mon', 1) && -f $ceph_cfg_path) {
-	my $pve_ceph_cfgdir = PVE::Ceph::Tools::get_config('pve_ceph_cfgdir');
-	if (! -d $pve_ceph_cfgdir) {
-	    File::Path::make_path($pve_ceph_cfgdir);
-	}
+        my $pve_ceph_cfgdir = PVE::Ceph::Tools::get_config('pve_ceph_cfgdir');
+        if (!-d $pve_ceph_cfgdir) {
+            File::Path::make_path($pve_ceph_cfgdir);
+        }
     }
 
-    eval {
-        PVE::Ceph::Tools::check_ceph_inited();
-    };
+    eval { PVE::Ceph::Tools::check_ceph_inited(); };
     if ($@) {
         print("Ceph is not initialized. No action required.\n");
         exit 0;
@@ -87,44 +83,49 @@ sub main {
 
     my $inner_err = '';
 
-    my $rval = PVE::Cluster::cfs_lock_file($ceph_cfg_file, undef, sub {
-	eval {
-	    my $cfg = PVE::Cluster::cfs_read_file($ceph_cfg_file);
+    my $rval = PVE::Cluster::cfs_lock_file(
+        $ceph_cfg_file,
+        undef,
+        sub {
+            eval {
+                my $cfg = PVE::Cluster::cfs_read_file($ceph_cfg_file);
 
-	    if (!defined($rados)) {
-		my $has_mon_host = defined($cfg->{global}) && defined($cfg->{global}->{mon_host});
-		if ($has_mon_host && $cfg->{global}->{mon_host} ne '') {
-		    die "Connection to RADOS failed even though a monitor is configured.\n" .
-			"Please verify whether your configuration in '$ceph_cfg_file' is correct.\n"
-		}
+                if (!defined($rados)) {
+                    my $has_mon_host =
+                        defined($cfg->{global}) && defined($cfg->{global}->{mon_host});
+                    if ($has_mon_host && $cfg->{global}->{mon_host} ne '') {
+                        die "Connection to RADOS failed even though a monitor is configured.\n"
+                            . "Please verify whether your configuration in '$ceph_cfg_file' is correct.\n";
+                    }
 
-		print(
-		    "Connection to RADOS failed and no monitor is configured in '$ceph_cfg_file'.\n".
-		    "Assuming that things are fine. No action required.\n"
-		);
-		return;
-	    }
+                    print(
+                        "Connection to RADOS failed and no monitor is configured in '$ceph_cfg_file'.\n"
+                            . "Assuming that things are fine. No action required.\n");
+                    return;
+                }
 
-	    my $updated_keyring = PVE::Ceph::Tools::create_or_update_crash_keyring_file($rados);
+                my $updated_keyring =
+                    PVE::Ceph::Tools::create_or_update_crash_keyring_file($rados);
 
-	    if ($updated_keyring) {
-		print("Keyring file '$ceph_crash_key_path' was updated.\n");
-	    }
+                if ($updated_keyring) {
+                    print("Keyring file '$ceph_crash_key_path' was updated.\n");
+                }
 
-	    my $changed = try_adapt_cfg($cfg);
+                my $changed = try_adapt_cfg($cfg);
 
-	    if ($changed) {
-		print("Committing updated configuration to '$ceph_cfg_file'.\n");
-		PVE::Cluster::cfs_write_file($ceph_cfg_file, $cfg);
-		print("Successfully updated configuration for 'ceph-crash.service'.\n");
-	    } else {
-		print("Configuration in '$ceph_cfg_file' does not need to be updated.\n");
-	    }
-	};
-	$inner_err = $@;
+                if ($changed) {
+                    print("Committing updated configuration to '$ceph_cfg_file'.\n");
+                    PVE::Cluster::cfs_write_file($ceph_cfg_file, $cfg);
+                    print("Successfully updated configuration for 'ceph-crash.service'.\n");
+                } else {
+                    print("Configuration in '$ceph_cfg_file' does not need to be updated.\n");
+                }
+            };
+            $inner_err = $@;
 
-	return 1;
-    });
+            return 1;
+        },
+    );
 
     # cfs_lock_file sets $@ explicitly to undef
     my $err = $@ // '';
@@ -132,18 +133,18 @@ sub main {
     my $has_err = !defined($rval) || $inner_err || $err;
 
     if ($has_err) {
-	$err =~ s/\n*$//;
-	$inner_err =~ s/\n*$//;
+        $err =~ s/\n*$//;
+        $inner_err =~ s/\n*$//;
 
-	if (!defined($rval)) {
-	    warn("Error while acquiring or releasing lock for '$ceph_cfg_file'.\n");
-	    warn("Error: $err\n") if $err ne '';
-	}
+        if (!defined($rval)) {
+            warn("Error while acquiring or releasing lock for '$ceph_cfg_file'.\n");
+            warn("Error: $err\n") if $err ne '';
+        }
 
-	warn("Failed to configure keyring for 'ceph-crash.service'.\nError: $inner_err\n")
-	    if $inner_err ne '';
+        warn("Failed to configure keyring for 'ceph-crash.service'.\nError: $inner_err\n")
+            if $inner_err ne '';
 
-	exit 1;
+        exit 1;
     }
 }
 

@@ -1,0 +1,13 @@
+[Unit]
+Description=Commit Proxmox VE SDN changes
+DefaultDependencies=no
+Wants=pve-cluster.service network.target
+After=frr.service network.target corosync.service
+
+[Service]
+ExecStart=/usr/share/pve-manager/helpers/pve-sdn-commit
+Type=oneshot
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

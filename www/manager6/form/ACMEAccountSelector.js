@@ -6,8 +6,8 @@ Ext.define('PVE.form.ACMEAccountSelector', {
     valueField: 'name',
 
     store: {
-	model: 'pve-acme-accounts',
-	autoLoad: true,
+        model: 'pve-acme-accounts',
+        autoLoad: true,
     },
 
     triggerAction: 'all',
@@ -16,7 +16,7 @@ Ext.define('PVE.form.ACMEAccountSelector', {
     editable: false,
     forceSelection: true,
 
-    isEmpty: function() {
-	return this.getStore().getData().length === 0;
+    isEmpty: function () {
+        return this.getStore().getData().length === 0;
     },
 });

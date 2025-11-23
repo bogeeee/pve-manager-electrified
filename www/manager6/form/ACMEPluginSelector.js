@@ -7,9 +7,9 @@ Ext.define('PVE.form.ACMEPluginSelector', {
     valueField: 'plugin',
 
     store: {
-	model: 'pve-acme-plugins',
-	autoLoad: true,
-	filters: item => item.data.type === 'dns',
+        model: 'pve-acme-plugins',
+        autoLoad: true,
+        filters: (item) => item.data.type === 'dns',
     },
 
     triggerAction: 'all',

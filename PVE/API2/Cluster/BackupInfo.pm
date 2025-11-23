@@ -25,8 +25,8 @@ sub get_included_vmids {
 
     my $all_vmids = {};
     for my $job ($legacy_jobs->@*, grep { $_->{type} eq 'vzdump' } values $jobs->{ids}->%*) {
-	my $job_included_guests = PVE::VZDump::get_included_guests($job);
-	$all_vmids->{$_} = 1 for map { $_->@* } values %{$job_included_guests};
+        my $job_included_guests = PVE::VZDump::get_included_guests($job);
+        $all_vmids->{$_} = 1 for map { $_->@* } values %{$job_included_guests};
     }
 
     return $all_vmids;
@@ -38,28 +38,29 @@ __PACKAGE__->register_method({
     method => 'GET',
     description => "Index for backup info related endpoints",
     parameters => {
-	additionalProperties => 0,
-	properties => {},
+        additionalProperties => 0,
+        properties => {},
     },
     returns => {
-	type => 'array',
-	description => 'Directory index.',
-	items => {
-	    type => "object",
-	    properties => {
-		subdir => {
-		    type => 'string',
-		    description => 'API sub-directory endpoint',
-		},
-	    },
-	},
-	links => [ { rel => 'child', href => "{subdir}" } ],
+        type => 'array',
+        description => 'Directory index.',
+        items => {
+            type => "object",
+            properties => {
+                subdir => {
+                    type => 'string',
+                    description => 'API sub-directory endpoint',
+                },
+            },
+        },
+        links => [{ rel => 'child', href => "{subdir}" }],
     },
     code => sub {
-	return [
-	   { subdir => 'not-backed-up' },
-	];
-    }});
+        return [
+            { subdir => 'not-backed-up' },
+        ];
+    },
+});
 
 __PACKAGE__->register_method({
     name => 'get_guests_not_in_backup',
@@ -68,72 +69,75 @@ __PACKAGE__->register_method({
     protected => 1,
     description => "Shows all guests which are not covered by any backup job.",
     permissions => {
-	check => ['perm', '/', ['Sys.Audit']],
+        check => ['perm', '/', ['Sys.Audit']],
     },
     parameters => {
-	additionalProperties => 0,
-	properties => {},
+        additionalProperties => 0,
+        properties => {},
     },
     returns => {
-	type => 'array',
-	description => 'Contains the guest objects.',
-	items => {
-	    type => 'object',
-	    properties => {
-		vmid => {
-		    type => 'integer',
-		    description => 'VMID of the guest.',
-		},
-		name => {
-		    type => 'string',
-		    description => 'Name of the guest',
-		    optional => 1,
-		},
-		type => {
-		    type => 'string',
-		    description => 'Type of the guest.',
-		    enum => ['qemu', 'lxc'],
-		},
-	    },
-	},
+        type => 'array',
+        description => 'Contains the guest objects.',
+        items => {
+            type => 'object',
+            properties => {
+                vmid => {
+                    type => 'integer',
+                    description => 'VMID of the guest.',
+                },
+                name => {
+                    type => 'string',
+                    description => 'Name of the guest',
+                    optional => 1,
+                },
+                type => {
+                    type => 'string',
+                    description => 'Type of the guest.',
+                    enum => ['qemu', 'lxc'],
+                },
+            },
+        },
     },
     code => sub {
-	my $rpcenv = PVE::RPCEnvironment::get();
-	my $user = $rpcenv->get_user();
+        my $rpcenv = PVE::RPCEnvironment::get();
+        my $user = $rpcenv->get_user();
 
-	my $included_vmids = get_included_vmids();
-	my $vmlist = PVE::Cluster::get_vmlist();
+        my $included_vmids = get_included_vmids();
+        my $vmlist = PVE::Cluster::get_vmlist();
 
-	# remove VMIDs to which the user has no permission to not leak infos like the guest name
-	my @allowed_vmids = grep { $rpcenv->check($user, "/vms/$_", [ 'VM.Audit' ], 1) } keys $vmlist->{ids}->%*;
+        # remove VMIDs to which the user has no permission to not leak infos like the guest name
+        my @allowed_vmids =
+            grep { $rpcenv->check($user, "/vms/$_", ['VM.Audit'], 1) } keys $vmlist->{ids}->%*;
 
-	my $result = [];
-	for my $vmid (@allowed_vmids) {
-	    next if $included_vmids->{$vmid};
+        my $result = [];
+        for my $vmid (@allowed_vmids) {
+            next if $included_vmids->{$vmid};
 
-	    my ($type, $node) = $vmlist->{ids}->{$vmid}->@{'type', 'node'};
+            my ($type, $node) = $vmlist->{ids}->{$vmid}->@{ 'type', 'node' };
 
-	    my ($conf, $name);
-	    if ($type eq 'qemu') {
-		$conf = PVE::QemuConfig->load_config($vmid, $node);
-		$name = $conf->{name};
-	    } elsif ($type eq 'lxc') {
-		$conf = PVE::LXC::Config->load_config($vmid, $node);
-		$name = $conf->{hostname};
-	    } else {
-		die "Unexpected error: unknown guest type for VMID $vmid, neither QEMU nor LXC\n";
-	    }
+            my ($conf, $name);
+            if ($type eq 'qemu') {
+                $conf = PVE::QemuConfig->load_config($vmid, $node);
+                $name = $conf->{name};
+            } elsif ($type eq 'lxc') {
+                $conf = PVE::LXC::Config->load_config($vmid, $node);
+                $name = $conf->{hostname};
+            } else {
+                die
+                    "Unexpected error: unknown guest type for VMID $vmid, neither QEMU nor LXC\n";
+            }
 
-	    my $entry = {
-		vmid => int($vmid),
-		type => $type,
-	    };
-	    $entry->{name} = $name if defined($name);
+            my $entry = {
+                vmid => int($vmid),
+                type => $type,
+            };
+            $entry->{name} = $name if defined($name);
 
-	    push @{$result}, $entry;
-	}
+            push @{$result}, $entry;
+        }
 
-	return $result;
-    }});
+        return $result;
+    },
+});
 
 1;

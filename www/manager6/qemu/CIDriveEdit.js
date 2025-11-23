@@ -6,50 +6,50 @@ Ext.define('PVE.qemu.CIDriveInputPanel', {
 
     vmconfig: {}, // used to select usused disks
 
-    onGetValues: function(values) {
-	var me = this;
+    onGetValues: function (values) {
+        var _me = this;
 
-	var drive = {};
-	var params = {};
-	drive.file = values.hdstorage + ":cloudinit";
-	drive.format = values.diskformat;
-	params[values.controller + values.deviceid] = PVE.Parser.printQemuDrive(drive);
-	return params;
+        var drive = {};
+        var params = {};
+        drive.file = values.hdstorage + ':cloudinit';
+        drive.format = values.diskformat;
+        params[values.controller + values.deviceid] = PVE.Parser.printQemuDrive(drive);
+        return params;
     },
 
-    setNodename: function(nodename) {
-	var me = this;
-	me.down('#hdstorage').setNodename(nodename);
-	me.down('#hdimage').setStorage(undefined, nodename);
+    setNodename: function (nodename) {
+        var me = this;
+        me.down('#hdstorage').setNodename(nodename);
+        me.down('#hdimage').setStorage(undefined, nodename);
     },
 
-    setVMConfig: function(config) {
-	var me = this;
-	me.down('#drive').setVMConfig(config, 'cdrom');
+    setVMConfig: function (config) {
+        var me = this;
+        me.down('#drive').setVMConfig(config, 'cdrom');
     },
 
-    initComponent: function() {
-	var me = this;
+    initComponent: function () {
+        var me = this;
 
-	me.drive = {};
+        me.drive = {};
 
-	me.items = [
-	    {
-		xtype: 'pveControllerSelector',
-		withVirtIO: false,
-		itemId: 'drive',
-		fieldLabel: gettext('CloudInit Drive'),
-		name: 'drive',
-	    },
-	    {
-		xtype: 'pveDiskStorageSelector',
-		itemId: 'storselector',
-		storageContent: 'images',
-		nodename: me.nodename,
-		hideSize: true,
-	    },
-	];
-	me.callParent();
+        me.items = [
+            {
+                xtype: 'pveControllerSelector',
+                withVirtIO: false,
+                itemId: 'drive',
+                fieldLabel: gettext('CloudInit Drive'),
+                name: 'drive',
+            },
+            {
+                xtype: 'pveDiskStorageSelector',
+                itemId: 'storselector',
+                storageContent: 'images',
+                nodename: me.nodename,
+                hideSize: true,
+            },
+        ];
+        me.callParent();
     },
 });
 
@@ -60,26 +60,28 @@ Ext.define('PVE.qemu.CIDriveEdit', {
     isCreate: true,
     subject: gettext('CloudInit Drive'),
 
-    initComponent: function() {
-	var me = this;
+    initComponent: function () {
+        var me = this;
 
-	var nodename = me.pveSelNode.data.node;
-	if (!nodename) {
-	    throw "no node name specified";
-	}
+        var nodename = me.pveSelNode.data.node;
+        if (!nodename) {
+            throw 'no node name specified';
+        }
 
-	me.items = [{
-	    xtype: 'pveCIDriveInputPanel',
-	    itemId: 'cipanel',
-	    nodename: nodename,
-	}];
+        me.items = [
+            {
+                xtype: 'pveCIDriveInputPanel',
+                itemId: 'cipanel',
+                nodename: nodename,
+            },
+        ];
 
-	me.callParent();
+        me.callParent();
 
-	me.load({
-	    success: function(response, opts) {
-		me.down('#cipanel').setVMConfig(response.result.data);
-	    },
-	});
+        me.load({
+            success: function (response, opts) {
+                me.down('#cipanel').setVMConfig(response.result.data);
+            },
+        });
     },
 });

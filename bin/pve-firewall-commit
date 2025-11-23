@@ -1,0 +1,27 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+
+use Time::HiRes qw(usleep);
+
+use PVE::Cluster;
+use PVE::INotify;
+
+for (my $i = 0; !PVE::Cluster::check_cfs_quorum(1); $i++) {
+    print "waiting for pmxcfs mount to appear and get quorate...\n"
+        if $i % 50 == 0;
+
+    usleep(100 * 1000);
+}
+
+my $local_node = PVE::INotify::nodename();
+my $current_fw_config_file = "/etc/pve/nodes/$local_node/host.fw";
+my $new_fw_config_file = "/etc/pve/nodes/$local_node/host.fw.new";
+
+if (-e $new_fw_config_file) {
+    rename($new_fw_config_file, $current_fw_config_file)
+        or die "failed to commit new local node firewall config '$new_fw_config_file' - $!\n";
+}
+
+exit 0;

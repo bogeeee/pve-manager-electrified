@@ -12,43 +12,43 @@ Ext.define('PVE.form.NotificationTargetSelector', {
     skipEmptyText: true,
 
     store: {
-	    fields: ['name', 'type', 'comment'],
-	    proxy: {
-		type: 'proxmox',
-		url: '/api2/json/cluster/notifications/targets',
-	    },
-	    sorters: [
-		{
-		    property: 'name',
-		    direction: 'ASC',
-		},
-	    ],
-	    autoLoad: true,
-	},
+        fields: ['name', 'type', 'comment'],
+        proxy: {
+            type: 'proxmox',
+            url: '/api2/json/cluster/notifications/targets',
+        },
+        sorters: [
+            {
+                property: 'name',
+                direction: 'ASC',
+            },
+        ],
+        autoLoad: true,
+    },
 
     listConfig: {
-	columns: [
-	    {
-		header: gettext('Target'),
-		dataIndex: 'name',
-		sortable: true,
-		hideable: false,
-		flex: 1,
-	    },
-	    {
-		header: gettext('Type'),
-		dataIndex: 'type',
-		sortable: true,
-		hideable: false,
-		flex: 1,
-	    },
-	    {
-		header: gettext('Comment'),
-		dataIndex: 'comment',
-		sortable: true,
-		hideable: false,
-		flex: 2,
-	    },
-	],
+        columns: [
+            {
+                header: gettext('Target'),
+                dataIndex: 'name',
+                sortable: true,
+                hideable: false,
+                flex: 1,
+            },
+            {
+                header: gettext('Type'),
+                dataIndex: 'type',
+                sortable: true,
+                hideable: false,
+                flex: 1,
+            },
+            {
+                header: gettext('Comment'),
+                dataIndex: 'comment',
+                sortable: true,
+                hideable: false,
+                flex: 2,
+            },
+        ],
     },
 });

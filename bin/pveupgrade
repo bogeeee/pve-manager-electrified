@@ -26,17 +26,17 @@ my $rpcenv = PVE::RPCEnvironment->init('cli');
 
 $rpcenv->init_request();
 $rpcenv->set_language($ENV{LANG});
-$rpcenv->set_user('root@pam'); 
+$rpcenv->set_user('root@pam');
 
 my $start_shell;
 
-if (!GetOptions ("shell" => \$start_shell)) {
+if (!GetOptions("shell" => \$start_shell)) {
     print "Usage: $0 [--shell]\n";
     exit(-1);
 }
 
 my $st = File::stat::stat("/var/cache/apt/pkgcache.bin");
-if (!$st || (time() - $st->mtime) > (3*24*3600)) {
+if (!$st || (time() - $st->mtime) > (3 * 24 * 3600)) {
 
     print "\nYour package database is out of date. Please update that first.\n\n";
 
@@ -46,35 +46,36 @@ if (!$st || (time() - $st->mtime) > (3*24*3600)) {
 
     print "Starting system upgrade: apt-get dist-upgrade\n";
 
-    my $oldlist = PVE::API2::APT->list_updates({ node => $nodename});
+    my $oldlist = PVE::API2::APT->list_updates({ node => $nodename });
 
-    system('apt-get', 'dist-upgrade'); 
+    system('apt-get', 'dist-upgrade');
 
-    my $pkglist = PVE::API2::APT->list_updates({ node => $nodename});
+    my $pkglist = PVE::API2::APT->list_updates({ node => $nodename });
 
     print "\n";
     if (my $count = scalar(@$pkglist)) {
-	print "System not fully up to date (found $count new packages)\n\n";
+        print "System not fully up to date (found $count new packages)\n\n";
     } else {
-	print "Your System is up-to-date\n\n";
+        print "Your System is up-to-date\n\n";
     }
 
     my $newkernel;
     foreach my $p (@$oldlist) {
-	if (($p->{Package} =~ m/^(?:pve|proxmox)-kernel/) && 
-	    !grep { $_->{Package} eq $p->{Package} } @$pkglist) {
-	    $newkernel = 1;
-	    last;
-	}	    
+        if (
+            ($p->{Package} =~ m/^(?:pve|proxmox)-kernel/)
+            && !grep { $_->{Package} eq $p->{Package} } @$pkglist
+        ) {
+            $newkernel = 1;
+            last;
+        }
     }
 
     if ($newkernel) {
-	print "\n";
-	print "Seems you installed a kernel update - Please consider rebooting\n" .
-	    "this node to activate the new kernel.\n\n";
+        print "\n";
+        print "Seems you installed a kernel update - Please consider rebooting\n"
+            . "this node to activate the new kernel.\n\n";
     }
 }
-
 
 if ($start_shell) {
     print "starting shell\n";
@@ -82,7 +83,6 @@ if ($start_shell) {
 }
 
 exit 0;
-
 
 __END__
 

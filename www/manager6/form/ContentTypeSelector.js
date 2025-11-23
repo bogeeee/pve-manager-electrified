@@ -4,19 +4,19 @@ Ext.define('PVE.form.ContentTypeSelector', {
 
     cts: undefined,
 
-    initComponent: function() {
-	var me = this;
+    initComponent: function () {
+        var me = this;
 
-	me.comboItems = [];
+        me.comboItems = [];
 
-	if (me.cts === undefined) {
-	    me.cts = ['images', 'iso', 'vztmpl', 'backup', 'rootdir', 'snippets', 'import'];
-	}
+        if (me.cts === undefined) {
+            me.cts = ['images', 'iso', 'vztmpl', 'backup', 'rootdir', 'snippets', 'import'];
+        }
 
-	Ext.Array.each(me.cts, function(ct) {
-	    me.comboItems.push([ct, PVE.Utils.format_content_types(ct)]);
-	});
+        Ext.Array.each(me.cts, function (ct) {
+            me.comboItems.push([ct, PVE.Utils.format_content_types(ct)]);
+        });
 
-	me.callParent();
+        me.callParent();
     },
 });

@@ -1,0 +1,37 @@
+#!/bin/sh
+set -eu
+
+DEVICE_SYSFS_PCI_PATH=$(realpath "/sys${DEVPATH}/../..");
+
+if [ ! -L "$DEVICE_SYSFS_PCI_PATH/physfn" ]; then
+    exit;
+fi
+
+PHYSFN_SYSFS_PCI_PATH=$(realpath "${DEVICE_SYSFS_PCI_PATH}/physfn");
+PHYSFN_IFACE_NAME=$(ls "${PHYSFN_SYSFS_PCI_PATH}/net")
+
+# interface is not pinned
+if [ ! -f "/usr/local/lib/systemd/network/50-pve-${PHYSFN_IFACE_NAME}.link" ]; then
+    exit;
+fi
+
+# pin is not applied - or interface doesn't exist
+if ! ip link show "$PHYSFN_IFACE_NAME" > /dev/null 2>&1 ; then
+    exit;
+fi
+
+DEVICE_PCI_ID=$(basename "$DEVICE_SYSFS_PCI_PATH");
+
+for file in $(find "${PHYSFN_SYSFS_PCI_PATH=$}/" -maxdepth 1 -type l -name 'virtfn*' ); do
+    VF_PCI_ID=$(basename "$(realpath "$file")");
+
+    if [ "$DEVICE_PCI_ID" = "$VF_PCI_ID" ]; then
+        VF_INDEX=$(basename "$file" | grep -Eo '[[:digit:]]+$' -);
+        echo "${PHYSFN_IFACE_NAME}v${VF_INDEX}";
+        exit;
+    fi
+done
+
+echo "interface seems to be a VF of ${PHYSFN_IFACE_NAME}, but could not find the VF index" 1>&2;
+exit;
+

@@ -1,0 +1,13 @@
+[Unit]
+Description=Commit Proxmox VE Firewall changes
+DefaultDependencies=no
+Wants=pve-cluster.service
+After=corosync.service
+
+[Service]
+ExecStart=/usr/share/pve-manager/helpers/pve-firewall-commit
+Type=oneshot
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

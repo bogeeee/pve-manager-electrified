@@ -1,0 +1,23 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+
+use PVE::RPCEnvironment;
+use PVE::Storage;
+
+use PVE::CLI::pve8to9;
+
+sub main {
+    PVE::RPCEnvironment->setup_default_cli_env();
+
+    my $cfg = PVE::Storage::config();
+
+    print "INFO: Starting with PVE 9, externally managed RBD storages require that the 'keyring'"
+        . " option is configured in the storage's Ceph configuration. This script creates and"
+        . " updates the storage's Ceph configurations.\n";
+
+    PVE::CLI::pve8to9::check_rbd_storage_keyring($cfg, 0);
+}
+
+main();

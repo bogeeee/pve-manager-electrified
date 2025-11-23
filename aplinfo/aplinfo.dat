@@ -4,6 +4,19 @@ Description: News displayed on the admin interface
   For more information please visit our homepage at
   <a href='https://www.proxmox.com' target='_blank'>www.proxmox.com</a>
 
+Package: almalinux-10-default
+Version: 20250930
+Type: lxc
+OS: almalinux
+Section: system
+Maintainer: Proxmox Support Team <support@proxmox.com>
+Architecture: amd64
+Location: system/almalinux-10-default_20250930_amd64.tar.xz
+md5sum: 15112c6ccd019b93fb5ab9d91f3f92fc
+sha512sum: ba26baea9b73188f1ec308f27a3c3e4efcd7fc8bfca976dc2dfffc89c5681df4ac3a96e136f841d769a8b6a04c6cf0db97ffef70def853a0c3486c90a30e3418
+Infopage: https://linuxcontainers.org
+Description: LXC default image for almalinux 10 (20250930)
+
 Package: almalinux-9-default
 Version: 20240911
 Type: lxc
@@ -17,58 +30,18 @@ sha512sum: 4c3c5c2616b46fbb0b831a87669e6f323167c2f67cca487723ff3b00284309c547fec
 Infopage: https://linuxcontainers.org
 Description: LXC default image for almalinux 9 (20240911)
 
-Package: alpine-3.19-default
-Version: 20240207
+Package: alpine-3.22-default
+Version: 20250617
 Type: lxc
 OS: alpine
 Section: system
 Maintainer: Proxmox Support Team <support@proxmox.com>
 Architecture: amd64
-Location: system/alpine-3.19-default_20240207_amd64.tar.xz
-md5sum: fe35133232231ed5918c3828e91c4069
-sha512sum: dec171b608802827a2b47ae6c473f71fdea5fae0064a7928749fc5a854a7220a3244e405fb5ad14d09f52e5325a399c903169a075cd2f6787326972094561f0a
+Location: system/alpine-3.22-default_20250617_amd64.tar.xz
+md5sum: 7876712da358f2536dc0baa18169aed4
+sha512sum: 1900ccb1b092b5563c0430ff9d9ede63c23bf2fa4a872b8816d2b03d711c76c1d2ea2241796ebaa58292caee75a01e325b7a9c86f63e36d9f9425b45e0115469
 Infopage: https://linuxcontainers.org
-Description: LXC default image for alpine 3.19 (20240207)
-
-Package: alpine-3.20-default
-Version: 20240908
-Type: lxc
-OS: alpine
-Section: system
-Maintainer: Proxmox Support Team <support@proxmox.com>
-Architecture: amd64
-Location: system/alpine-3.20-default_20240908_amd64.tar.xz
-md5sum: ea04f7220f47522341a1ac7c4a728344
-sha512sum: 8b675c373533c096ded4168edbf2fba2a6e3ed2d91a550b0d128e472d2a0d65a8f2e5e7dde772932d8d3fd9d93ca21b3e5e3b8a4c91bc479977e3f6ce1468ba9
-Infopage: https://linuxcontainers.org
-Description: LXC default image for alpine 3.20 (20240908)
-
-Package: alpine-3.21-default
-Version: 20241217
-Type: lxc
-OS: alpine
-Section: system
-Maintainer: Proxmox Support Team <support@proxmox.com>
-Architecture: amd64
-Location: system/alpine-3.21-default_20241217_amd64.tar.xz
-md5sum: 3e5ded410fae18bd05031f47179f2394
-sha512sum: 211ac75f4b66494e78a6e72acc206b8ac490e0d174a778ae5be2970b0a1a57a8dddea8fc5880886a3794b8bb787fe93297a1cad3aee75d07623d8443ea9062e4
-Infopage: https://linuxcontainers.org
-Description: LXC default image for alpine 3.21 (20241217)
-
-Package: archlinux-base
-Version: 20240911-1
-Type: lxc
-OS: archlinux
-Section: system
-Maintainer: Proxmox Support Team <support@proxmox.com>
-Architecture: amd64
-Location: system/archlinux-base_20240911-1_amd64.tar.zst
-md5sum: 2c137021b89cc583297eed26b10f46dc
-sha512sum: 05b36399c801b774d9540ddbae6be6fc26803bc161e7888722f8f36c48569010e12392c6741bf263336b8542c59f18f67cf4f311d52b3b8dd58640efca765b85
-Infopage: https://www.archlinux.org
-Description: ArchLinux base image.
- ArchLinux template with the 'base' group and the 'openssh' package installed.
+Description: LXC default image for alpine 3.22 (20250617)
 
 Package: centos-9-stream-default
 Version: 20240828
@@ -83,33 +56,33 @@ sha512sum: de6ec0a6ffc2e980d4baa11185765ba925822462f14c387b8e50ffda0f2281e8fb8be
 Infopage: https://linuxcontainers.org
 Description: LXC default image for centos 9-stream (20240828)
 
-Package: debian-11-standard
-Version: 11.7-1
-Type: lxc
-OS: debian-11
-Section: system
-Maintainer: Proxmox Support Team <support@proxmox.com>
-Architecture: amd64
-Location: system/debian-11-standard_11.7-1_amd64.tar.zst
-md5sum: d07069fe196e89ef70a546625507882a
-sha512sum: 973bb8ee260b5da8c02b023651370d53632ae0b838d878e5cbe38291ca2bcac9ab2d0ef80709e5e27865cfd48a67ff334ea1441d5744e3db372a1fcc84491557
-Infopage: https://pve.proxmox.com/wiki/Linux_Container#pct_supported_distributions
-Description: Debian 11 Bullseye (standard)
- A small Debian Bullseye system including all standard packages.
-
 Package: debian-12-standard
-Version: 12.7-1
+Version: 12.12-1
 Type: lxc
 OS: debian-12
 Section: system
 Maintainer: Proxmox Support Team <support@proxmox.com>
 Architecture: amd64
-Location: system/debian-12-standard_12.7-1_amd64.tar.zst
-md5sum: 0b6959720ebd506b5ddb2fbf8780ca6c
-sha512sum: 39f6d06e082d6a418438483da4f76092ebd0370a91bad30b82ab6d0f442234d63fe27a15569895e34d6d1e5ca50319f62637f7fb96b98dbde4f6103cf05bff6d
+Location: system/debian-12-standard_12.12-1_amd64.tar.zst
+md5sum: 4e5a0a7183b6c8ca6867489820961e88
+sha512sum: 50c85eaaece677a3ebe01cc909b83872e9da2a22c29ae652838afce71e83222fdf40f6accecd7d52b180e912fc1f85ecdf7b3fc4d3027da4d865e509a9e76597
 Infopage: https://pve.proxmox.com/wiki/Linux_Container#pct_supported_distributions
 Description: Debian 12 Bookworm (standard)
- A small Debian Bullseye system including all standard packages.
+ A small Debian Bookworm system including all standard packages.
+
+Package: debian-13-standard
+Version: 13.1-2
+Type: lxc
+OS: debian-13
+Section: system
+Maintainer: Proxmox Support Team <support@proxmox.com>
+Architecture: amd64
+Location: system/debian-13-standard_13.1-2_amd64.tar.zst
+md5sum: 5ee736fbc37d2068ca6695d7686b7d62
+sha512sum: 5aec4ab2ac5c16c7c8ecb87bfeeb10213abe96db6b85e2463585cea492fc861d7c390b3f9c95629bf690b95e9dfe1037207fc69c0912429605f208d5cb2621f8
+Infopage: https://pve.proxmox.com/wiki/Linux_Container#pct_supported_distributions
+Description: Debian 13 Trixie (standard)
+ A small Debian Trixie system including all standard packages.
 
 Package: devuan-5.0-standard
 Version: 5.0
@@ -125,57 +98,44 @@ Infopage: https://devuan.org
 Description: Devuan 5 (standard)
  A small Devuan Daedalus system including a minimal set of essential packages.
 
-Package: fedora-40-default
-Version: 20240909
+Package: fedora-42-default
+Version: 20250428
 Type: lxc
 OS: fedora
 Section: system
 Maintainer: Proxmox Support Team <support@proxmox.com>
 Architecture: amd64
-Location: system/fedora-40-default_20240909_amd64.tar.xz
-md5sum: c4fc793117e000edb6835c7c863c8683
-sha512sum: 1d13bbebf18b01917c05e46e1d6d5ce4c8a8c015a510f9a526783e57e2b4821cd8f549abc8d080cba26377dfdb9094941e7a155acc4f5aced5ba3b682bb5b382
+Location: system/fedora-42-default_20250428_amd64.tar.xz
+md5sum: a187b770b8897732e0ec716a1451b2be
+sha512sum: 05d08e345648277fd35ed4b9b99832dc4ca4536340a135400ef9c9c51ac76d78d5d5d73fc478d9baf95624ef566ff4990d9dae349b949024f44b77659c7492b8
 Infopage: https://linuxcontainers.org
-Description: LXC default image for fedora 40 (20240909)
-
-Package: fedora-41-default
-Version: 20241118
-Type: lxc
-OS: fedora
-Section: system
-Maintainer: Proxmox Support Team <support@proxmox.com>
-Architecture: amd64
-Location: system/fedora-41-default_20241118_amd64.tar.xz
-md5sum: 18b1b7dc10e77d382809a6dd7777949f
-sha512sum: cc3b7a326f7d8d24eaf5676b6a1eee4167946a11465e036d2ed9624393a2e7af6d4767a3c8826a168f62682120817ed503003dc14ebdd42499f0b30a03dbe102
-Infopage: https://linuxcontainers.org
-Description: LXC default image for fedora 41 (20241118)
+Description: LXC default image for fedora 42 (20250428)
 
 Package: gentoo-current-openrc
-Version: 20231009
+Version: 20250508
 Type: lxc
 OS: gentoo
 Section: system
 Maintainer: Proxmox Support Team <support@proxmox.com>
 Architecture: amd64
-Location: system/gentoo-current-openrc_20231009_amd64.tar.xz
-md5sum: ecf4836300bb0973618b7ae30077f2c1
-sha512sum: 40926859f0a777e8dfa7de10c76eb78ee92aa554e0598a09beec7f260ec7a02f19dfc2f620beaa1ea42feb02c682111d70e81e67e7641da3e0643f2692e75430
+Location: system/gentoo-current-openrc_20250508_amd64.tar.xz
+md5sum: d9a70f0f331b25eace92d00b9d457073
+sha512sum: 50495e3c066aa4f4a8886d8eebbb30ecf662bb7bf7209677fa9edfb82ce2d00172ad2b5ebeba3ee9d319a74691bd975e3b73e079fce503ab72c4a56d2bde8a55
 Infopage: https://linuxcontainers.org
-Description: LXC openrc image for gentoo current (20231009)
+Description: LXC openrc image for gentoo current (20250508)
 
-Package: openeuler-24.09-default
-Version: 20241118
+Package: openeuler-25.03-default
+Version: 20250507
 Type: lxc
 OS: openeuler
 Section: system
 Maintainer: Proxmox Support Team <support@proxmox.com>
 Architecture: amd64
-Location: system/openeuler-24.09-default_20241118_amd64.tar.xz
-md5sum: 6334a54574d445c3d22eb36ab5c879b7
-sha512sum: cd76cfca8e2f26dcac518d2f75628ed04d2fed0abd8e7d492b5a0336a3a6ac50e44420cd9d9696c3ab1e19ede1ad162a4e635f670774871815ea4b9b6ae69ee7
+Location: system/openeuler-25.03-default_20250507_amd64.tar.xz
+md5sum: a81f7be61736cbf9753db8a2fd009166
+sha512sum: ecb86973bbd867624513fe5f8f0e72b6ee9be5f9fff592a4dc4bd78610310035270d1917882366ead2d8f3d9af215076552f7a4a35dc8602bf21548e4e2b09e4
 Infopage: https://linuxcontainers.org
-Description: LXC default image for openeuler 24.09 (20241118)
+Description: LXC default image for openeuler 25.03 (20250507)
 
 Package: opensuse-15.6-default
 Version: 20240910
@@ -204,19 +164,32 @@ Infopage: https://www.proxmox.com/en/proxmox-mail-gateway/overview
 Description: Proxmox Mail Gateway 8.2
  A full featured mail proxy for spam and virus filtering, optimized for container environment.
 
-Package: proxmox-mailgateway-7.3-standard
-Version: 7.3-1
+Package: proxmox-mail-gateway-9.0-standard
+Version: 9.0-1
 Type: lxc
-OS: debian-11
+OS: debian-13
 Section: mail
 Maintainer: Proxmox Support Team <support@proxmox.com>
 Architecture: amd64
-Location: mail/proxmox-mailgateway-7.3-standard_7.3-1_amd64.tar.zst
-md5sum: 6c130003f9880ae66dca0603d7b7ca87
-sha512sum: 2fdf1dc24306bbaa2ef9a0f322416ca15b97b7d19f84b83743c7afc896095c398241fbc2eb41a33a69f3f275ce4c4cb6425edc5538831b4650d39a5e44fdbc25
-Infopage: https://www.proxmox.com/de/proxmox-mail-gateway
-Description: Proxmox Mailgateway 7.3
+Location: mail/proxmox-mail-gateway-9.0-standard_9.0-1_amd64.tar.zst
+md5sum: 2346458e2947248b25ebbe3484086e5c
+sha512sum: 8c20d93aa5af8a94526ecedb6b1a18e45ea2dd80d48d1ca9c413fffcd93cccaf4f6767e6326d9fe12e737388a9fbe328ef16e677f7442d7da29b75c5eb9f5b01
+Infopage: https://www.proxmox.com/en/proxmox-mail-gateway/overview
+Description: Proxmox Mail Gateway 9.0
  A full featured mail proxy for spam and virus filtering, optimized for container environment.
+
+Package: rockylinux-10-default
+Version: 20251001
+Type: lxc
+OS: rockylinux
+Section: system
+Maintainer: Proxmox Support Team <support@proxmox.com>
+Architecture: amd64
+Location: system/rockylinux-10-default_20251001_amd64.tar.xz
+md5sum: 13ef16830a3f62727b8641b041529497
+sha512sum: 025d346a9aa9b27b90c28147cece917659cb320508cf248f59c776a00fd3a7009a9e1e0812217c990398588bb11b5a38abca82c0991a161ba3f27e1c6ee190ac
+Infopage: https://linuxcontainers.org
+Description: LXC default image for rockylinux 10 (20251001)
 
 Package: rockylinux-9-default
 Version: 20240912
@@ -230,20 +203,6 @@ md5sum: 3a782d5d1c33d05eeff2e21579bdfae8
 sha512sum: 864bcf3f21fd8616d3cd9e2330f7372ad7b29b070b746c4a4bd73f372db7cc5d06f3e7058b5571379e8f6c3c9d987a3ea3b43559c12f63c7ef096e9afa9ead46
 Infopage: https://linuxcontainers.org
 Description: LXC default image for rockylinux 9 (20240912)
-
-Package: ubuntu-20.04-standard
-Version: 20.04-1
-Type: lxc
-OS: ubuntu-20.04
-Section: system
-Maintainer: Proxmox Support Team <support@proxmox.com>
-Architecture: amd64
-Location: system/ubuntu-20.04-standard_20.04-1_amd64.tar.gz
-md5sum: 2ceda507834a0a08ce9662257acb7dde
-sha512sum: 9ebcf6cce7c3b760d27c2bfe03d00acf3d40a489cd98230b9ab8dd436f82f4ae8dc2de69b012dcd0affae62ffe4ab4863f624a665f3493983d330e6c015a26dd
-Infopage: http://pve.proxmox.com/wiki/Ubuntu_Disco_Standard
-Description: Ubuntu Focal (standard)
- A small Ubuntu 20.04 Focal Fossa system including all standard packages.
 
 Package: ubuntu-22.04-standard
 Version: 22.04-1
@@ -273,16 +232,16 @@ Infopage: https://pve.proxmox.com/wiki/Linux_Container#pct_supported_distributio
 Description: Ubuntu 24.04 Noble (standard)
  A small Ubuntu 24.04 Noble Numbat system including all standard packages.
 
-Package: ubuntu-24.10-standard
-Version: 24.10-1
+Package: ubuntu-25.04-standard
+Version: 25.04-1
 Type: lxc
-OS: ubuntu-24.10
+OS: ubuntu-25.04
 Section: system
 Maintainer: Proxmox Support Team <support@proxmox.com>
 Architecture: amd64
-Location: system/ubuntu-24.10-standard_24.10-1_amd64.tar.zst
-md5sum: ac4cb1924de8091eb91226a80453186c
-sha512sum: 1ceb32855e6bdc86b21128f979f235244b8a3bf7644ca444454f7f2082f6a14cdd6f116869a88ca9044adbbe9aecc3bb8b644ceddf767e3692d87ca063818633
+Location: system/ubuntu-25.04-standard_25.04-1.1_amd64.tar.zst
+md5sum: 1134f828d4e5fe894c1a96edc9cc75b5
+sha512sum: 779cf8bbdf788057234eb439e4f165a39bb90bf9e65b5eded73354425376fe93a0e27e46c5cfa30dbb242f22656caf7039eee5d730ac4a30131766cbf1d5d4db
 Infopage: https://pve.proxmox.com/wiki/Linux_Container#pct_supported_distributions
-Description: Ubuntu 24.10 Oracular (standard)
- A small Ubuntu 24.10 Oracular Oriole system including all standard packages.
+Description: Ubuntu 25.04 Plucky (standard)
+ A small Ubuntu 25.04 Plucky Puffin system including all standard packages.
