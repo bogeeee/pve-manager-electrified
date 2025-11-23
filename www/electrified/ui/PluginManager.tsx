@@ -57,21 +57,21 @@ export async function showPluginManager() {
             })
         }
 
-        async function upgradeAllNpmPluginsToLatestVersion(dry = false) {
-            let upgraded = 0;
+        async function updateAllNpmPluginsToLatestVersion(dry = false) {
+            let updated = 0;
             for(const plugin of state.stagingPluginConfig.filter(p => p.codeLocation === "npm")) {
                 const allVersions = await app.currentNode.electrifiedApi.getNpmPackageVersions(plugin.name);
                 if(allVersions.length > 0 && allVersions[0].version !== plugin.version) {
                     if(!dry) {
                         plugin.version = allVersions[0].version;
                     }
-                    upgraded++;
+                    updated++;
                 }
             }
 
-            return upgraded;
+            return updated;
         }
-        const numberOfUpgradableNpmPackages = load( () => upgradeAllNpmPluginsToLatestVersion(true), {fallback: 0});
+        const numberOfUpgradableNpmPackages = load( () => updateAllNpmPluginsToLatestVersion(true), {fallback: 0});
 
 
         return <div >
@@ -265,8 +265,8 @@ export async function showPluginManager() {
                     <div style={{textAlign: "center", fontSize: "17px"}}><Icon icon={"warning-sign"} size={25}/> {gettext("All plugins are currently disabled")}</div>
                     :undefined}
 
-                {/* Upgrade plugins hint + button: */}
-                <div style={{textAlign: "right"}}>{numberOfUpgradableNpmPackages > 0?<span>{t`${numberOfUpgradableNpmPackages} plugin(s) can be upgraded.`} <a onClick={() => spawnAsync( async () => {await upgradeAllNpmPluginsToLatestVersion()})}>Upgrade</a></span>:undefined}&#160;</div>
+                {/* Update plugins hint + button: */}
+                <div style={{textAlign: "right"}}>{numberOfUpgradableNpmPackages > 0?<span>{t`${numberOfUpgradableNpmPackages} plugin(s) can be updated.`} <a onClick={() => spawnAsync( async () => {await updateAllNpmPluginsToLatestVersion()})}>update</a></span>:undefined}&#160;</div>
             </div>
 
             <div className={Classes.DIALOG_FOOTER}>
