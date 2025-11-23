@@ -496,6 +496,7 @@ class AppServer {
         const filePath = ElectrifiedJsonConfig.filePath;
         if(!fs.existsSync(filePath)) {
             const newConfig = new ElectrifiedJsonConfig();
+            this.checkPveDirIsMountedSync(); // Check before writing
             fs.mkdirSync(path.dirname(filePath), {recursive: true});
             fs.writeFileSync(filePath, JSON.stringify(newConfig, undefined, 4), {encoding: "utf8"});
         }
@@ -564,6 +565,25 @@ class AppServer {
                     handleChange()
                 });
             });
+        }
+    }
+
+    /**
+     * Safety-checks that /etc/pve/ is mounted.
+     * <p>Background: While an apt dist-upgrade is running, this dir can be temporarily unmounted and it would be hazardous if we accidentally write into it = it cannot be re-mounted and the user is in big trouble
+     */
+    async checkPveDirIsMounted() {
+        if(!await fileExists("/etc/pve/corosync.conf")) { // just picked corosync.conf as a file that always exists
+            throw new Error("Cannot do the write operation. /etc/pve is not mounted.")
+        }
+    }
+
+    /**
+     * @see checkPveDirIsMounted
+     */
+    checkPveDirIsMountedSync() {
+        if(!fs.existsSync("/etc/pve/corosync.conf")) { // just picked corosync.conf as a file that always exists
+            throw new Error("Cannot do the write operation. /etc/pve is not mounted.")
         }
     }
 

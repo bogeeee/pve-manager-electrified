@@ -316,6 +316,11 @@ export class ElectrifiedSession extends ServerSession {
      * @param encoding
      */
     @remote async setFileContent(filePath: string, newContent: string, encoding: BufferEncoding) {
+        // Safety check / write allowed?:
+        if(path.normalize(filePath).startsWith("/etc/pve/")) {
+            await appServer.checkPveDirIsMounted();
+        }
+
         const parentDir = path.dirname(filePath);
         if(!await fileExists(parentDir)) {
             await fsPromises.mkdir(parentDir, {recursive: true}); // Create parent dir
