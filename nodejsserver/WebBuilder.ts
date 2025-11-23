@@ -9,6 +9,7 @@ import {Buffer} from "node:buffer"
 import semver from "semver";
 import {PromiseTask} from "./util/PromiseTask.js";
 import _ from "underscore";
+import path from "node:path";
 
 
 export type BuildOptions = {
@@ -136,15 +137,36 @@ ${packages.map(pkgInfo => `import {default as plugin${++index}} from ${JSON.stri
 
         const wwwSourcesDir = appServer.wwwSourceDir;
         const localSourcePackageDirs = this.buildOptions.enablePlugins?WebBuildProgress.getUiPluginSourceProjects_fixed().map(p => p.dir):[];
-        const localPackageDirs = [appServer.thisNodejsServerDir, ...this.buildOptions.enablePlugins?[...listSubDirs(appServer.config.clusterPackagesBaseDir, true), ...localSourcePackageDirs]:[]];
+        const clusterPackageDirs = this.buildOptions.enablePlugins?listSubDirs(appServer.config.clusterPackagesBaseDir, true):[];
         const npmPluginPackageSpecs: string[] = this.buildOptions.enablePlugins?appServer.electrifiedJsonConfig.plugins.filter(p => p.codeLocation === "npm").map(p => `${p.name}@${p.version}`):[];
 
+        // Copy cluster packages to temp dir. This is a workaround, because otherwise npm install otherwise creates a node_modules folder with a lot of the packages and this is a performance nightmare under the corosynced path /dev/pve
+        const clusterPackageTempDirs: string[] = [];
+        for(const origDir of clusterPackageDirs) {
+            const dirName = `${path.basename(origDir)}`;
+            const packageName = `pveme-ui-plugin-${dirName}`;
+
+            // Validity check package name in package.json:
+            let pkg = parseJsonFile(`${origDir}/package.json`) as any;
+            if(pkg.name !== packageName) {
+                throw new Error(`Package name in ${origDir}/package.json does not match the name of the directory. Got: ${pkg.name}, expected: ${packageName}`);
+            }
+
+            fs.rmSync(`wwwSourcesDir/node_modules/${packageName}`, {force: true, recursive: true}) // Delete dir, so the contents will be freshly copied to there by npm install.
+
+            const tempDir = `/tmp/pve/webBuild/${this.buildId}/dummyClusterPluginPackages/${dirName}`;
+            fs.mkdirSync(tempDir, {recursive: true});
+            //fs.copyFileSync(`${origDir}/package.json`, `${tempDir}/package.json`);
+            await execa("rsync", ["-r", `${origDir}/`, tempDir]);
+            clusterPackageTempDirs.push(tempDir);
+        }
+
         // Install npm packages + those from localPackageDirs + npm plugins and all their dependencies. This **copies** the local packages
-        await this.execa_withProgressReport(`${headline}`, "npm", ["install", "--ignore-scripts", "--no-audit", "--save", "false", ...npmPluginPackageSpecs, ...localPackageDirs], {cwd: wwwSourcesDir})
+        await this.execa_withProgressReport(`${headline}`, "npm", ["install", "--ignore-scripts", "--no-audit", "--save", "false", ...npmPluginPackageSpecs, appServer.thisNodejsServerDir, ...localSourcePackageDirs, ...clusterPackageTempDirs], {cwd: wwwSourcesDir})
 
         // Create symlinks to the local packages (instead of copies)
-        this.diagnosis_state = `${headline} > creating symlinks to local packages`
-        localPackageDirs.forEach(dir => {
+        this.diagnosis_state = `${headline} > creating symlinks to local packages`;
+        [appServer.thisNodejsServerDir, ...localSourcePackageDirs].forEach(dir => {
             const pkg = JSON.parse(fs.readFileSync(`${dir}/package.json`, {encoding: "utf8"}));
             fs.rmSync(`${wwwSourcesDir}/node_modules/${pkg.name}`, {recursive: true}); // remove existing folder
             fs.symlinkSync(dir, `${wwwSourcesDir}/node_modules/${pkg.name}`); // create link
