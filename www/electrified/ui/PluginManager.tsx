@@ -180,7 +180,7 @@ export async function showPluginManager() {
                                             stagingPluginEntry && plugin.codeLocation === "npm"?
                                                 <HTMLSelect {...bind(stagingPluginEntry.version)}>
                                                     {
-                                                        load(async () => await app.currentNode.electrifiedApi.getNpmPackageVersions(plugin.name),  {preserve: false, fallback: [{version: "loading"}]})
+                                                        load(async () => await app.currentNode.electrifiedApi.getNpmPackageVersions(plugin.name),  {preserve: false, fallback: [{version: "loading"}], deps: [READS_INSIDE_LOADER_FN]})
                                                             .map(entry => <option key={entry.version} value={entry.version}>{entry.version}</option>)
                                                     }
                                                 </HTMLSelect>
