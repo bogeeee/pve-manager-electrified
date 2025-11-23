@@ -164,7 +164,7 @@ ${packages.map(pkgInfo => `import {default as plugin${++index}} from ${JSON.stri
                 // Pack file:
                 //await execa("npm", ["pack", packageDir, "--pack-destination", tempDir]);
                 const packedFile = `${tempDir}/${pkg.name}-${pkg.version}.tar`;
-                await execa("tar", ["-c", "--exclude=node_modules", "-f", packedFile, "."], {cwd: packageDir});
+                await execa("tar", ["-c", "--exclude=node_modules", "--exclude=package-lock.json", "-f", packedFile, "."], {cwd: packageDir});
                 await fileExists(packedFile) || throwError("Packed file does not exist");
 
                 packedFiles.push(packedFile);
