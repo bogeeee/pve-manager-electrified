@@ -116,13 +116,15 @@ IDE_develop_nodejsserver: IDE_rsync_project_to_targt_pve_host
 	npm --prefix nodejsserver run check
 
 	$(EXEC_SSH_TARGT_PVE_HOST) -L 9229:localhost:9229 -L 8006:localhost:8006 -L 8005:ip6-localhost:8005 "\
-	cd /root/proxmox/pve-manager-electrified; \
-	systemctl stop pveproxy.service; \
-    make install; \
-    systemctl daemon-reload; \
-    systemctl restart pveproxy.service;\
+	cd /root/proxmox/pve-manager-electrified || exit; \
+	systemctl stop pveproxy.service || exit; \
+    make install || exit; \
+    systemctl daemon-reload || exit; \
+    echo starting pveproxy.service - this may take a while; \
+    systemctl restart pveproxy.service || exit; \
 	cd nodejsserver; \
 	npm run dev; \
+	exit; \
 	";
 
 # Like the above, but skips some steps
@@ -133,9 +135,10 @@ IDE_faster_develop_nodejsserver:
 	npm --prefix nodejsserver run check
 
 	$(EXEC_SSH_TARGT_PVE_HOST) -L 9229:localhost:9229 "\
-	cd /root/proxmox/pve-manager-electrified; \
+	cd /root/proxmox/pve-manager-electrified || exit; \
 	cd nodejsserver; \
 	npm run dev; \
+	exit; \
 	";
 
 # prepares everything and starts the nodejs server on the pve server in production mode.
