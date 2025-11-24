@@ -1,7 +1,11 @@
 include /usr/share/dpkg/default.mk
 include defines.mk
+-include local.config.mk
+
 .PHONY: local.config.mk
-include local.config.mk
+local.config.mk:
+	test -f local.config.mk || (echo "local.config.mk does not exist (on the IDE machine). See development-readme.md" && exit 1)
+
 
 export PVERELEASE = $(shell echo $(DEB_VERSION_UPSTREAM) | cut -d. -f1-2)
 export VERSION = $(DEB_VERSION_UPSTREAM_REVISION)
@@ -117,6 +121,7 @@ IDE_develop_nodejsserver: IDE_rsync_project_to_targt_pve_host
 
 	$(EXEC_SSH_TARGT_PVE_HOST) -L 9229:localhost:9229 -L 8006:localhost:8006 -L 8005:ip6-localhost:8005 "\
 	cd /root/proxmox/pve-manager-electrified || exit; \
+	rm -f local.config.mk; \
 	systemctl stop pveproxy.service || exit; \
     make install || exit; \
     systemctl daemon-reload || exit; \
@@ -136,6 +141,7 @@ IDE_faster_develop_nodejsserver:
 
 	$(EXEC_SSH_TARGT_PVE_HOST) -L 9229:localhost:9229 "\
 	cd /root/proxmox/pve-manager-electrified || exit; \
+	rm -f local.config.mk; \
 	cd nodejsserver; \
 	npm run dev; \
 	exit; \
@@ -150,6 +156,7 @@ IDE_prod_run_nodejsserver: IDE_rsync_project_to_targt_pve_host
 
 	$(EXEC_SSH_TARGT_PVE_HOST) -L 8006:localhost:8006 -L 8005:ip6-localhost:8005 "\
 	cd /root/proxmox/pve-manager-electrified; \
+	rm -f local.config.mk; \
 	systemctl stop pveproxy.service; \
     make install; \
     systemctl daemon-reload; \
@@ -160,18 +167,18 @@ IDE_prod_run_nodejsserver: IDE_rsync_project_to_targt_pve_host
 
 
 .PHONY: IDE_rsync_project_to_targt_pve_host
-IDE_rsync_project_to_targt_pve_host:
+IDE_rsync_project_to_targt_pve_host: local.config.mk
 	$(EXEC_SSH_TARGT_PVE_HOST) mkdir -p /root/proxmox/pve-manager-electrified
 	@sshpass -p "$(TARGT_PVE_HOST_ROOTPASSWORD)" rsync -a $(RSYNC_PARAMS) --exclude="**/node_modules" . root@$(TARGT_PVE_HOST):/root/proxmox/pve-manager-electrified/
 
 .PHONY: IDE_publish_docs_to_website
-IDE_publish_docs_to_website: clean index.html /usr/bin/sshpass
+IDE_publish_docs_to_website: local.config.mk clean index.html /usr/bin/sshpass
 	@sshpass -p "$(REPO_SERVER_PASSWORD)" rsync  -a index.html pubkey.asc docs www/images/favicon.ico pve-electrified.net@pve-electrified.net:httpdocs
 
 # Creates a local aptly repo on the IDE machine (if needed). Aptly offers an easy way, to generate the static files for publishing to a webserver.
 # See also [this blogpost about running an apt repo with aptly](https://perlgeek.de/blog-en/automating-deployments/2016-006-distributing-packages.html)
 .PHONY: IDE_create_aptly_repo
-IDE_create_aptly_repo: /usr/bin/aptly
+IDE_create_aptly_repo: local.config.mk /usr/bin/aptly
 	@if ! echo "$$(aptly repo list -raw)" | grep -q "pve-electrified-$(DEBIAN_DISTRIBUTION)"; then \
   	  echo "** creating aptly repo: pve-electrified-$(DEBIAN_DISTRIBUTION) **"; \
 	  aptly repo create -distribution=$(DEBIAN_DISTRIBUTION) -component=main "pve-electrified-$(DEBIAN_DISTRIBUTION)"; \
@@ -184,7 +191,7 @@ IDE_create_aptly_repo: /usr/bin/aptly
 # ...
 # See also: IDE_prod_run_nodejsserver, which you should run as a smoke test before publishing
 .PHONY: IDE_build_and_publish_package
-IDE_build_and_publish_package: IDE_create_aptly_repo /usr/bin/sshpass /usr/bin/aptly IDE_rsync_project_to_targt_pve_host
+IDE_build_and_publish_package: local.config.mk IDE_create_aptly_repo /usr/bin/sshpass /usr/bin/aptly IDE_rsync_project_to_targt_pve_host
 	# Build on the pve server:
 	$(EXEC_SSH_TARGT_PVE_HOST) "cd /root/proxmox/pve-manager-electrified && make clean && make deb"
 	# copy .deb to this machine:
