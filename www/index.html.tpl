@@ -30,6 +30,7 @@
     Proxmox = $PROXMOXSTATE$;
     </script>
     <script type="text/javascript" src="/proxmoxlib.js?ver=$CACHEBREAKER$"></script>
+    <script type="text/javascript" src="/proxmoxlib_bugfixes.js?ver=$CACHEBREAKER$"></script>
     <!-- manager6 nonmodule scripts: -->
     $INCLUDE_MANAGER6_NONMODULE_SCRIPTS$
 
