@@ -101,6 +101,8 @@ class AppServer {
     constructor() {
         spawnAsync(async () => {
 
+            await this.cleanUpIfInstallHung();
+
             if (process.env.NODE_ENV === "development") {
                 await killProcessThatListensOnPort(this.config.port); // Fix: In development on the pve server, sometimes the old process does not terminate properly.
             }
@@ -584,6 +586,21 @@ class AppServer {
     checkPveDirIsMountedSync() {
         if(!fs.existsSync("/etc/pve/corosync.conf")) { // just picked corosync.conf as a file that always exists
             throw new Error("Cannot do the write operation. /etc/pve is not mounted.")
+        }
+    }
+
+    /**
+     * Clean up, if the post-install/configure script was killed because the install was run in a browser-window shell. We don't want to leave an unconfigured package and an apt lock then.
+     */
+    async cleanUpIfInstallHung() {
+        const indicatorFile = "/var/pveme-postinst_restarting-services";
+        if(fs.existsSync(indicatorFile)) {
+            const status = (await execa("dpkg-query", ["-W", "-f='${Status}'", "pve-manager-electrified"], {encoding: "utf8"})).stdout;
+            if(status != "install ok installed") {
+                console.log("It seems, the dpkg post-install/configure script of this pve-manager-electrified package did fail while restarting the services (indicated by the file /var/pveme-postinst_restarting-services) . Marking it as complete now.")
+                await execa("dpkg", ["--configure", "pve-manager-electrified"], {env: {PVEME_POSTINST_SKIP: "true"}});
+            }
+            fs.rmSync(indicatorFile, {force: true});
         }
     }
 
