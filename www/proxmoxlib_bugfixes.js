@@ -1,3 +1,4 @@
+// Re-define this widget with a bugfix, see inside:
 Ext.define('Proxmox.form.RRDTypeSelector', {
     extend: 'Ext.form.FieldContainer',
     alias: ['widget.proxmoxRRDTypeSelector'],
@@ -75,7 +76,7 @@ Ext.define('Proxmox.form.RRDTypeSelector', {
             xtype: 'segmentedbutton',
             allowMultiple: false,
             allowToggle: true,
-            itemCls: 'x-btn-default-toolbar-small proxmox-inline-button',
+            itemCls: ['x-btn-default-toolbar-small', 'proxmox-inline-button'], // Previously: itemCls: 'x-btn-default-toolbar-small proxmox-inline-button'. This causes an error by extjs: "Error: Class names in arrays must not contain spaces". Strangely it occurs ony with electrified and i have no clue wh.y
             items: [
                 {
                     text: gettext('Maximum'),
