@@ -13,7 +13,7 @@ export VERSION = $(DEB_VERSION_UPSTREAM_REVISION)
 BUILD_TOOLS=/usr/bin/mk-build-deps /usr/bin/sq /usr/share/pve-doc-generator
 
 BUILDDIR = build
-DEBIAN_DISTRIBUTION=bookworm
+DEBIAN_DISTRIBUTION=trixie
 
 DSC=$(PACKAGE)_$(DEB_VERSION).dsc
 DEB=$(PACKAGE)_$(DEB_VERSION)_all.deb
