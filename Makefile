@@ -177,6 +177,7 @@ IDE_publish_docs_to_website: local.config.mk clean index.html /usr/bin/sshpass
 
 # Creates a local aptly repo on the IDE machine (if needed). Aptly offers an easy way, to generate the static files for publishing to a webserver.
 # See also [this blogpost about running an apt repo with aptly](https://perlgeek.de/blog-en/automating-deployments/2016-006-distributing-packages.html)
+# The repo will be stored under /home/[user]/.aptly
 .PHONY: IDE_create_aptly_repo
 IDE_create_aptly_repo: local.config.mk /usr/bin/aptly
 	@if ! echo "$$(aptly repo list -raw)" | grep -q "pve-electrified-$(DEBIAN_DISTRIBUTION)"; then \
