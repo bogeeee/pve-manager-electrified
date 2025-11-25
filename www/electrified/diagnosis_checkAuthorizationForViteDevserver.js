@@ -1,7 +1,7 @@
 // this .**js** file is always available, even when the vite-devserver refuses to serve files, it gets served by the route: `expressApp.use("/", express.static(this.wwwSourceDir));`
 // It diagnoses, if the user has not enough permissions when running with vite-devserver and show a proper message then and also, if the vite connection did not work because of **outdated** permissions.
 (async () => {
-    const result = await (await better_fetch("/electrifiedAPI/diagnosis_canAccessWeb")).json();
+    const result = await (await better_fetch("/electrifiedAPI/diagnosis_canAccessWeb", {headers: {csrfProtectionMode: "corsReadToken"}})).json();
     if(result === false) { // Not enough permissions?
         // Show message to the user:
         document.body.innerHTML = `<strong>Not enough permissions</strong>. The server is in vite-devserver mode and you need to be logged in and have Sys.Console permissions to view the page.<br/>
