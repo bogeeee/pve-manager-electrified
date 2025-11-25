@@ -8,13 +8,14 @@ import {rmSync} from "fs";
 import fs from "node:fs";
 import path from "node:path";
 import fsPromises  from "node:fs/promises";
-import {execa, Options as ExecaOptions} from "execa";
-export type {Options as ExecaOptions} from "execa";
+import {execa, StdioOption} from "execa";
 import {Request} from "express";
 import {RemoteMethodOptions} from "restfuncs-server";
 import _ from "underscore";
 import chokidar from "chokidar";
 import {ClientCallbackSet} from "restfuncs-server";
+import {Buffer} from "node:buffer";
+import {Readable as ReadableStream} from "stream";
 
 export class ElectrifiedSession extends ServerSession {
     static options: ServerSessionOptions = {
@@ -584,6 +585,262 @@ export interface FileStats {
     mtime: Date;
     ctime: Date;
     birthtime: Date;
+}
+
+
+/**
+ * ...
+ * Type copied from exec as a bug Workaround, because typescript-rtti otherwise creates a wrong import statement: import ... from "execa/index.js";
+ */
+interface ExecaCommonOptions<EncodingType> {
+    /**
+     Kill the spawned process when the parent process exits unless either:
+     - the spawned process is [`detached`](https://nodejs.org/api/child_process.html#child_process_options_detached)
+     - the parent process is terminated abruptly, for example, with `SIGKILL` as opposed to `SIGTERM` or a normal exit
+
+     @default true
+     */
+    readonly cleanup?: boolean;
+
+    /**
+     Prefer locally installed binaries when looking for a binary to execute.
+
+     If you `$ npm install foo`, you can then `execa('foo')`.
+
+     @default false
+     */
+    readonly preferLocal?: boolean;
+
+    /**
+     Preferred path to find locally installed binaries in (use with `preferLocal`).
+
+     Using a `URL` is only supported in Node.js `14.18.0`, `16.14.0` or above.
+
+     @default process.cwd()
+     */
+    readonly localDir?: string | URL;
+
+    /**
+     Path to the Node.js executable to use in child processes.
+
+     This can be either an absolute path or a path relative to the `cwd` option.
+
+     Requires `preferLocal` to be `true`.
+
+     For example, this can be used together with [`get-node`](https://github.com/ehmicky/get-node) to run a specific Node.js version in a child process.
+
+     @default process.execPath
+     */
+    readonly execPath?: string;
+
+    /**
+     Buffer the output from the spawned process. When set to `false`, you must read the output of `stdout` and `stderr` (or `all` if the `all` option is `true`). Otherwise the returned promise will not be resolved/rejected.
+
+     If the spawned process fails, `error.stdout`, `error.stderr`, and `error.all` will contain the buffered data.
+
+     @default true
+     */
+    readonly buffer?: boolean;
+
+    /**
+     Same options as [`stdio`](https://nodejs.org/dist/latest-v6.x/docs/api/child_process.html#child_process_options_stdio).
+
+     @default 'pipe'
+     */
+    readonly stdin?: StdioOption;
+
+    /**
+     Same options as [`stdio`](https://nodejs.org/dist/latest-v6.x/docs/api/child_process.html#child_process_options_stdio).
+
+     @default 'pipe'
+     */
+    readonly stdout?: StdioOption;
+
+    /**
+     Same options as [`stdio`](https://nodejs.org/dist/latest-v6.x/docs/api/child_process.html#child_process_options_stdio).
+
+     @default 'pipe'
+     */
+    readonly stderr?: StdioOption;
+
+    /**
+     Setting this to `false` resolves the promise with the error instead of rejecting it.
+
+     @default true
+     */
+    readonly reject?: boolean;
+
+    /**
+     Add an `.all` property on the promise and the resolved value. The property contains the output of the process with `stdout` and `stderr` interleaved.
+
+     @default false
+     */
+    readonly all?: boolean;
+
+    /**
+     Strip the final [newline character](https://en.wikipedia.org/wiki/Newline) from the output.
+
+     @default true
+     */
+    readonly stripFinalNewline?: boolean;
+
+    /**
+     Set to `false` if you don't want to extend the environment variables when providing the `env` property.
+
+     @default true
+     */
+    readonly extendEnv?: boolean;
+
+    /**
+     Current working directory of the child process.
+
+     Using a `URL` is only supported in Node.js `14.18.0`, `16.14.0` or above.
+
+     @default process.cwd()
+     */
+    readonly cwd?: string | URL;
+
+    /**
+     Environment key-value pairs. Extends automatically from `process.env`. Set `extendEnv` to `false` if you don't want this.
+
+     @default process.env
+     */
+    readonly env?: NodeJS.ProcessEnv;
+
+    /**
+     Explicitly set the value of `argv[0]` sent to the child process. This will be set to `command` or `file` if not specified.
+     */
+    readonly argv0?: string;
+
+    /**
+     Child's [stdio](https://nodejs.org/api/child_process.html#child_process_options_stdio) configuration.
+
+     @default 'pipe'
+     */
+    readonly stdio?: 'pipe' | 'ignore' | 'inherit' | readonly StdioOption[];
+
+    /**
+     Specify the kind of serialization used for sending messages between processes when using the `stdio: 'ipc'` option or `execaNode()`:
+     - `json`: Uses `JSON.stringify()` and `JSON.parse()`.
+     - `advanced`: Uses [`v8.serialize()`](https://nodejs.org/api/v8.html#v8_v8_serialize_value)
+
+     Requires Node.js `13.2.0` or later.
+
+     [More info.](https://nodejs.org/api/child_process.html#child_process_advanced_serialization)
+
+     @default 'json'
+     */
+    readonly serialization?: 'json' | 'advanced';
+
+    /**
+     Prepare child to run independently of its parent process. Specific behavior [depends on the platform](https://nodejs.org/api/child_process.html#child_process_options_detached).
+
+     @default false
+     */
+    readonly detached?: boolean;
+
+    /**
+     Sets the user identity of the process.
+     */
+    readonly uid?: number;
+
+    /**
+     Sets the group identity of the process.
+     */
+    readonly gid?: number;
+
+    /**
+     If `true`, runs `command` inside of a shell. Uses `/bin/sh` on UNIX and `cmd.exe` on Windows. A different shell can be specified as a string. The shell should understand the `-c` switch on UNIX or `/d /s /c` on Windows.
+
+     We recommend against using this option since it is:
+     - not cross-platform, encouraging shell-specific syntax.
+     - slower, because of the additional shell interpretation.
+     - unsafe, potentially allowing command injection.
+
+     @default false
+     */
+    readonly shell?: boolean | string;
+
+    /**
+     Specify the character encoding used to decode the `stdout` and `stderr` output. If set to `null`, then `stdout` and `stderr` will be a `Buffer` instead of a string.
+
+     @default 'utf8'
+     */
+    readonly encoding?: EncodingType;
+
+    /**
+     If `timeout` is greater than `0`, the parent will send the signal identified by the `killSignal` property (the default is `SIGTERM`) if the child runs longer than `timeout` milliseconds.
+
+     @default 0
+     */
+    readonly timeout?: number;
+
+    /**
+     Largest amount of data in bytes allowed on `stdout` or `stderr`. Default: 100 MB.
+
+     @default 100_000_000
+     */
+    readonly maxBuffer?: number;
+
+    /**
+     Signal value to be used when the spawned process will be killed.
+
+     @default 'SIGTERM'
+     */
+    readonly killSignal?: string | number;
+
+    /**
+     You can abort the spawned process using [`AbortController`](https://developer.mozilla.org/en-US/docs/Web/API/AbortController).
+
+     When `AbortController.abort()` is called, [`.isCanceled`](https://github.com/sindresorhus/execa#iscanceled) becomes `false`.
+
+     *Requires Node.js 16 or later.*
+
+     @example
+     ```js
+     import {execa} from 'execa';
+
+     const abortController = new AbortController();
+     const subprocess = execa('node', [], {signal: abortController.signal});
+
+     setTimeout(() => {
+		abortController.abort();
+	}, 1000);
+
+     try {
+		await subprocess;
+	} catch (error) {
+		console.log(subprocess.killed); // true
+		console.log(error.isCanceled); // true
+	}
+     ```
+     */
+    readonly signal?: AbortSignal;
+
+    /**
+     If `true`, no quoting or escaping of arguments is done on Windows. Ignored on other platforms. This is set to `true` automatically when the `shell` option is `true`.
+
+     @default false
+     */
+    readonly windowsVerbatimArguments?: boolean;
+
+    /**
+     On Windows, do not create a new console window. Please note this also prevents `CTRL-C` [from working](https://github.com/nodejs/node/issues/29837) on Windows.
+
+     @default true
+     */
+    readonly windowsHide?: boolean;
+}
+
+/**
+ * ...
+ * Type copied from exec as a bug Workaround, because typescript-rtti otherwise creates a wrong import statement: import ... from "execa/index.js";
+ */
+export interface ExecaOptions<EncodingType = string> extends ExecaCommonOptions<EncodingType> {
+    /**
+     Write some input to the `stdin` of your binary.
+     */
+    readonly input?: string | Buffer | ReadableStream;
 }
 
 /**
