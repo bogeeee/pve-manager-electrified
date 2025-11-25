@@ -2,11 +2,6 @@ include /usr/share/dpkg/default.mk
 include defines.mk
 -include local.config.mk
 
-.PHONY: local.config.mk
-local.config.mk:
-	test -f local.config.mk || (echo "local.config.mk does not exist (on the IDE machine). See development-readme.md" && exit 1)
-
-
 export PVERELEASE = $(shell echo $(DEB_VERSION_UPSTREAM) | cut -d. -f1-2)
 export VERSION = $(DEB_VERSION_UPSTREAM_REVISION)
 
@@ -33,6 +28,11 @@ RSYNC_PARAMS=--delete
 
 all: $(SUBDIRS)
 	set -e && for i in $(SUBDIRS); do $(MAKE) -C $$i; done
+
+.PHONY: local.config.mk
+local.config.mk:
+	test -f local.config.mk || (echo "local.config.mk does not exist (on the IDE machine). See development-readme.md" && exit 1)
+
 
 .PHONY: tidy
 tidy:
