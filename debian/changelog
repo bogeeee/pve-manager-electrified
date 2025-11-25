@@ -1,3 +1,17 @@
+pve-manager-electrified (9.1.1) trixie; urgency=medium
+
+  * First release of pve-manager fork for PVE9 / debian trixie.
+
+  * Working plugin manager / plugin system
+
+  * API improved (for plugins and for internal use)
+
+  * Much more improvements and bugfixes
+
+  * For previous version changes, see changelog of "pve-manager" package
+
+ -- PVE-electrified crew <crew@pve-electrified.net>  Tue, 25 Nov 2025 00:00:00 +0200
+
 pve-manager-electrified (8.3.5) bookworm; urgency=medium
 
   * First release of pve-manager fork.
