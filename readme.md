@@ -8,10 +8,10 @@ The goal is also, to provide a plugin system and give plugin authors the tools t
 Update: Heavily working on the plugin system. Expect the first release on November 16.
 
 ## Install
-**!!!!It's not yet releaed!!!. Please be patient!** Here, you'll find some random in-development release in the meanwhile.
+**!!!!It's not yet released!!!. Please be patient!** Here, you'll find some random in-development release in the meanwhile.
 ````bash
 wget https://pve-electrified.net/pubkey.asc -O /etc/apt/trusted.gpg.d/pve-electrified.asc
-echo "deb https://pve-electrified.net/debian bookworm main" >> /etc/apt/sources.list
+echo "deb https://pve-electrified.net/debian $(lsb_release -c -s) main" >> /etc/apt/sources.list
 apt update && apt install -y pve-manager-electrified
 ````
 
