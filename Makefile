@@ -169,7 +169,7 @@ IDE_prod_run_nodejsserver: IDE_rsync_project_to_targt_pve_host
 .PHONY: IDE_rsync_project_to_targt_pve_host
 IDE_rsync_project_to_targt_pve_host: local.config.mk
 	$(EXEC_SSH_TARGT_PVE_HOST) mkdir -p /root/proxmox/pve-manager-electrified
-	@sshpass -p "$(TARGT_PVE_HOST_ROOTPASSWORD)" rsync -a $(RSYNC_PARAMS) --exclude="**/node_modules" . root@$(TARGT_PVE_HOST):/root/proxmox/pve-manager-electrified/
+	@sshpass -p "$(TARGT_PVE_HOST_ROOTPASSWORD)" rsync -a $(RSYNC_PARAMS) --exclude="**/node_modules" --exclude="local.config.mk" . root@$(TARGT_PVE_HOST):/root/proxmox/pve-manager-electrified/
 
 .PHONY: IDE_publish_docs_to_website
 IDE_publish_docs_to_website: local.config.mk clean index.html /usr/bin/sshpass
@@ -194,7 +194,7 @@ IDE_create_aptly_repo: local.config.mk /usr/bin/aptly
 .PHONY: IDE_build_and_publish_package
 IDE_build_and_publish_package: local.config.mk IDE_create_aptly_repo /usr/bin/sshpass /usr/bin/aptly IDE_rsync_project_to_targt_pve_host
 	# Build on the pve server:
-	$(EXEC_SSH_TARGT_PVE_HOST) "cd /root/proxmox/pve-manager-electrified && make clean && make deb"
+	$(EXEC_SSH_TARGT_PVE_HOST) "cd /root/proxmox/pve-manager-electrified && rm -f local.config.mk && make clean && make deb"
 	# copy .deb to this machine:
 	@sshpass -p "$(TARGT_PVE_HOST_ROOTPASSWORD)" rsync -a root@$(TARGT_PVE_HOST):/root/proxmox/pve-manager-electrified/$(DEB) .
 	aptly repo add "pve-electrified-$(DEBIAN_DISTRIBUTION)" $(DEB)

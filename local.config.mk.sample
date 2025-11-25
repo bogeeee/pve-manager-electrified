@@ -1,4 +1,5 @@
 .PHONY: ~/pve-manager-electrified-secrets.config
+# Note: This file must exist only on the dev machine. If you still see the build complaining, it might be, that accidentally this local.config.mk file exists on the **target PVE server**
 include ~/pve-manager-electrified-secrets.config
 
 TARGT_PVE_HOST=pve8dev.local
