@@ -166,74 +166,76 @@ case "$1" in
     # Configure this package.  If the package must prompt the user for
     # information, do it here.
 
-    if [ "${PVEME_POSTINST_SKIP}" = "true" ]; then
-      exit 0;;
-    fi
+    if [ "${PVEME_POSTINST_SKIP}" != "true" ]; then
 
-    mkdir /etc/pve 2>/dev/null || true
 
-    if test ! -e /var/lib/pve-manager/apl-info/download.proxmox.com; then
-        mkdir -p /var/lib/pve-manager/apl-info
-        cp /usr/share/doc/pve-manager/aplinfo.dat /var/lib/pve-manager/apl-info/download.proxmox.com
-        pveam update || true
-    fi
+      mkdir /etc/pve 2>/dev/null || true
 
-    echo "npm-install'ing dependant packages for pve-pvenodejsserver"
-    npm --prefix /usr/share/pve-manager-nodejsserver prune --ignore-scripts --no-audit
+      if test ! -e /var/lib/pve-manager/apl-info/download.proxmox.com; then
+          mkdir -p /var/lib/pve-manager/apl-info
+          cp /usr/share/doc/pve-manager/aplinfo.dat /var/lib/pve-manager/apl-info/download.proxmox.com
+          pveam update || true
+      fi
 
-    systemctl --system daemon-reload >/dev/null || true
+      echo "npm-install'ing dependant packages for pve-pvenodejsserver"
+      npm --prefix /usr/share/pve-manager-nodejsserver prune --ignore-scripts --no-audit
 
-    # same as dh_systemd_enable (code copied)
+      systemctl --system daemon-reload >/dev/null || true
 
-    UNITS="pvedaemon.service pveproxy.service pvenodejsserver.service spiceproxy.service pvestatd.service pvebanner.service pvescheduler.service pve-daily-update.timer"
-    NO_RESTART_UNITS="pvenetcommit.service pve-guests.service pve-sdn-commit.service pve-firewall-commit.service"
+      # same as dh_systemd_enable (code copied)
 
-    for unit in ${UNITS} ${NO_RESTART_UNITS}; do
-        deb-systemd-helper unmask "$unit" >/dev/null || true
+      UNITS="pvedaemon.service pveproxy.service pvenodejsserver.service spiceproxy.service pvestatd.service pvebanner.service pvescheduler.service pve-daily-update.timer"
+      NO_RESTART_UNITS="pvenetcommit.service pve-guests.service pve-sdn-commit.service pve-firewall-commit.service"
 
-        # was-enabled defaults to true, so new installations run enable.
-        if deb-systemd-helper --quiet was-enabled "$unit"; then
-            # Enables the unit on first installation, creates new
-            # symlinks on upgrades if the unit file has changed.
-            deb-systemd-helper enable "$unit" >/dev/null || true
-        else
-            # Update the statefile to add new symlinks (if any), which need to be
-            # cleaned up on purge. Also remove old symlinks.
-            deb-systemd-helper update-state "$unit" >/dev/null || true
-        fi
-    done
+      for unit in ${UNITS} ${NO_RESTART_UNITS}; do
+          deb-systemd-helper unmask "$unit" >/dev/null || true
 
-    BETA_SOURCES="/etc/apt/sources.list.d/pve-test-for-beta.sources"
-    if test -f "$BETA_SOURCES" && dpkg --compare-versions "$2" 'lt' '9.0.1' && dpkg --compare-versions "$2" 'gt' '9.0~~'; then
-        printf "\nNOTE: Remove the pve-test repository, which was added during the beta phase.\nYou can (re-)add repositories on the web UI (Node -> Repositories)\n\n"
-        rm -v "$BETA_SOURCES" || true
-    fi
+          # was-enabled defaults to true, so new installations run enable.
+          if deb-systemd-helper --quiet was-enabled "$unit"; then
+              # Enables the unit on first installation, creates new
+              # symlinks on upgrades if the unit file has changed.
+              deb-systemd-helper enable "$unit" >/dev/null || true
+          else
+              # Update the statefile to add new symlinks (if any), which need to be
+              # cleaned up on purge. Also remove old symlinks.
+              deb-systemd-helper update-state "$unit" >/dev/null || true
+          fi
+      done
 
-    if test ! -e /proxmox_install_mode && test -n "$2" && dpkg --compare-versions "$2" 'lt' '8.1.4~'; then
-        # TODO: remove with PVE 10
-        # pass FORCE as we want to ensure the filter for RBDs gets added to our existing one.
-        set_lvm_conf 1
-    else
-        set_lvm_conf
-    fi
+      BETA_SOURCES="/etc/apt/sources.list.d/pve-test-for-beta.sources"
+      if test -f "$BETA_SOURCES" && dpkg --compare-versions "$2" 'lt' '9.0.1' && dpkg --compare-versions "$2" 'gt' '9.0~~'; then
+          printf "\nNOTE: Remove the pve-test repository, which was added during the beta phase.\nYou can (re-)add repositories on the web UI (Node -> Repositories)\n\n"
+          rm -v "$BETA_SOURCES" || true
+      fi
 
-    if test -n "$2" && dpkg --compare-versions "$2" 'lt' '8.1.11'; then
-        update_ceph_conf
-    fi
+      if test ! -e /proxmox_install_mode && test -n "$2" && dpkg --compare-versions "$2" 'lt' '8.1.4~'; then
+          # TODO: remove with PVE 10
+          # pass FORCE as we want to ensure the filter for RBDs gets added to our existing one.
+          set_lvm_conf 1
+      else
+          set_lvm_conf
+      fi
 
-    if test ! -e /proxmox_install_mode; then
-        echo "Restarting services. If this process runs in a browser-window shell, it may get killed and look like hanging. Still the installation should succeed and the web interface should come up in approx. 1 minute."
-        # Flag this, so it can be cleaned up. Because this post-install script is marked as incomplete - apt hooks won't be released until you call: dpkg --configure pve-manager-electrified
-        echo "true" > /var/pveme-postinst_restarting-services
-        # modeled after code generated by dh_start
-        for unit in ${UNITS}; do
-            if systemctl -q is-enabled "$unit"; then
-              echo "Starting/restarting $unit"
-              # simply restart, because reload-or restart does not work at least with pveproxy (with changed port) and pvenodejsserver
-              deb-systemd-invoke restart "$unit" || true
-            fi
-        done
-        rm -f /var/pveme-postinst_restarting-services
+      if test -n "$2" && dpkg --compare-versions "$2" 'lt' '8.1.11'; then
+          update_ceph_conf
+      fi
+
+      if test ! -e /proxmox_install_mode; then
+          echo "Restarting services. If this process runs in a browser-window shell, it may get killed and look like hanging. Still the installation should succeed and the web interface should come up in approx. 1 minute. Refresh your browser. If it wont't work, do a reboot."
+          # Flag this, so it can be cleaned up. Because this post-install script is marked as incomplete - apt hooks won't be released until you call: dpkg --configure pve-manager-electrified
+          # Note: Still this is  a hacky solution. Observed different behaviour/race condition: The exact time, this process gets killed may vary.
+          echo "true" > /var/pveme-postinst_restarting-services
+          # modeled after code generated by dh_start
+          for unit in ${UNITS}; do
+              if systemctl -q is-enabled "$unit"; then
+                echo "Starting/restarting $unit"
+                # simply restart, because reload-or restart does not work at least with pveproxy (with changed port) and pvenodejsserver
+                deb-systemd-invoke restart "$unit" || true
+              fi
+          done
+          rm -f /var/pveme-postinst_restarting-services
+      fi
+
     fi
 
     if test ! -e /proxmox_install_mode && test -n "$2" && dpkg --compare-versions "$2" 'lt' '7.2-11~'; then
