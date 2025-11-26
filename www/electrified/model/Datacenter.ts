@@ -74,9 +74,16 @@ export class Datacenter extends ModelBase {
     protected async refreshStatus() {
         const fetchResult = await getElectrifiedApp().api2fetch("GET", "/cluster/status") as any[];
         let clusterData = fetchResult.filter(r => r.type === "cluster");
-        clusterData.length === 1 || throwError("Illegal response from server");
+        let newHasQuorum = true;
+        if(clusterData.length === 0) { // No cluster set up?
+        }
+        else if(clusterData.length === 1) { // A cluster is set up
+            newHasQuorum = clusterData[0].quorate == 1;
+        }
+        else {
+            throw new Error("Illegal response from server");
+        }
 
-        const newHasQuorum = clusterData[0].quorate == 1;
         const changed = newHasQuorum !== (this._hasQuorum === true)
         if(newHasQuorum && this._hasQuorum !== true) { // Enter quorum?
 
