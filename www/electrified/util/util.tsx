@@ -33,6 +33,10 @@ function gettext(text: string) {
     return app.getText(text);
 }
 
+export class FetchError extends Error {
+    httpStatusCode!: number;
+}
+
 export async function better_fetch(...args: Parameters<typeof fetch>) {
     const request = args[0] as any;
     let result: Awaited<ReturnType<typeof fetch>>;
@@ -48,7 +52,9 @@ export async function better_fetch(...args: Parameters<typeof fetch>) {
     }
 
     if(!result.ok) {
-        throw new Error(`could not fetch url: ${request?.url?request.url:request.toString()}:  ${result.status}: ${result.statusText}`)
+        const error = new FetchError(`could not fetch url: ${request?.url?request.url:request.toString()}:  ${result.status}: ${result.statusText}`);
+        error.httpStatusCode = result.status;
+        throw error
     }
     return result;
 }

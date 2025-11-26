@@ -1,6 +1,6 @@
 import {AsyncConstructableClass} from "../util/AsyncConstructableClass";
 import {Guest} from "./Guest";
-import {spawnAsync, throwError} from "../util/util";
+import {FetchError, spawnAsync, throwError} from "../util/util";
 import {Node} from "./Node"
 import {getElectrifiedApp} from "../globals";
 import {ModelBase} from "./ModelBase";
@@ -39,8 +39,20 @@ export class Datacenter extends ModelBase {
         await this.handleResourceStoreDataChanged();
         getElectrifiedApp()._resourceStore.on("datachanged", () => spawnAsync(() => this.handleResourceStoreDataChanged()));
 
+        // Refresh status regularly:
         await this.refreshStatus();
-        setInterval(() => spawnAsync(async () => await this.refreshStatus()), Datacenter.STATUS_REFRESH_INTERVAL); // Refresh status regularly
+        setInterval(() => spawnAsync(async () => {
+            try {
+                await this.refreshStatus();
+            }
+            catch (e) {
+                if(e !== null && e instanceof FetchError && e.httpStatusCode === 401)  { // Failed because no ticket? (logged out in the meanwhile)
+                    return; // Don't spam the log with messages
+                }
+                throw e;
+            }
+
+        }), Datacenter.STATUS_REFRESH_INTERVAL); // Refresh status regularly
     }
 
     protected async handleResourceStoreDataChanged() {
