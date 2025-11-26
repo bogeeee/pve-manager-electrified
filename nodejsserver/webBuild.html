@@ -14,6 +14,7 @@
       <hr/>
       <input id="useViteDevServerCheckbox" type="checkbox" onclick="rebuild({...state.builtWeb.buildOptions, buildStaticFiles: !event.target.checked})"/>Use vite devserver<br/>
       &#160;└<input id="viteDevServer_allowUnauthorizedClients_checkbox" type="checkbox" onclick="withErrorHandling(async() => { await execElectrifiedApiMethod('setViteDevServer_allowUnauthorizedClients',[event.target.checked]);})"/>Allow unauthorized clients (not secure for production use)<br/>
+      &#160;└<input id="node_env_development_checkbox" type="checkbox" onclick="withErrorHandling(async() => { await execElectrifiedApiMethod('setNodeEnv',[event.target.checked?'development':'production']);})"/>Set NODE_ENV=development - prevents vite devserver from minifying libraries (not secure for production use)<br/>
       <input id="enablePlugins" type="checkbox" onclick="rebuild({...state.builtWeb.buildOptions, enablePlugins: event.target.checked})"/>Enable plugins<br/>
       <br/>
       <button onclick="withErrorHandling(() => rebuild(state.builtWeb.buildOptions))">Rebuild web</button>
@@ -76,6 +77,9 @@ ${state.builtWeb.promiseState.state==="rejected"?`<b>Build failed:</b> ${state.b
                   document.getElementById("useViteDevServerCheckbox").checked = !state.builtWeb.buildOptions.buildStaticFiles;
                   document.getElementById("viteDevServer_allowUnauthorizedClients_checkbox").checked = state.viteDevServer_allowUnauthorizedClients;
                   document.getElementById("viteDevServer_allowUnauthorizedClients_checkbox").disabled = state.builtWeb.buildOptions.buildStaticFiles;
+                  document.getElementById("node_env_development_checkbox").checked = state.NODE_ENV === "development";
+                  document.getElementById("node_env_development_checkbox").disabled = state.builtWeb.buildOptions.buildStaticFiles;
+
                   document.getElementById("enablePlugins").checked = state.builtWeb.buildOptions.enablePlugins;
 
                   document.getElementById("createExamplePluginProjectButton").disabled = state.exampleUiPluginProjectExist

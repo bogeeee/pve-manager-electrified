@@ -86,6 +86,7 @@ export class ElectrifiedSession extends ServerSession {
             },
             hasPermissions: this.cachedPermissions?.permissions["/"]["Sys.Console"] === 1,
             viteDevServer_allowUnauthorizedClients: appServer.viteDevServer_allowUnauthorizedClients,
+            NODE_ENV: process.env.NODE_ENV,
         };
     }
 
@@ -98,6 +99,15 @@ export class ElectrifiedSession extends ServerSession {
 
     @remote setViteDevServer_allowUnauthorizedClients(newValue: boolean) {
         appServer.viteDevServer_allowUnauthorizedClients = newValue;
+    }
+
+    @remote async setNodeEnv(newValue: string) {
+        const hasChanged = newValue !== process.env.NODE_ENV;
+        process.env.NODE_ENV = newValue;
+
+        if(hasChanged) {
+            await appServer.viteDevServer?.restart();
+        }
     }
 
     @remote async onWebBuildStart(listener: ()  => void) {

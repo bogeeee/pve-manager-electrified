@@ -94,9 +94,10 @@ class AppServer {
     protected expressSessionSecret = nacl_util.encodeBase64(nacl.randomBytes(32));
     protected expressSessionStore = new ExpressMemoryStoreExt(); // Express's default memory store. You may use a better one for production to prevent against growing memory by a DOS attack. See https://www.npmjs.com/package/express-session
 
-    protected viteDevServer!: ViteDevServer;
+    viteDevServer!: ViteDevServer;
 
     viteDevServer_allowUnauthorizedClients = process.env.NODE_ENV === "development";
+    startup_nodeEnv = process.env.NODE_ENV;
 
     constructor() {
         spawnAsync(async () => {
@@ -293,6 +294,10 @@ class AppServer {
      * @param delayMs when specified, it waits this amount of milliseconds before starting the build. This can be useful to counteract bursts of build triggers, i.e by watched file changes.
      */
     buildWeb(buildOptions: BuildOptions, progressListener?: (progress: WebBuildProgress) => void, delayMs?: number) {
+        if(buildOptions.buildStaticFiles) {
+            process.env.NODE_ENV = this.startup_nodeEnv; // For safety, if the user chosed to no more use the vite-devserver
+        }
+
         // Cancel old build:
         const oldBuild = this.builtWeb;
         if(oldBuild?.promiseState.state === "pending") {
