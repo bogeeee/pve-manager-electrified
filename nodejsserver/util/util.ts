@@ -10,6 +10,7 @@ import escapeHtml from "escape-html";
 import fs from "node:fs";
 import {Duplex} from "node:stream";
 import {Readable} from "stream";
+import { URL } from 'node:url'
 
 /**
  *
@@ -452,6 +453,20 @@ export function isStrictSameSiteRequest(req: IncomingMessage) {
         }
     }
 
+    function getOrigin(): string | undefined {
+        if (getHeader("Origin")) {
+            return getHeader("Origin")
+        }
+
+        const referer = getHeader("Referer");
+        if (referer) {
+            const refererUrl = new URL(referer);
+            if (refererUrl.protocol && refererUrl.host) {
+                return refererUrl.protocol + "//" + refererUrl.host;
+            }
+        }
+    }
+
     /**
      * In express 4.x req.host is deprecated but req.hostName only gives the name without the port, so we have to work around as good as we can
      */
@@ -463,7 +478,7 @@ export function isStrictSameSiteRequest(req: IncomingMessage) {
         return getHeader('Host');
     }
 
-    const origin = getHeader("Origin");
+    const origin = getOrigin();
     const destination = getHost();
     return origin && destination && origin.replace(/^https?:\/\//,"") === destination;
 }
