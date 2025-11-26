@@ -8,6 +8,8 @@ export VERSION = $(DEB_VERSION_UPSTREAM_REVISION)
 BUILD_TOOLS=/usr/bin/mk-build-deps /usr/bin/sq /usr/share/pve-doc-generator
 
 BUILDDIR = build
+
+# Don't forget to also adjust debian/control#Provides when releasing for a new major version.
 DEBIAN_DISTRIBUTION=trixie
 
 DSC=$(PACKAGE)_$(DEB_VERSION).dsc

@@ -112,7 +112,10 @@ Recommends: proxmox-firewall,
             skopeo,
 Conflicts: vlan, vzdump,
 Replaces: vlan, vzdump,
-Provides: vlan, vzdump, pve-manager (=8.3.5)
+#
+# After major upgrade: Don't forget to set provides: pve-manager version! x.0.0 should be enough
+Provides: vlan, vzdump, pve-manager (=9.0.0)
+#
 Breaks: libpve-network-perl (<< 0.5-1), pve-manager
 Description: Proxmox Virtual Environment Management Tools
  This package contains the Proxmox Virtual Environment management tools.
