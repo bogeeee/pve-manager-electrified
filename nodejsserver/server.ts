@@ -5,7 +5,7 @@ import WebBuildProgress, {
     BuildOptions,
     BuildResult,
 } from './WebBuilder.js';
-import {execa} from "execa";
+import {execa, execaCommand} from "execa";
 import {createProxyMiddleware} from 'http-proxy-middleware';
 import fs from 'node:fs';
 import fsAsync from 'node:fs/promises';
@@ -598,6 +598,17 @@ class AppServer {
             const status = (await execa("dpkg-query", ["-W", "-f='${Status}'", "pve-manager-electrified"], {encoding: "utf8"})).stdout;
             if(status != "install ok installed") {
                 console.log("It seems, the dpkg post-install/configure script of this pve-manager-electrified package did fail while restarting the services (indicated by the file /var/pveme-postinst_restarting-services) . Marking it as complete now.")
+
+                // Retry alter, if we can't get the dpkg lock
+                try {
+                    await execaCommand("dpkg -i /dev/zero 2>/dev/null", {shell: true});
+                }
+                catch (e) {
+                    console.log("Dpkg lock is still held. Retrying in 10 seconds.")
+                    setTimeout(() => spawnAsync(async () => await this.cleanUpIfInstallHung(), false), 10000);
+                    return;
+                }
+
                 await execa("dpkg", ["--configure", "pve-manager-electrified"], {env: {PVEME_POSTINST_SKIP: "true"}});
             }
             fs.rmSync(indicatorFile, {force: true});
