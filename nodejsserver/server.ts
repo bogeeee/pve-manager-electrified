@@ -604,17 +604,21 @@ class AppServer {
             if(status != "install ok installed") {
                 console.log("It seems, the dpkg post-install/configure script of this pve-manager-electrified package did fail while restarting the services (indicated by the file /var/pveme-postinst_restarting-services) . Marking it as complete now.")
 
-                // Retry alter, if we can't get the dpkg lock
                 try {
-                    await execaCommand("dpkg -i /dev/zero 2>/dev/null", {shell: true});
+                    await execa("dpkg", ["--configure", "pve-manager-electrified"], {env: {PVEME_POSTINST_SKIP: "true"}});
                 }
                 catch (e) {
-                    console.log("Dpkg lock is still held. Retrying in 10 seconds.")
+                    // Retry later
+                    console.log("Seems like the dpkg lock is still held. Retrying in 10 seconds.")
                     setTimeout(() => spawnAsync(async () => await this.cleanUpIfInstallHung(), false), 10000);
                     return;
                 }
 
-                await execa("dpkg", ["--configure", "pve-manager-electrified"], {env: {PVEME_POSTINST_SKIP: "true"}});
+                console.log("Done marking dpkg post-install/configure script as complete. Now restarting services:")
+                for(const serviceName of ["pvedaemon.service", "pveproxy.service", "spiceproxy.service", "pvestatd.service", "pvebanner.service", "pvescheduler.service", "pve-daily-update.timer"]) {
+                    console.log(`Restarting ${serviceName}`);
+                    await execa("deb-systemd-invoke", ["restart", serviceName]);
+                }
             }
             fs.rmSync(indicatorFile, {force: true});
         }

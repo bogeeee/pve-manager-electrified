@@ -184,7 +184,7 @@ case "$1" in
 
       # same as dh_systemd_enable (code copied)
 
-      UNITS="pvedaemon.service pveproxy.service pvenodejsserver.service spiceproxy.service pvestatd.service pvebanner.service pvescheduler.service pve-daily-update.timer"
+      UNITS="pvenodejsserver.service pvedaemon.service pveproxy.service spiceproxy.service pvestatd.service pvebanner.service pvescheduler.service pve-daily-update.timer"
       NO_RESTART_UNITS="pvenetcommit.service pve-guests.service pve-sdn-commit.service pve-firewall-commit.service"
 
       for unit in ${UNITS} ${NO_RESTART_UNITS}; do
