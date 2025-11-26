@@ -121,7 +121,7 @@ IDE_develop_nodejsserver: IDE_rsync_project_to_targt_pve_host
 	#Quick check, if the .ts files compile:
 	npm --prefix nodejsserver run check
 
-	$(EXEC_SSH_TARGT_PVE_HOST) -L 9229:localhost:9229 -L 8006:localhost:8006 -L 8005:ip6-localhost:8005 "\
+	$(EXEC_SSH_TARGT_PVE_HOST) -L 9229:localhost:9229 "\
 	cd /root/proxmox/pve-manager-electrified || exit; \
 	rm -f local.config.mk; \
 	systemctl stop pveproxy.service || exit; \
