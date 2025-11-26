@@ -575,7 +575,7 @@ class AppServer {
      * <p>Background: While an apt dist-upgrade is running, this dir can be temporarily unmounted and it would be hazardous if we accidentally write into it = it cannot be re-mounted and the user is in big trouble
      */
     async checkPveDirIsMounted() {
-        if(!await fileExists("/etc/pve/corosync.conf")) { // just picked corosync.conf as a file that always exists
+        if(!await fileExists("/etc/pve/nodes")) { // just picked nodes as a dir that always exists
             throw new Error("Cannot do the write operation. /etc/pve is not mounted.")
         }
     }
@@ -584,7 +584,7 @@ class AppServer {
      * @see checkPveDirIsMounted
      */
     checkPveDirIsMountedSync() {
-        if(!fs.existsSync("/etc/pve/corosync.conf")) { // just picked corosync.conf as a file that always exists
+        if(!fs.existsSync("/etc/pve/nodes")) { // just picked nodes as a dir that always exists
             throw new Error("Cannot do the write operation. /etc/pve is not mounted.")
         }
     }
