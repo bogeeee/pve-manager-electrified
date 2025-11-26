@@ -600,7 +600,7 @@ class AppServer {
     async cleanUpIfInstallHung() {
         const indicatorFile = "/var/pveme-postinst_restarting-services";
         if(fs.existsSync(indicatorFile)) {
-            const status = (await execa("dpkg-query", ["-W", "-f='${Status}'", "pve-manager-electrified"], {encoding: "utf8"})).stdout;
+            const status = (await execa("dpkg-query", ["-W", "-f=${Status}", "pve-manager-electrified"], {encoding: "utf8"})).stdout;
             if(status != "install ok installed") {
                 console.log("It seems, the dpkg post-install/configure script of this pve-manager-electrified package did fail while restarting the services (indicated by the file /var/pveme-postinst_restarting-services) . Marking it as complete now.")
 
