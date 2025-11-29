@@ -223,7 +223,7 @@ export class Node extends ModelBase {
      * @see execShellCommand
      */
     async execCommand(command: TemplateStringsArray, ...values: any[]): Promise<string> {
-        return await this.execCommandWithOptions({shell: "/bin/bash"})(command, ...values);
+        return await this.execCommandWithOptions({shell: false})(command, ...values);
     }
 
     /**
