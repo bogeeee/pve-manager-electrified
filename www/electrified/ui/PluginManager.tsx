@@ -223,7 +223,8 @@ export async function showPluginManager() {
                                                             <MenuItem text={t`Publish to all nodes in the datacenter`}
                                                                       onClick={() => withErrorHandling(async () => {
                                                                           await app.datacenter.queryHasQuorum() || throwError("No quorum");
-                                                                          await app.currentNode.execShellCommand`mkdir -p /etc/pve/manager/plugin-packages && rsync -r --exclude='node_modules' /root/pveme-plugin-source-projects/${shortName}/ /etc/pve/manager/plugin-packages/${shortName}`
+                                                                          await app.currentNode.execCommand`mkdir -p /etc/pve/manager/plugin-packages`
+                                                                          await app.currentNode.execCommand`rsync -r --exclude='node_modules' /root/pveme-plugin-source-projects/${shortName}/ /etc/pve/manager/plugin-packages/${shortName}`
                                                                       })}/> : undefined
                                                     }
                                                     {
@@ -235,7 +236,7 @@ export async function showPluginManager() {
                                                                               return
                                                                           }
                                                                           await app.datacenter.queryHasQuorum() || throwError("No quorum");
-                                                                          await app.currentNode.execShellCommand`rm -r /etc/pve/manager/plugin-packages/${shortName}`
+                                                                          await app.currentNode.execCommand`rm -r /etc/pve/manager/plugin-packages/${shortName}`
                                                                       })}/> : undefined
                                                     }
 
