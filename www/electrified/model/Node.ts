@@ -199,28 +199,24 @@ export class Node extends ModelBase {
     }
 
     /**
-     * Execute a shell command. You can use the tagged-template syntax, and expressions inside ${...} will be passed as an **individual** arg (stuff that sticks to it without whitespace will be included in that arg / come as a single arg). ${...} need no quoting with double-quotes.
+     * Execute a (shell-/system) command. You can use the tagged-template syntax, and expressions inside ${...} will be passed as an **individual** arg (stuff that sticks to your individual arg without whitespace, will be included in that arg / come as a single arg). ${...} expressions need no quoting with double-quotes.
      * <p>
-     *     Example: <code>myNode.execShellCommand`ls -l ${myFile}`</code>
+     *     Example: <code>myNode.execShell`ls -l ${myFile}`</code>
      * </p>
      * <p>
-     *     Example2: <code>myNode.execShellCommand`zfs list -H /rpool/pveDatasets/subvol-${myNodeId}-disk-${myDisk}`</code>
+     *     Example2: <code>myNode.execCommand`zfs list -H /rpool/pveDatasets/subvol-${myNodeId}-disk-${myDisk}`</code>
      * </p>
      * <p>
      *     Default working dir is: /tmp/pve/[session-id]
-     *     If you want to specify a different working dir or other options, use <code>myNode.execCommandWithOptions({cwd: "...", shell: "/bin/bash"})`myCommand`</code>
+     *     If you want to specify a different working dir or other options, use <code>myNode.execCommandWithOptions({cwd: "..."})`myCommand`</code>
+     * </p>
+     * <p>
+     *     If you really want bash-like features like && or * globbing, use <code>myNode.execCommandWithOptions({cwd: "...", shell="/bin/bash"})`myCommand`</code>
+     *     Note that in this case, ${...} expressions just get appended to the big bash string and **are not escaped**. You have to put them in " quotes yourself and escape them, to prevent command injections.
      * </p>
      * @param command
      * @param values
      * @returns result buffer, encoded as utf8 (for a different encoding, see {@link execCommandWithOptions}
-     */
-    async execShellCommand(command: TemplateStringsArray, ...values: any[]): Promise<string> {
-        return await this.execCommandWithOptions({shell: "/bin/bash"})(command, ...values);
-    }
-
-    /**
-     * Faster than {@link execShellCommand}. See usage there. Does not spawn a shell but directly executes the executable, which is the first token.
-     * @see execShellCommand
      */
     async execCommand(command: TemplateStringsArray, ...values: any[]): Promise<string> {
         return await this.execCommandWithOptions({shell: false})(command, ...values);
