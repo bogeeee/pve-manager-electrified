@@ -111,6 +111,7 @@ class AppServer {
             // init fields:
             this.wwwSourceDir = await fs.existsSync(this.config.developWwwBaseDir) ? this.config.developWwwBaseDir : this.config.WWWBASEDIR;
 
+            await this.createTempDirs();
 
             const expressApp = restfuncsExpress({
                 engineIoOptions: {destroyUpgrade: false},
@@ -591,6 +592,14 @@ class AppServer {
     checkPveDirIsMountedSync() {
         if(!fs.existsSync("/etc/pve/nodes")) { // just picked nodes as a dir that always exists
             throw new Error("Cannot do the write operation. /etc/pve is not mounted.")
+        }
+    }
+
+    async createTempDirs() {
+        const dirs = ["/tmp/pve"];
+        for(const dir of dirs) {
+            fs.rmSync(dir, {force: true, recursive: true}); // Clear
+            fs.mkdirSync(dir, {recursive: true});
         }
     }
 

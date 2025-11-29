@@ -1034,3 +1034,10 @@ export function formatDate(date: Date) {
         minute: '2-digit'
     });
 }
+
+/**
+ * @return An id that can be safely used in a file path
+ */
+export function createSessionId() {
+    return "" + Math.floor(Math.random() * Number.MAX_SAFE_INTEGER) + Math.floor(Math.random() * Number.MAX_SAFE_INTEGER)
+}
