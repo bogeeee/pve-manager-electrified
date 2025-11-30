@@ -27,6 +27,7 @@ import type {ElectrifiedSession} from "pveme-nodejsserver/ElectrifiedSession";
 import {showPluginManager} from "./ui/PluginManager";
 import {ElectrifiedJsonConfig} from "pveme-nodejsserver/Common";
 import {retsync2promise} from "proxy-facades/retsync";
+import {ElectrifiedFeaturesPlugin} from "./ElectrifiedFeaturesPlugin";
 
 export class Application extends AsyncConstructableClass{
 
@@ -173,7 +174,12 @@ export class Application extends AsyncConstructableClass{
         // Subscribe to event and reload the page when a new build is triggered:
         await this.currentNode.electrifiedClient.withReconnect(() => electrifiedApi.onWebBuildStart(() => {window.location.reload()}));
 
-        // Register plugins:
+        // Create and register ElectrifiedFeaturesPlugin:
+        const electrifiedFeaturesPlugin = new ElectrifiedFeaturesPlugin(this);
+        ElectrifiedFeaturesPlugin.instance = electrifiedFeaturesPlugin;
+        this._plugins.set(ElectrifiedFeaturesPlugin, electrifiedFeaturesPlugin);
+
+        // Create and register user plugins:
         for(const entry of pluginList) {
             try {
                 this.registerPlugin(entry.pluginClass, entry.packageName);
