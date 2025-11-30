@@ -1,4 +1,5 @@
 import {RestfuncsClient} from "restfuncs-client";
+import {createRoot} from "react-dom/client";
 
 import {
     better_fetch,
@@ -6,7 +7,7 @@ import {
     isPVEDarkTheme,
     returnWithErrorHandling, showBlueprintDialog, showErrorDialog,
     showResultText,
-    spawnAsync, throwError,
+    spawnAsync, TestComponent, throwError,
     withErrorHandling
 } from "./util/util";
 import {generated_pluginList as pluginList} from "../_generated_pluginList";
@@ -27,6 +28,7 @@ import type {ElectrifiedSession} from "pveme-nodejsserver/ElectrifiedSession";
 import {showPluginManager} from "./ui/PluginManager";
 import {ElectrifiedJsonConfig} from "pveme-nodejsserver/Common";
 import {retsync2promise} from "proxy-facades/retsync";
+import {createElement} from "react";
 import {ElectrifiedFeaturesPlugin} from "./ElectrifiedFeaturesPlugin";
 
 export class Application extends AsyncConstructableClass{
@@ -395,6 +397,15 @@ export class Application extends AsyncConstructableClass{
             const contextObj = this.datacenter.getNode_existing(info.node).getGuest_existing(info.vmid);
             return this._addElectrifiedMenuItems(contextObj, extJsMenuItems);
         })
+    }
+
+    /**
+     * Export this function to classic pve code
+     */
+    _createReactRoot = createRoot
+
+    _createCellElement() {
+        return createElement(TestComponent, {});
     }
 }
 

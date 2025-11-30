@@ -1041,3 +1041,8 @@ export function formatDate(date: Date) {
 export function createSessionId() {
     return "" + Math.floor(Math.random() * Number.MAX_SAFE_INTEGER) + Math.floor(Math.random() * Number.MAX_SAFE_INTEGER)
 }
+
+let renderCounter = 0;
+export const TestComponent = watchedComponent(() =>  {
+    return <span>Hello! fromTestComponent ${renderCounter++}</span>
+});

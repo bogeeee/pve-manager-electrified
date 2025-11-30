@@ -1,3 +1,5 @@
+
+let idGenerator = 0;
 /*
  * Left Treepanel, containing all the resources we manage in this datacenter: server nodes, server storages, VMs and Containers
  */
@@ -46,6 +48,8 @@ Ext.define('PVE.tree.ResourceTree', {
         },
     },
 
+    sortableColumns: false,
+
     columns: [
         {
             xtype: 'treecolumn',
@@ -82,9 +86,56 @@ Ext.define('PVE.tree.ResourceTree', {
                 return (info.renderedText = text);
             },
         },
+        {
+            flex: 1,
+            text: "Info",
+            renderer: function (val, meta, rec, rowIndex, colIndex, store, view) {
+                const meTree = view.up('treepanel');
+                const electrifiedApp = window.electrifiedApp;
+
+                meTree.render_cleanupFns.forEach(f => f() ); meTree.afterUpdate_cleanupFns = []; // Make sure, they are cleaned up. There is no better hook for it.
+
+
+                const rootElementId = `resourceTreeRoot_${idGenerator++}`;
+                let info = rec.data;
+                if(!meTree.muteReactComponents) {
+                    meTree.afterUpdateFns.push(() => {
+                        const div = document.getElementById(rootElementId);
+                        if (!div) {
+                            return; // Sometimes this happens when a render become obsolete
+                        }
+                        const reactRoot = electrifiedApp._createReactRoot(div, {identifierPrefix: rootElementId});
+                        reactRoot.render(electrifiedApp._createCellElement());
+                        meTree.render_cleanupFns.push(() => {
+                            try {
+                                reactRoot.unmount()
+                            } catch (e) {
+                                console.warn(e); // Only log.
+                            }
+                        });
+                    });
+                }
+
+                return `<div id="${rootElementId}"/>`
+            },
+        },
     ],
 
     useArrows: true,
+
+    lastUpdateTime: undefined,
+
+    muteReactComponents: true,
+
+    /**
+     * Called after the dom is updated, after a tree rerender
+     */
+    afterUpdateFns: [],
+
+    /**
+     * Called after the dom is updated, to clean up old stuff
+     */
+    render_cleanupFns: [],
 
     // private
     getTypeOrder: function (type) {
@@ -268,6 +319,9 @@ Ext.define('PVE.tree.ResourceTree', {
         return me.addChildSorted(node, info);
     },
 
+    // private
+    updateTree: undefined,
+
     saveSortingOptions: function () {
         let me = this;
         let changed = false;
@@ -279,6 +333,21 @@ Ext.define('PVE.tree.ResourceTree', {
             }
         }
         return changed;
+    },
+
+    /**
+     * Called after each update of the tree
+     */
+    handleDomUpdated() {
+        const me = this;
+        //console.log("handleDomUpdated: render_cleanupFns" + me.render_cleanupFns.length + " afterUpdateFns: " + me.afterUpdateFns.length)
+
+        // Make sure to clean up things from previous render (like it is already done):
+        me.render_cleanupFns.forEach(f => f()); me.render_cleanupFns = [];
+
+        // Call handlers:
+        me.afterUpdateFns.forEach(f => f());
+        me.afterUpdateFns = [];
     },
 
     initComponent: function () {
@@ -353,7 +422,7 @@ Ext.define('PVE.tree.ResourceTree', {
 
         let firstUpdate = true;
 
-        let updateTree = function () {
+        let updateTree = me.updateTree = function () {
             store.suspendEvents();
 
             let rootnode;
@@ -510,10 +579,22 @@ Ext.define('PVE.tree.ResourceTree', {
             store: store,
             viewConfig: {
                 animate: false, // note: animate cause problems with applyState
+                listeners: {
+                    afteritemexpand: function () {
+                        me.slapForDoubleRefresh();
+                    },
+                    afteritemcollapse: function () {
+                        me.slapForDoubleRefresh();
+                    },
+                }
             },
             listeners: {
                 itemcontextmenu: PVE.Utils.createCmdMenu,
                 destroy: function () {
+                    // Call cleanup handlers:
+                    me.render_cleanupFns.forEach(f => f());
+                    me.render_cleanupFns = [];
+
                     rstore.un('load', updateTree);
                 },
                 beforecellmousedown: function (tree, td, cellIndex, record, tr, rowIndex, ev) {
@@ -552,14 +633,27 @@ Ext.define('PVE.tree.ResourceTree', {
                             },
                         },
                     });
+
+                    me.getView().on('refresh', function(view) {
+                        setTimeout(() => me.handleDomUpdated());
+                    });
+
+                    me.getView().on('afterrender', function(view) {
+                        setTimeout(() => me.handleDomUpdated());
+                    });
                 },
             },
             setViewFilter: function (view) {
                 me.viewFilter = view;
                 me.clearTree();
-                updateTree();
+                me.slapForDoubleRefresh();
             },
             clearTree: function () {
+
+                // Call cleanup handlers for react components:
+                me.render_cleanupFns.forEach(f => f());
+                me.render_cleanupFns = [];
+
                 pdata.updateCount = 0;
                 let rootnode = me.store.getRootNode();
                 rootnode.collapse();
@@ -608,6 +702,13 @@ Ext.define('PVE.tree.ResourceTree', {
         rstore.on('load', updateTree);
         rstore.startUpdate();
 
+        me.slapForDoubleRefresh();
+        // Fix: Sometimes, the above doesn't work. Do multiple refreshes:
+        for(const t of [100, 500, 800, 1600]) {
+            setTimeout(() => {me.slapForDoubleRefresh()},t);
+        }
+        // Mind that each 3500ms comes a regular refresh, which will fix it anyway
+
         me.mon(Ext.GlobalEvents, 'loadedUiOptions', () => {
             me.store.getRootNode().cascadeBy({
                 before: function (node) {
@@ -625,4 +726,29 @@ Ext.define('PVE.tree.ResourceTree', {
             });
         });
     },
+
+    /**
+     * "Punshes this component" a few times and refreshes it to drive this component warm, or to eliminate quirks
+     */
+    async slapForDoubleRefresh() {
+        const me = this;
+
+        me.render_cleanupFns.forEach(f => f() ); me.render_cleanupFns = []; // Clean up
+
+        //me.muteReactComponents = true;
+        await sleep(1);
+        me.muteReactComponents = true;
+        me.updateTree();
+
+
+        await sleep(1);
+        me.muteReactComponents = false;
+        me.updateTree();
+
+        async function sleep(ms) {
+            return new Promise((resolve, reject) => {
+                setTimeout(resolve, ms);
+            })
+        }
+    }
 });
