@@ -12,7 +12,7 @@
     <link rel="stylesheet" type="text/css" href="https://remove_this_prefix/pve2/ext6/crisp/resources/charts-all.css?ver=$CACHEBREAKER$" />
     <link rel="stylesheet" type="text/css" href="https://remove_this_prefix/pve2/fa/css/font-awesome.css" />
     <link rel="stylesheet" type="text/css" href="https://remove_this_prefix/pve2/font-logos/css/font-logos.css" />
-    <link rel="stylesheet" type="text/css" href="https://remove_this_prefix/pve2/css/ext6-pve.css?ver=$CACHEBREAKER$" />
+    <link rel="stylesheet" type="text/css" href="css/ext6-pve.css?ver=$CACHEBREAKER$" />
     <link rel="stylesheet" type="text/css" href="https://remove_this_prefix/pwt/css/ext6-pmx.css?ver=$CACHEBREAKER$" />
 
     <!-- $...$ are replaced in index.ts#serveIndexHtml -->
