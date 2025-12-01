@@ -17,7 +17,7 @@ import {ModelBase} from "./ModelBase";
 export class Node extends ModelBase {
     name!: string;
 
-    electrifiedClient!: RestfuncsClient<ElectrifiedSession>;
+    _electrifiedClient?: RestfuncsClient<ElectrifiedSession>;
 
     /**
      * Files and directories
@@ -83,7 +83,6 @@ export class Node extends ModelBase {
     protected async constructAsync(): Promise<void> {
         // See _initWhenLoggedIn for a better place
         await super.constructAsync();
-        this.electrifiedClient = new ElectrifiedRestfuncsClient<ElectrifiedSession>(this.isCurrentNode?"/electrifiedAPI":`https://${this.hostNameForBrowser}:8006/electrifiedAPI`, {/* options */}) // TODO: Allow other origins in the ElectrifiedSession.options but use sameSite cookies, so they cannot share the session cross site (would open xsrf attacks otherwise)
     }
 
     async _initWhenLoggedOn() {
@@ -128,6 +127,19 @@ export class Node extends ModelBase {
                 this.guests.delete(id);
             }
         })
+    }
+
+    get electrifiedClient() {
+        if(this._electrifiedClient) {
+            return this._electrifiedClient;
+        }
+
+        if(!this.isCurrentNode) {
+            throw new Error("Using the electrified client is currently only possible for the current node (where you currently access the web interface). It's planned for the future, to route the api through.");
+        }
+
+        this._electrifiedClient = new ElectrifiedRestfuncsClient<ElectrifiedSession>("/electrifiedAPI", {/* options */});
+        return this._electrifiedClient;
     }
 
     /**
