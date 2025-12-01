@@ -10,6 +10,7 @@ import _ from "underscore"
 import {Lxc} from "./Lxc";
 import {Qemu} from "./Qemu";
 import {ModelBase} from "./ModelBase";
+import {preserve} from "react-deepwatch";
 
 /**
  * A PVE-Node. All fields are live updated.
@@ -274,7 +275,7 @@ export class Node extends ModelBase {
             this[key] = fields[key];
         }
 
-        this.rawDataRecord = fields;
+        this.rawDataRecord = preserve(this.rawDataRecord, fields, {destroyObsolete: false});
 
         this._fireUpdate();
     }

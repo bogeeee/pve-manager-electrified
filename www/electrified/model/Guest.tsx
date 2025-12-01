@@ -1,6 +1,7 @@
 import {AsyncConstructableClass} from "../util/AsyncConstructableClass";
 import {getElectrifiedApp} from "../globals";
 import {ModelBase} from "./ModelBase";
+import {preserve} from "react-deepwatch";
 
 export class Guest extends ModelBase {
     id!: number;
@@ -106,7 +107,7 @@ export class Guest extends ModelBase {
         const strTags = fields["tags"] as string;
         this.tags = (strTags && strTags.trim() != "")?strTags.split(";"):[];
 
-        this.rawDataRecord = fields;
+        this.rawDataRecord = preserve(this.rawDataRecord, fields, {destroyObsolete: false});
 
         this._fireUpdate();
     }
