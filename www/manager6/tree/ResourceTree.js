@@ -50,7 +50,10 @@ Ext.define('PVE.tree.ResourceTree', {
 
     sortableColumns: false,
 
-    columns: [
+    initTreeColumns( ){
+        const me = this;
+
+        me.columns= [
         {
             xtype: 'treecolumn',
             flex: 1,
@@ -86,40 +89,48 @@ Ext.define('PVE.tree.ResourceTree', {
                 return (info.renderedText = text);
             },
         },
-        {
-            flex: 1,
-            text: "Info",
-            renderer: function (val, meta, rec, rowIndex, colIndex, store, view) {
-                const meTree = view.up('treepanel');
-                const electrifiedApp = window.electrifiedApp;
+            ...electrifiedApp.plugins.map(plugin => plugin.getResourceTreeColumns()).flat().map(pluginColumn => {
+                const ReactComponent = electrifiedApp._createResourceTreeCellComponent(pluginColumn);
 
-                meTree.render_cleanupFns.forEach(f => f() ); meTree.afterUpdate_cleanupFns = []; // Make sure, they are cleaned up. There is no better hook for it.
+                return {
+                    flex: 1,
+                    text: "Info",
+                    renderer: function (val, meta, rec, rowIndex, colIndex, store, view) {
+                        const meTree = view.up('treepanel');
+                        const electrifiedApp = window.electrifiedApp;
+
+                        meTree.render_cleanupFns.forEach(f => f());
+                        meTree.afterUpdate_cleanupFns = []; // Make sure, they are cleaned up. There is no better hook for it.
 
 
-                const rootElementId = `resourceTreeRoot_${idGenerator++}`;
-                let info = rec.data;
-                if(!meTree.muteReactComponents) {
-                    meTree.afterUpdateFns.push(() => {
-                        const div = document.getElementById(rootElementId);
-                        if (!div) {
-                            return; // Sometimes this happens when a render become obsolete
+                        const rootElementId = `resourceTreeRoot_${idGenerator++}`;
+                        let info = rec.data;
+                        if (!meTree.muteReactComponents) {
+                            meTree.afterUpdateFns.push(() => {
+                                const div = document.getElementById(rootElementId);
+                                if (!div) {
+                                    return; // Sometimes this happens when a render become obsolete
+                                }
+                                const reactRoot = electrifiedApp._react.createRoot(div, {identifierPrefix: rootElementId});
+                                const props = {rawItemRecord: rec.data, rowIndex, colIndex}
+                                reactRoot.render(electrifiedApp._react.createElement(ReactComponent, props));
+                                meTree.render_cleanupFns.push(() => {
+                                    try {
+                                        reactRoot.unmount()
+                                    } catch (e) {
+                                        console.warn(e); // Only log.
+                                    }
+                                });
+                            });
                         }
-                        const reactRoot = electrifiedApp._createReactRoot(div, {identifierPrefix: rootElementId});
-                        reactRoot.render(electrifiedApp._createCellElement());
-                        meTree.render_cleanupFns.push(() => {
-                            try {
-                                reactRoot.unmount()
-                            } catch (e) {
-                                console.warn(e); // Only log.
-                            }
-                        });
-                    });
-                }
 
-                return `<div id="${rootElementId}"/>`
-            },
-        },
-    ],
+                        return `<div id="${rootElementId}"/>`
+                    },
+                }
+            }
+        ),
+    ];
+    },
 
     useArrows: true,
 
@@ -694,6 +705,8 @@ Ext.define('PVE.tree.ResourceTree', {
                 }
             },
         });
+
+        me.initTreeColumns();
 
         me.callParent();
 

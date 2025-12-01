@@ -4,6 +4,7 @@ import {watchedComponent, watched, useWatchedState} from "react-deepwatch"
 import {Button, ButtonGroup, Checkbox,  Classes,  HTMLSelect, Icon, Intent, InputGroup, Label, Menu, MenuItem, Popover, Tooltip} from "@blueprintjs/core";
 import "@blueprintjs/core/lib/css/blueprint.css";
 import "@blueprintjs/icons/lib/css/blueprint-icons.css";
+import {t} from "./globals";
 
 /**
  * Offers nice features.
@@ -62,10 +63,29 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
 
     }
 
-    getGuestMenuItems(guest) {
-        return[
 
-        ];
+    getResourceTreeColumns() {
+        return [
+            // CPU:
+            {
+                text: t`CPU`,
+                cellRenderFn: (props: { item: object, rowIndex: number, colIndex: number, rawItemRecord: Record<string, unknown> }) => {
+                    function formatCpu(cpu: number) {
+                        if (cpu > 1) {
+                            return `${cpu.toFixed(2)}\u00A0`;
+                        }
+                        return `${Math.ceil(cpu * 100)}%`
+                    }
+
+                    const item = props.item;
+                    if (item instanceof this.app.classes.model.Guest || item instanceof this.app.classes.model.Node) {
+                        return <div>{item.cpu ? formatCpu(item.cpu) : undefined}</div>
+                    } else {
+                        return undefined;
+                    }
+
+                },
+            }]
     }
 
     // ... for more plugin-hooks, use code completion here (ctrl+space).

@@ -1,9 +1,10 @@
 import {RestfuncsClient} from "restfuncs-client";
 import {createRoot} from "react-dom/client";
+import React from "react";
 
 import {
     better_fetch,
-    Clazz, errorToString,
+    Clazz, errorToString, fixErrorStack,
     isPVEDarkTheme,
     returnWithErrorHandling, showBlueprintDialog, showErrorDialog,
     showResultText,
@@ -16,7 +17,7 @@ import {
     initialize_nodeConfig_and_datacenterConfig,
     initialize_userConfig,
     Plugin,
-    PluginClass
+    PluginClass, TreeColumn
 } from "./Plugin"
 import {Guest} from "./model/Guest";
 import {Qemu} from "./model/Qemu";
@@ -30,6 +31,11 @@ import {ElectrifiedJsonConfig} from "pveme-nodejsserver/Common";
 import {retsync2promise} from "proxy-facades/retsync";
 import {createElement} from "react";
 import {ElectrifiedFeaturesPlugin} from "./ElectrifiedFeaturesPlugin";
+import {watchedComponent} from "react-deepwatch";
+import {ErrorBoundary} from "react-error-boundary";
+import {Icon, Tooltip} from "@blueprintjs/core";
+
+let app: Application | undefined = undefined;
 
 export class Application extends AsyncConstructableClass{
 
@@ -82,7 +88,7 @@ export class Application extends AsyncConstructableClass{
          * Category
          */
         model: {
-            Guest, Qemu, Lxc
+            Datacenter, Node, Guest, Qemu, Lxc
         },
         Plugin
     }
@@ -165,7 +171,7 @@ export class Application extends AsyncConstructableClass{
     async constructAsync() {
         console.log("Starting Proxmox VE Manager electrified");
 
-        (window as any).electrifiedApp = this; // Make available for other modules
+        (window as any).electrifiedApp = app = this; // Make available for other modules
 
         this.currentNode = await Node.create({name: (window as any).Proxmox.NodeName || throwError("Proxmox.NodeName not set")});
 
@@ -400,12 +406,53 @@ export class Application extends AsyncConstructableClass{
     }
 
     /**
-     * Export this function to classic pve code
+     * Export these functions to classic pve code
      */
-    _createReactRoot = createRoot
+    _react = {
+        createRoot, createElement
+    };
 
-    _createCellElement() {
-        return createElement(TestComponent, {});
+    _createResourceTreeCellComponent(treeColumn: TreeColumn) {
+        const Component = watchedComponent(treeColumn.cellRenderFn, {fallback: t`loading...`})
+        //const Component = treeColumn.cellRenderFn
+
+        /**
+         * Another Wrapper, so we have a better error ui when _getItemForResourceRecord fails
+         * @param props
+         * @constructor
+         */
+        const OuterComponent = (props: any) => {
+            const item = this.datacenter._getItemForResourceRecord(props.rawItemRecord);
+            return <Component {...props} item={item}/>
+        }
+
+        const errorRender= (props: { error: Error }) => {
+            fixErrorStack(props.error)
+            const fullError = errorToString(props.error);
+
+            const onClick = () => {
+                showResultText(fullError, props.error.message, "error");
+                setTimeout(() => { // not in the thread that's caught by reacts error handler
+                    throw props.error // ### Don't look here, this line is just the error reporter! ### / Show error to console so the javascript source mapping will be resolved
+                })
+            }
+
+            return <Tooltip content={"Click to show full error"}>
+                <a style={{cursor: "pointer"}} onClick={onClick}>
+                    <Icon icon={"error"} size={14}/>
+                </a>
+            </Tooltip>
+        }
+
+        /**
+         * Outer result component with error boundary
+         * @param props
+         * @constructor
+         */
+        const Result = (props: any)=> {
+            return <ErrorBoundary fallbackRender={errorRender}><OuterComponent {...props}/></ErrorBoundary>
+        }
+        return Result;
     }
 }
 
@@ -479,4 +526,18 @@ type UserCapabilities = {
         "User.Modify"?: (0|1),
         "Group.Allocate"?: (0|1)
     }
+}
+
+/**
+ * Translates text into the current ui language. It looks it up in the electrified translation repo.
+ * It uses the "taged template" syntax which allows to easily inert variables.
+ * <p>
+ *     Usage example: <code>t`You have ${numberOfUnread} unread messages`</code>
+ * </p>
+ * TODO: create an electrified and plugin-wide text repo and look up text there
+ * @param englishTextTokens
+ * @param values
+ */
+function t(englishTextTokens: TemplateStringsArray, ...values: any[]) {
+    return app!.getTranslatedTextWithTags(englishTextTokens, ...values);
 }

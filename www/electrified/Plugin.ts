@@ -6,6 +6,7 @@ import {Clazz} from "./util/util";
 import {retsync2promise} from "proxy-facades/retsync";
 import {getElectrifiedApp} from "./globals";
 import {WatchedProxyFacade} from "proxy-facades";
+import {ReactNode} from "react";
 
 export class Plugin {
     static instance: Plugin;
@@ -98,6 +99,10 @@ export class Plugin {
      */
     async showConfigurationDialog() {
 
+    }
+
+    getResourceTreeColumns(): TreeColumn[] {
+        return [];
     }
 
     /**
@@ -357,4 +362,24 @@ export async function initialize_nodeConfig_and_datacenterConfig(plugin: Plugin)
             })
         }
     }
+}
+
+export type TreeColumn = {
+    /**
+     * Column header text
+     */
+    text: string;
+
+    /**
+     * See https://docs.sencha.com/extjs/6.7.0/modern/Ext.grid.column.Column.html#defaultWidth
+     */
+    flex?: number | string
+
+    defaultWidth?: number;
+
+    /**
+     * React component function that renders the cell. It will be wrapped in a {@link watchedComponent} with suspense and error handling.
+     *
+     */
+    cellRenderFn: (props: {item: object, rowIndex: number, colIndex: number, rawItemRecord: Record<string, unknown>}) => ReactNode
 }
