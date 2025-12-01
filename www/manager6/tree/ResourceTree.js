@@ -94,7 +94,7 @@ Ext.define('PVE.tree.ResourceTree', {
 
                 return {
                     flex: 1,
-                    text: "Info",
+                    text: pluginColumn.text,
                     renderer: function (val, meta, rec, rowIndex, colIndex, store, view) {
                         const meTree = view.up('treepanel');
                         const electrifiedApp = window.electrifiedApp;
