@@ -379,7 +379,10 @@ export type TreeColumn = {
 
     /**
      * React component function that renders the cell. It will be wrapped in a {@link watchedComponent} with suspense and error handling.
-     *
+     * <p>
+     * Note, that **the whole resource tree, which is a legacy Extjs component, is completely rebuild every ~3 seconds** and all cell component's are recreated from scratch. So their state is lost! Meaning, it's not possible to show an ui like a dropdown box there.
+     * Write me, if you need improvement here. In theory, it's possible to handle all situations and only rebuild when i.e. a new vm is added or removed.
+     * </p>
      */
     cellRenderFn: (props: {item: object, rowIndex: number, colIndex: number, rawItemRecord: Record<string, unknown>}) => ReactNode
 }
