@@ -862,7 +862,7 @@ export function ErrorState(props: any) {
         })
     }
 
-    return <Tooltip content={"Click to show full error (+copy to clipboard)"}>
+    return <Tooltip content={"Click to show full error"}>
         <a style={{cursor: "pointer"}} onClick={onClick}>
             <NonIdealState icon={"error"} iconSize={NonIdealStateIconSize.SMALL} description={props.error.message}/>
         </a>
