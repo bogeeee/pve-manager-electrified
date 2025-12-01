@@ -291,8 +291,8 @@ function taggedTemplatetoCommandArray(template: TemplateStringsArray, values: an
     for (let i = 0; i < template.length; i++) {
         const templatePart = template[i];
 
-        if(templatePart.indexOf('"') >= 0) {
-            throw new Error('You cannot not use " (double quotes) in the command expression. This is currently not supported. Instead, use the syntax: myNode.execXXXCommand`... ${myArgStringWithSpacesAndSpecialChars} ...`. ');
+        if(templatePart.indexOf('"') >= 0 || templatePart.indexOf("'") >= 0 || templatePart.indexOf("`") >= 0) {
+            throw new Error('You cannot not use quotes in the command expression. This is currently not supported. Instead, use the syntax: myNode.execXXXCommand`... ${myArgStringWithSpacesAndSpecialChars} ...`. ');
         }
 
         if(templatePart.startsWith(" ")) {
@@ -320,6 +320,9 @@ function taggedTemplatetoCommandArray(template: TemplateStringsArray, values: an
             const value = values[i];
             if(value === undefined || value === null) {
                 throw new Error("Illegal argument: ${" + value+ "}. Undefined or null is not allowed. You may supply an empty string inside the ${...} expression instead.")
+            }
+            if(_.isArray(value)) {
+                throw new Error("${} expressions returning arrays are currently not supported")
             }
             const stringValue = "" + value; // Convert to string
             appendToCurrentArg(stringValue);
