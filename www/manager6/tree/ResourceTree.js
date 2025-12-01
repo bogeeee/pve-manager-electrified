@@ -102,8 +102,12 @@ Ext.define('PVE.tree.ResourceTree', {
                         meTree.render_cleanupFns.forEach(f => f());
                         meTree.afterUpdate_cleanupFns = []; // Make sure, they are cleaned up. There is no better hook for it.
 
-
                         const rootElementId = `resourceTreeRoot_${idGenerator++}`;
+
+                        //Determine antiflicker_oldContent
+                        const cellKey = `resourceTreeCell_${colIndex}_${rec.data.id.replace(/[/ "']/g, "_")}`;
+                        let antiflicker_oldContent = meTree.antiflicker_oldComponentContent.get(cellKey);
+
                         let info = rec.data;
                         if (!meTree.muteReactComponents) {
                             meTree.afterUpdateFns.push(() => {
@@ -116,6 +120,7 @@ Ext.define('PVE.tree.ResourceTree', {
                                 reactRoot.render(electrifiedApp._react.createElement(ReactComponent, props));
                                 meTree.render_cleanupFns.push(() => {
                                     try {
+                                        meTree.antiflicker_oldComponentContent.set(cellKey, div.innerHTML);
                                         reactRoot.unmount()
                                     } catch (e) {
                                         console.warn(e); // Only log.
@@ -124,7 +129,7 @@ Ext.define('PVE.tree.ResourceTree', {
                             });
                         }
 
-                        return `<div id="${rootElementId}"/>`
+                        return `<div id="${rootElementId}">${antiflicker_oldContent || ""}</div>`
                     },
                 }
             }
@@ -137,6 +142,8 @@ Ext.define('PVE.tree.ResourceTree', {
     lastUpdateTime: undefined,
 
     muteReactComponents: true,
+
+    antiflicker_oldComponentContent: new Map(),
 
     /**
      * Called after the dom is updated, after a tree rerender
@@ -596,6 +603,9 @@ Ext.define('PVE.tree.ResourceTree', {
                     },
                     afteritemcollapse: function () {
                         me.slapForDoubleRefresh();
+                    },
+                    beforerefresh: function () {
+                        me.render_cleanupFns.forEach(f => f()); me.render_cleanupFns = [];
                     },
                 }
             },
