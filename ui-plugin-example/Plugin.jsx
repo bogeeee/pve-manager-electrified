@@ -61,7 +61,7 @@ export default class Plugin extends PvemePlugin {
         console.log("Hello says some example plugin")
     }
 
-    onUiReady() {
+    async onUiReady() {
 
     }
 
