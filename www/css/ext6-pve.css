@@ -30,9 +30,9 @@
 }
 
 /* reduce tree space */
-.x-grid-cell-inner-treecolumn {
+.x-grid-cell-inner-treecolumn  .x-tree-panel .x-grid-cell-inner{
     /* vertical padding */
-    padding: 4px 0px 3px 0px;
+    padding: 3px 0px 3px 0px !important;
 }
 
 /* horizontal distance between parent and child leaf */
