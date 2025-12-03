@@ -422,6 +422,9 @@ export class Application extends AsyncConstructableClass{
          * @constructor
          */
         const OuterComponent = (props: any) => {
+            if(!this._datacenter) {
+                return t`Initializing...`
+            }
             const item = this.datacenter._getItemForResourceRecord(props.rawItemRecord);
             return <Component {...props} item={item}/>
         }
