@@ -48,7 +48,12 @@ Ext.define('PVE.tree.ResourceTree', {
         },
     },
 
+    stateful: true, // rember column withs of this tree over sessions
+    stateId: "resource-tree",
     sortableColumns: false,
+    enableColumnResize: true,
+    enableColumnHide: true,
+    enableColumnMove: true,
 
     initTreeColumns( ){
         const me = this;
@@ -58,6 +63,7 @@ Ext.define('PVE.tree.ResourceTree', {
             xtype: 'treecolumn',
             flex: 1,
             dataIndex: 'text',
+            stateId:"col-name",
             renderer: function (val, meta, rec) {
                 let info = rec.data;
 
@@ -89,12 +95,12 @@ Ext.define('PVE.tree.ResourceTree', {
                 return (info.renderedText = text);
             },
         },
-            ...electrifiedApp.plugins.map(plugin => plugin.getResourceTreeColumns()).flat().map(pluginColumn => {
+            ...electrifiedApp.plugins.map(plugin => plugin.getResourceTreeColumns().map(pluginColumn => {
                 const ReactComponent = electrifiedApp._createResourceTreeCellComponent(pluginColumn);
 
                 return {
-                    flex: 1,
                     text: pluginColumn.text,
+                    stateId: `${plugin.name}-${pluginColumn.key}`,
                     renderer: function (val, meta, rec, rowIndex, colIndex, store, view) {
                         const meTree = view.up('treepanel');
                         const electrifiedApp = window.electrifiedApp;
@@ -131,9 +137,10 @@ Ext.define('PVE.tree.ResourceTree', {
 
                         return `<div id="${rootElementId}">${antiflicker_oldContent || ""}</div>`
                     },
+                    ...pluginColumn
                 }
             }
-        ),
+        )).flat(),
     ];
     },
 

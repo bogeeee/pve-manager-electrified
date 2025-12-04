@@ -371,11 +371,21 @@ export type TreeColumn = {
     text: string;
 
     /**
+     * This is the key for, when saving and restoring the state (width / show / hide)
+     */
+    key: string;
+
+    /**
      * See https://docs.sencha.com/extjs/6.7.0/modern/Ext.grid.column.Column.html#defaultWidth
      */
     flex?: number | string
 
     defaultWidth?: number;
+
+    /**
+     * Hide by default (state will be saved in the localstorage)
+     */
+    hidden?: boolean
 
     /**
      * React component function that renders the cell. It will be wrapped in a {@link watchedComponent} with suspense and error handling.

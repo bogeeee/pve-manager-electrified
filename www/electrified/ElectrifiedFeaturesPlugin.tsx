@@ -74,7 +74,9 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
         return [
             // CPU:
             {
-                text: t`CPU`,
+                text: t`CPU text`,
+                key: "cpu_text",
+                hidden: true,
                 cellRenderFn: (props: { item: object, rowIndex: number, colIndex: number, rawItemRecord: Record<string, unknown> }) => {
                     function formatCpu(cpu: number) {
                         if (cpu > 1) {
