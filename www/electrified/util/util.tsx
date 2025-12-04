@@ -1046,3 +1046,44 @@ let renderCounter = 0;
 export const TestComponent = watchedComponent(() =>  {
     return <span>Hello! fromTestComponent ${renderCounter++}</span>
 });
+
+/**
+ * Throws an error if a duplicate entry was found
+ * @param array
+ * @param prop property name or derivation function. when undefined, the array elements them selves  are checked
+ * @param onError You can specify a message or a callback to throw/call in case, a duplicate entry was found
+ */
+export function checkForDuplicates<T>(array: T[], prop?: keyof T | ((element: T) => unknown), onError?: string | ((value: any, e1:T, e2:T, index1:number, index2: number) => void)) {
+    const values2elements = new Map<unknown, {index: number, element: T}>();
+    for(let i = 0;i<array.length; i++) {
+        const element = array[i];
+
+        // Determine value:
+        let value;
+        if(prop === undefined) {
+            value = element;
+        }
+        else if(typeof prop === "string") {
+            value = element[prop];
+        }
+        else if(typeof prop === "function") {
+            value = prop(element);
+        }
+
+        const existing = values2elements.get(value);
+        if(existing !== undefined) {
+            // error:
+            if(onError === undefined) {
+                throw new Error(`Duplicate ${prop?prop.toString():"entry"}: ${value}`);
+            }
+            else if(typeof onError === "string") {
+                throw new Error(onError);
+            }
+            else if(typeof onError === "function") {
+                onError(value, existing.element, element, existing.index, i);
+            }
+        }
+
+        values2elements.set(value, {index: i, element});
+    }
+}

@@ -2,7 +2,7 @@ import type {Application} from "./Application";
 import {Guest} from "./model/Guest";
 import {Qemu} from "./model/Qemu";
 import {Lxc} from "./model/Lxc";
-import {Clazz} from "./util/util";
+import {checkForDuplicates, Clazz, throwError} from "./util/util";
 import {retsync2promise} from "proxy-facades/retsync";
 import {getElectrifiedApp} from "./globals";
 import {WatchedProxyFacade} from "proxy-facades";
@@ -171,6 +171,15 @@ export class Plugin {
                 return token;
             }
         })
+    }
+
+    /**
+     * Pre-check, if the plugin is valid
+     */
+    _validate() {
+        const resourceTreeColumns = this.getResourceTreeColumns();
+        resourceTreeColumns.forEach(t => t.key || throwError("No 'key' was specified in resource tree column."));
+        checkForDuplicates(resourceTreeColumns, "key", (key) => throwError(`Duplicate keys in resource tree column: ${key}`));
     }
 }
 

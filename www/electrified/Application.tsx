@@ -234,6 +234,7 @@ export class Application extends AsyncConstructableClass{
                 }
 
                 await plugin.init();
+                await plugin._validate();
             }
             catch (e) {
                 this.unregisterPlugin(plugin);
