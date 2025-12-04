@@ -604,3 +604,60 @@ export function readStreamToBuffer(stream: Readable): Promise<Buffer> {
         stream.on('error', reject);
     });
 }
+
+export function formatNanoTime(nanos: bigint) {
+    function cut(n: number) {
+        const str = String(n);
+        if(str.indexOf(".") >= 0) {
+            return str.substring(0, 4);
+        }
+        return str.substring(0, 3)
+    }
+
+    if(nanos > BigInt(1e9)) {
+        return `${cut(Number(nanos) / 1e9)}s`
+    }
+    else if(nanos >  BigInt(1e6)) {
+        return `${cut(Number(nanos) / 1e6)}ms`
+    }
+    else if(nanos >  BigInt(1e3)) {
+        return `${cut(Number(nanos) / 1e3)}µs`
+    }
+    else {
+        return `${cut(Number(nanos))}ns`
+    }
+}
+
+let benchmark_overheadTime : bigint | undefined = undefined;
+/**
+ * measures the specified function. Will run it multiple times for better accurracy
+ * <p>
+ *     console.log(formatNanoTime(await benchmark(async () => {
+ *          ... my code...
+ *     })));
+ * </p>
+ * @param fn
+ * @param minimumTimeMs 0 = only one try
+ * @returns time in nanoseconds it has taken for one fn run
+ */
+export async function benchmark(fn: () => Promise<void>, minimumTimeMs= 1000): Promise<bigint> {
+    // Calculate overhead:
+    if(benchmark_overheadTime === undefined) {
+        benchmark_overheadTime = BigInt(0);
+        benchmark_overheadTime = await benchmark(async () => {}, 800);
+    }
+
+    const minimumTime = BigInt(minimumTimeMs) * BigInt(1e6); // Convert to ms
+
+    const startTime = process.hrtime.bigint();
+
+    let diff: bigint | undefined = undefined;
+    let tries = 0;
+    while (diff === undefined || minimumTime && diff < minimumTime) {
+        await fn();
+        tries++;
+        diff = process.hrtime.bigint() - startTime;
+    }
+
+    return (diff / BigInt(tries)) - benchmark_overheadTime;
+}
