@@ -72,6 +72,27 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
 
     getResourceTreeColumns() {
         return [
+            // CPU bars:
+            {
+                text: t`CPU bars`,
+                key: "cpu_bars",
+                cellRenderFn: (props: { item: object, rowIndex: number, colIndex: number, rawItemRecord: Record<string, unknown> }) => {
+
+                    const item = props.item;
+                    if (item instanceof this.app.classes.model.Guest) {
+                        if(item.electrifiedStats?.currentCpuUsage) {
+                            watched(this).timeForComponentAnimations; const now = new Date().getTime() // Access timer only to force regular refresh.
+                            const ageTimeStamp = item.electrifiedStats.clientTimestamp - item.electrifiedStats.currentCpuUsage.ageMs;
+                            const ageInSeconds = ((now - ageTimeStamp) / 1000) - 1; // -1 = fluctuations the first second window should be still at full opacity. Otherwise it flickers too much
+                            const opacity = Math.min(1, 1 / Math.pow(2, ageInSeconds / 4)); // Half the opacity after 4 seconds
+                            return <div style={{opacity}}>...bars...</div>
+                        }
+                    } else {
+                        return undefined;
+                    }
+
+                },
+            },
             // CPU:
             {
                 text: t`CPU text`,
