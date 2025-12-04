@@ -10,7 +10,7 @@ import path from "node:path";
 import fsPromises  from "node:fs/promises";
 import {execa, StdioOption} from "execa";
 import {Request} from "express";
-import {RemoteMethodOptions} from "restfuncs-server";
+import {ServerSocketConnection, RemoteMethodOptions} from "restfuncs-server";
 import _ from "underscore";
 import chokidar from "chokidar";
 import {ClientCallbackSet} from "restfuncs-server";
@@ -34,9 +34,11 @@ export class ElectrifiedSession extends ServerSession {
         csrfProtectionMode: "corsReadToken"
     }
 
-    private static remoteMethodsThatNeedNoPermissions: (keyof ElectrifiedSession)[] = ["getWebBuildState","permissionsAreUp2Date", "clearCachedPermissions", "diagnosis_canAccessWeb", "onWebBuildStart"];
+    private static remoteMethodsThatNeedNoPermissions: (keyof ElectrifiedSession)[] = ["getWebBuildState","permissionsAreUp2Date", "clearCachedPermissions", "diagnosis_canAccessWeb", "onWebBuildStart", "getGuestStats"];
 
     static defaultRemoteMethodOptions: RemoteMethodOptions = {validateResult: false}
+
+    protected static browserWindows = new Map<ServerSocketConnection, BrowserWindow>();
 
     /**
      * Permission object with all privileges listed, see https://pve.proxmox.com/wiki/User_Management # Privileges
@@ -509,6 +511,49 @@ export class ElectrifiedSession extends ServerSession {
         return result;
     }
 
+    @remote async getGuestStats(browserWindowIsFocused: boolean) {
+        await this.checkPermission("/", "Sys.Audit"); // TODO: check for individual guests and return only those's stats
+        this.getBrowserWindow().isFocused = browserWindowIsFocused;
+        return appServer.guestCpuMeters.getUsage();
+    }
+
+    /**
+     * @returns Browser window associated with this call's socketconnection
+     */
+    protected getBrowserWindow() {
+        // First, clean up, to prevent resource leak: (NOTE: A Map with weak keys would be more suited)
+        [...ElectrifiedSession.browserWindows.keys()].forEach(c => {
+            if(c.isClosed()) {
+                ElectrifiedSession.browserWindows.delete(c);
+            }
+        })
+
+        const socketConnection = this.call.socketConnection;
+        if(!socketConnection) {
+            throw new Error("Not calling via socket");
+        }
+        let result = ElectrifiedSession.browserWindows.get(socketConnection);
+        if(!result) {
+            result = new BrowserWindow();
+            ElectrifiedSession.browserWindows.set(socketConnection, result);
+        }
+        return result;
+    }
+
+    /**
+     * All Browser windows. Assuming the clients have at some time called getBrowserWindow (to store some useful information in there).
+     */
+    static getBrowserWindows() {
+        //  Clean up:
+        [...this.browserWindows.keys()].forEach(c => {
+            if(c.isClosed()) {
+                this.browserWindows.delete(c);
+            }
+        })
+
+        return [...this.browserWindows.values()];
+    }
+
 
     /**
      * Copied from Restfuncs, which does not expose it as an API
@@ -877,4 +922,11 @@ interface CookieSession extends Record<string, unknown> {
     bpSalt?: string
     previousBpSalt?: string
     commandDestruction?:boolean
+}
+
+/**
+ * Advanced info that is stored per socketconnection = 1:1 to browser window
+ */
+export class BrowserWindow {
+    isFocused = false;
 }

@@ -1,5 +1,5 @@
 import {AsyncConstructableClass} from "../util/AsyncConstructableClass";
-import {newDefaultMap, spawnAsync, throwError} from "../util/util";
+import {newDefaultMap, newDefaultWeakMap, sleep, spawnAsync, throwError} from "../util/util";
 import {File, normalizePath} from "./File";
 import {RestfuncsClient} from "restfuncs-client";
 import type {ElectrifiedSession, ExecaOptions} from "pveme-nodejsserver/ElectrifiedSession"
@@ -262,6 +262,20 @@ export class Node extends ModelBase {
      */
     get hostNameForBrowser() {
         return this.name
+    }
+
+    /**
+     * ElectrifiedGuestStats are additional stats with cpu usage and [running/not running]. Cause the cluster cluster/resources's stats are too lame (~30 second average or so).
+     * @protected
+     */
+    async _refreshElectrifiedGuestStats() {
+        const clientTimestamp = new Date().getTime();
+        const guestStats = await this.electrifiedApi.getGuestStats(window.document.hasFocus());
+        const guestStatsMap = new Map(guestStats.map(g => [g.guestId, g])); // convert to map
+        for(const guest of this.guests.values()) {
+            const stats = guestStatsMap.get(guest.id);
+            guest.electrifiedStats = stats?{clientTimestamp, ...stats}:undefined;
+        }
     }
 
     /**

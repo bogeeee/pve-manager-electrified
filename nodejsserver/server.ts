@@ -32,6 +32,7 @@ import nacl from "tweetnacl";
 import {IncomingMessage} from "node:http";
 import {ExpressMemoryStoreExt} from "./util/ExpressMemoryStoreExt.js";
 import {ElectrifiedJsonConfig} from "./Common.js";
+import {GuestCpuMeters} from "./GuestCpuMeters.js";
 
 
 // Enable these for better error diagnosis during development:
@@ -90,6 +91,8 @@ class AppServer {
      * Bug worakound: ":any" because typescript-rtti tries to follow the type and creates a broken import statement: "import ... from "restfuncs-server/dist/commonjs/..."
      */
     webBuildStartListeners: any = new ClientCallbackSet<[]>({maxListenersPerClient: 1})
+
+    guestCpuMeters= new GuestCpuMeters();
 
     protected expressSessionSecret = nacl_util.encodeBase64(nacl.randomBytes(32));
     protected expressSessionStore = new ExpressMemoryStoreExt(); // Express's default memory store. You may use a better one for production to prevent against growing memory by a DOS attack. See https://www.npmjs.com/package/express-session

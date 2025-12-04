@@ -87,6 +87,28 @@ export class Guest extends ModelBase {
     uptime!:number
 
     /**
+     * Undefined if the guest is not running
+     */
+    electrifiedStats?: {
+        pid: number,
+        /**
+         * In milliseconds in client time. When this stats were fetched from the server
+         * @see currentCpuUsage.ageMs
+         */
+        clientTimestamp: number,
+        currentCpuUsage?: {
+            value: number,
+            /**
+             * Age on server at the time it was fetched.
+             * It is the middle of the first and last sample in the (1 second) sample window. Meaning, when it's super fresh, it will be 500.
+             * In milliseconds
+             * @see clientTimestamp
+             */
+            ageMs: number,
+        }
+    }
+
+    /**
      * Internal
      * @param fields fields from resource store
      */

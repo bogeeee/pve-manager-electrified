@@ -17,6 +17,11 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
     needsAdminPermissions = false;
 
     /**
+     * For animations. Gets updated every 250ms.
+     */
+    timeForComponentAnimations = new Date().getTime();
+
+    /**
      * User-wide configuration for this plugin.
      * Will be stored in the browser's localstorage under the key plugin_[plugin name]_config.
      * This class's field is specially treated by electrified: (Deep) modifications are automatically written. Modifications to the localstorage entry (i.e. by other browser tabs) are updated to this field.
@@ -57,6 +62,7 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
      * @see onUiReady
      */
     async init() {
+        setInterval(() => this.timeForComponentAnimations = new Date().getTime(), 250);
     }
 
     async onUiReady() {
@@ -78,8 +84,14 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
                     }
 
                     const item = props.item;
-                    if (item instanceof this.app.classes.model.Guest || item instanceof this.app.classes.model.Node) {
-                        return <div>{item.cpu ? formatCpu(item.cpu) : undefined}</div>
+                    if (item instanceof this.app.classes.model.Guest) {
+                        if(item.electrifiedStats?.currentCpuUsage) {
+                            watched(this).timeForComponentAnimations; const now = new Date().getTime() // Access timer only to force regular refresh.
+                            const ageTimeStamp = item.electrifiedStats.clientTimestamp - item.electrifiedStats.currentCpuUsage.ageMs;
+                            const ageInSeconds = ((now - ageTimeStamp) / 1000) - 1; // -1 = fluctuations the first second window should be still at full opacity. Otherwise it flickers too much
+                            const opacity = Math.min(1, 1 / Math.pow(2, ageInSeconds / 4)); // Half the opacity after 4 seconds
+                            return <div style={{opacity}}>{formatCpu(item.electrifiedStats.currentCpuUsage.value)}</div>
+                        }
                     } else {
                         return undefined;
                     }

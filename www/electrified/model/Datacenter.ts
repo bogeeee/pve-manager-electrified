@@ -8,6 +8,10 @@ import {ExternalPromise} from "restfuncs-common";
 
 
 export class Datacenter extends ModelBase {
+    /**
+     * Fast stats means: Electrified does additional polling calls with `usr/bin/ps`, to query for cpu, network, and guest status (running/not running). Cause the cluster cluster/resources's stats are too lame (~30 second average or so).
+     */
+    static ELECTRIFIED_GUEST_STATS_REFRESH_INTERVAL = 250; // In ms
     static STATUS_REFRESH_INTERVAL = 3000; // In ms
 
     nodes!: Map<string, Node>;
@@ -32,12 +36,14 @@ export class Datacenter extends ModelBase {
     }
 
     protected async constructAsync(): Promise<void> {
+        const app = getElectrifiedApp();
 
         this.nodes = new Map<string, Node>();
-        this.nodes.set((window as any).Proxmox.NodeName, getElectrifiedApp().currentNode); // Must re-use this instance  / don't let it auto-crate a new one
+
+        this.nodes.set((window as any).Proxmox.NodeName, app.currentNode); // Must re-use this instance  / don't let it auto-crate a new one
 
         await this.handleResourceStoreDataChanged();
-        getElectrifiedApp()._resourceStore.on("datachanged", () => spawnAsync(() => this.handleResourceStoreDataChanged()));
+        app._resourceStore.on("datachanged", () => spawnAsync(() => this.handleResourceStoreDataChanged()));
 
         // Refresh status regularly:
         await this.refreshStatus();
@@ -53,6 +59,21 @@ export class Datacenter extends ModelBase {
             }
 
         }), Datacenter.STATUS_REFRESH_INTERVAL); // Refresh status regularly
+
+
+        // Refresh electrufied stats regularly:
+        setInterval(() => spawnAsync(async () => {
+            try {
+                await this._refreshElectrifiedGuestStats();
+            }
+            catch (e) {
+                if(e !== null && e instanceof FetchError && e.httpStatusCode === 401)  { // Failed because no ticket? (logged out in the meanwhile)
+                    return; // Don't spam the log with messages
+                }
+                throw e;
+            }
+
+        }), Datacenter.ELECTRIFIED_GUEST_STATS_REFRESH_INTERVAL); // Refresh status regularly
     }
 
     protected async handleResourceStoreDataChanged() {
@@ -115,12 +136,37 @@ export class Datacenter extends ModelBase {
         }
     }
 
+    /**
+     * ElectrifiedGuestStats are additional stats with cpu usage and [running/not running]. Cause the cluster cluster/resources's stats are too lame (~30 second average or so).
+     * <p>
+     *     Works only for electrified nodes
+     * </p>
+     * @protected
+     */
+    protected async _refreshElectrifiedGuestStats() {
+        for(const node of this.getNodes()) {
+            // Skip non-electrified nodes:
+            try {
+                node.electrifiedClient
+            }
+            catch (e) {
+                continue;
+            }
+
+            await node._refreshElectrifiedGuestStats()
+        }
+    }
+
     getNode(name: string) {
         return this.nodes.get(name);
     }
 
     getNode_existing(name: string) {
         return this.nodes.get(name) || throwError(`Node does not exist: ${name}`);
+    }
+
+    getNodes() {
+        return this.nodes.values();
     }
 
     /**
