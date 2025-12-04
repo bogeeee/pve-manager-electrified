@@ -714,13 +714,6 @@ Ext.define('PVE.tree.ResourceTree', {
                 }
                 return node;
             },
-            applyState: function (state) {
-                if (state && state.value) {
-                    me.selectById(state.value);
-                } else {
-                    me.getSelectionModel().deselectAll();
-                }
-            },
         });
 
         me.initTreeColumns();
@@ -755,6 +748,16 @@ Ext.define('PVE.tree.ResourceTree', {
                 },
             });
         });
+    },
+
+    applyState: function (state) {
+        const me = this;
+        if (state && state.value) {
+            me.selectById(state.value);
+        } else {
+            me.getSelectionModel().deselectAll();
+        }
+        me.callParent([state]);
     },
 
     /**
