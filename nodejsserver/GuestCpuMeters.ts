@@ -228,7 +228,10 @@ export class ProcessCpuUsageMeter extends ResourceMeter {
     }
 
     protected static async getClockTicksForProcess(pid: number): Promise<bigint> {
-        const statContent = fs.readFileSync(`/proc/${pid}/stat`, {encoding: "ascii" /* should be faster */});
+        // Read stat file:
+        const statContent = fs.readFileSync(`/proc/${pid}/stat`, {encoding: "ascii" /* should be faster */}); // fs.readFileSync is ~2 times as fast as the fsPromises version.
+        await yield_async(20); // Prevent too much blocking (theoretical), because this method gets called hundreds of times in a row.
+
         const tokens = statContent.split(" ");
         const utime = BigInt(tokens[13]); // user time in clock ticks
         const stime = BigInt(tokens[14]); // system time clock ticks
@@ -291,3 +294,14 @@ export async function getClockTicksPerSecond() {
 //spawnAsync(()=>getClockTicksPerSecond(),true); // Retrieve once
 
 
+let yieldCounter: number = 0;
+async function yield_async(every = 1) {
+    yieldCounter++;
+    if(yieldCounter < every) {
+        return;
+    }
+
+    // yield:
+    yieldCounter = 0;
+    await new Promise((resolve) => setTimeout(resolve) );
+}
