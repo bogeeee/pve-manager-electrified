@@ -1,0 +1,12 @@
+.my-class {
+
+}
+
+@media (prefers-color-scheme: dark) {
+    /*
+     * Add **modification** for dark theme here
+     */
+    .my-class {
+
+    }
+}

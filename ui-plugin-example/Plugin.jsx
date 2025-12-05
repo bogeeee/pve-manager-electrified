@@ -6,6 +6,7 @@ import {watchedComponent, watched, useWatchedState} from "react-deepwatch"
 import {Button, ButtonGroup, Checkbox,  Classes,  HTMLSelect, Icon, Intent, InputGroup, Label, Menu, MenuItem, Popover, Tooltip} from "@blueprintjs/core";
 import "@blueprintjs/core/lib/css/blueprint.css";
 import "@blueprintjs/icons/lib/css/blueprint-icons.css";
+import "./styles.css"
 
 export default class Plugin extends PvemePlugin {
 
