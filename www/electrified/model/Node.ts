@@ -187,6 +187,10 @@ export class Node extends ModelBase {
         return this.files.get(normalizePath(path));
     }
 
+    get guests() {
+        return [...this._guests.values()];
+    }
+
 
     getGuest(id: number) : Guest | undefined{
         return this._guests.get(id);
