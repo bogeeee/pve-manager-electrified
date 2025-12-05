@@ -5,6 +5,7 @@ import {Button, ButtonGroup, Checkbox,  Classes,  HTMLSelect, Icon, Intent, Inpu
 import "@blueprintjs/core/lib/css/blueprint.css";
 import "@blueprintjs/icons/lib/css/blueprint-icons.css";
 import {t} from "./globals";
+import "./styles.css"
 
 /**
  * Offers nice features.
@@ -85,12 +86,44 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
                             const ageTimeStamp = item.electrifiedStats.clientTimestamp - item.electrifiedStats.currentCpuUsage.ageMs;
                             const ageInSeconds = ((now - ageTimeStamp) / 1000) - 1; // -1 = fluctuations the first second window should be still at full opacity. Otherwise it flickers too much
                             const opacity = Math.min(1, 1 / Math.pow(2, ageInSeconds / 4)); // Half the opacity after 4 seconds
-                            return <div style={{opacity}}>...bars...</div>
+                            const layers: Layer[] = [
+                                // Unused / background:
+                                {
+                                    key: "background",
+                                    start: 0,
+                                    end: item.maxcpu,
+                                    cssClass: "cpu-bar-unused",
+                                },
+                                // Cpu:
+                                {
+                                    key: "cpu",
+                                    start: 0,
+                                    end: item.electrifiedStats.currentCpuUsage.value,
+                                    cssClass: "cpu-bar-cpu",
+                                }
+                            ]
+                            return <div style={{opacity}} className="cpu-bars-container">{getBars(layers)}</div>
                         }
                     } else {
                         return undefined;
                     }
+                    type Layer = {key: string | number, start: number, end: number, cssClass: string};
+                    function getBars(layers: Layer[]) {
+                        const result: ReactNode[] = [];
+                        const max = Math.ceil(layers.reduce((max,current) => Math.max(max, current.end),0));
+                        for(let barIndex = 0;barIndex<max;barIndex++) {
+                            result.push(<div key={barIndex} className="cpu-bar">{layers.map(layer => {
+                                if(!(layer.start <= barIndex+1 && layer.end > barIndex)) { // layer outside range?
+                                    return;
+                                }
+                                const relativeStart = Math.max(0, layer.start - barIndex);
+                                const relativeEnd = Math.min(1, layer.end - barIndex);
+                                return <div key={layer.key} className={layer.cssClass} style={{position: "absolute", width: "100%", top: `${(1-relativeEnd) * 100}%`, height: `${(relativeEnd - relativeStart) * 100}%`}}/>
+                            })}</div>)
+                        }
 
+                        return result;
+                    }
                 },
             },
             // CPU:

@@ -1,0 +1,30 @@
+.cpu-bars-container {
+    height: 1.2em;
+    transform: translate(0,0);
+    display: flex;
+    gap: 2px;
+    flex-direction: row
+}
+
+.cpu-bar {
+    width: 4px;
+    height: 100%;
+    transform: translate(0,0);
+}
+
+.cpu-bar-unused {
+    background-color: #DDD;
+}
+
+.cpu-bar-cpu {
+    background-color: #000;
+}
+
+@media (prefers-color-scheme: dark) {
+    .cpu-bar-unused {
+        background-color: #666;
+    }
+    .cpu-bar-cpu {
+        background-color: #FFF;
+    }
+}
