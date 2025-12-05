@@ -1,11 +1,12 @@
 import {Plugin} from "./Plugin"
-import React from "react";
+import React, {CSSProperties, ReactNode} from "react";
 import {watchedComponent, watched, useWatchedState} from "react-deepwatch"
 import {Button, ButtonGroup, Checkbox,  Classes,  HTMLSelect, Icon, Intent, InputGroup, Label, Menu, MenuItem, Popover, Tooltip} from "@blueprintjs/core";
 import "@blueprintjs/core/lib/css/blueprint.css";
 import "@blueprintjs/icons/lib/css/blueprint-icons.css";
 import {t} from "./globals";
 import "./styles.css"
+import {Guest} from "./model/Guest";
 
 /**
  * Offers nice features.
@@ -78,14 +79,17 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
                 text: t`CPU bars`,
                 key: "cpu_bars",
                 cellRenderFn: (props: { item: object, rowIndex: number, colIndex: number, rawItemRecord: Record<string, unknown> }) => {
+                    const getOpacity = (electrifiedStats: Guest["electrifiedStats"]) => {
+                        electrifiedStats = electrifiedStats!;
+                        watched(this).timeForComponentAnimations; const now = new Date().getTime() // Access timer only to force regular refresh.
+                        const ageTimeStamp = electrifiedStats.clientTimestamp - electrifiedStats.currentCpuUsage!.ageMs;
+                        const ageInSeconds = ((now - ageTimeStamp) / 1000) - 1; // -1 = fluctuations the first second window should be still at full opacity. Otherwise it flickers too much
+                        return Math.min(1, 1 / Math.pow(2, ageInSeconds / 4)); // Half the opacity after 4 seconds
+                    }
 
                     const item = props.item;
                     if (item instanceof this.app.classes.model.Guest) {
                         if(item.electrifiedStats?.currentCpuUsage) {
-                            watched(this).timeForComponentAnimations; const now = new Date().getTime() // Access timer only to force regular refresh.
-                            const ageTimeStamp = item.electrifiedStats.clientTimestamp - item.electrifiedStats.currentCpuUsage.ageMs;
-                            const ageInSeconds = ((now - ageTimeStamp) / 1000) - 1; // -1 = fluctuations the first second window should be still at full opacity. Otherwise it flickers too much
-                            const opacity = Math.min(1, 1 / Math.pow(2, ageInSeconds / 4)); // Half the opacity after 4 seconds
                             const layers: Layer[] = [
                                 // Unused / background:
                                 {
@@ -102,12 +106,42 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
                                     cssClass: "cpu-bar-cpu",
                                 }
                             ]
-                            return <div style={{opacity}} className="cpu-bars-container">{getBars(layers)}</div>
+                            return <div style={{opacity: getOpacity(item.electrifiedStats)}} className="cpu-bars-container">{getBars(layers)}</div>
                         }
+                    } else if(item instanceof this.app.classes.model.Node) {
+                        // Stack up the guest cpu as layers
+                        const guestCpuLayers: Layer[] = [];
+                        const guestsStats = item.guests.filter(g => g.electrifiedStats?.currentCpuUsage).map(guest => {return {...guest.electrifiedStats!, id: guest.id}});
+                        guestsStats.sort((a,b) => getOpacity(a) - getOpacity(b)); // Sort by opacity
+                        let current = 0;
+                        for(const electrifiedStats of guestsStats) {
+                            guestCpuLayers.push({
+                                key: electrifiedStats.id,
+                                start: current,
+                                end: current + electrifiedStats.currentCpuUsage!.value,
+                                cssClass: "cpu-bar-cpu",
+                                css: {
+                                    opacity: getOpacity(electrifiedStats)
+                                }
+
+                            });
+                            current+= electrifiedStats.currentCpuUsage!.value
+                        }
+                        const layers = [
+                            // Unused cores / background:
+                            {
+                                key: "background",
+                                start: 0,
+                                end: item.maxcpu,
+                                cssClass: "cpu-bar-unused",
+                            },
+                            ...guestCpuLayers
+                        ];
+                        return <div className="cpu-bars-container">{getBars(layers)}</div>;
                     } else {
                         return undefined;
                     }
-                    type Layer = {key: string | number, start: number, end: number, cssClass: string};
+                    type Layer = {key: string | number, start: number, end: number, cssClass: string, css?: CSSProperties};
                     function getBars(layers: Layer[]) {
                         const result: ReactNode[] = [];
                         const max = Math.ceil(layers.reduce((max,current) => Math.max(max, current.end),0));
@@ -118,7 +152,7 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
                                 }
                                 const relativeStart = Math.max(0, layer.start - barIndex);
                                 const relativeEnd = Math.min(1, layer.end - barIndex);
-                                return <div key={layer.key} className={layer.cssClass} style={{position: "absolute", width: "100%", top: `${(1-relativeEnd) * 100}%`, height: `${(relativeEnd - relativeStart) * 100}%`}}/>
+                                return <div key={layer.key} className={layer.cssClass} style={{position: "absolute", width: "100%", top: `${(1-relativeEnd) * 100}%`, height: `${(relativeEnd - relativeStart) * 100}%`, ...(layer.css || {})}}/>
                             })}</div>)
                         }
 
@@ -143,7 +177,7 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
                             const ageTimeStamp = item.electrifiedStats.clientTimestamp - item.electrifiedStats.currentCpuUsage.ageMs;
                             const ageInSeconds = ((now - ageTimeStamp) / 1000) - 1; // -1 = fluctuations the first second window should be still at full opacity. Otherwise it flickers too much
                             const opacity = Math.min(1, 1 / Math.pow(2, ageInSeconds / 4)); // Half the opacity after 4 seconds
-                            return <div style={{opacity}}>{formatCpu(item.electrifiedStats.currentCpuUsage.value)}<span class="fa fa-fw pmx-itype-icon-processor pmx-icon"/></div>
+                            return <div style={{opacity}}>{formatCpu(item.electrifiedStats.currentCpuUsage.value)}<span className="fa fa-fw pmx-itype-icon-processor pmx-icon"/></div>
                         }
                     } else {
                         return undefined;
