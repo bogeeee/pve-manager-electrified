@@ -115,7 +115,7 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
                         // Stack up the guest cpu as layers
                         const guestCpuLayers: Layer[] = [];
                         const guestsStats = item.guests.filter(g => g.electrifiedStats?.currentCpuUsage).map(guest => {return {...guest.electrifiedStats!, id: guest.id}});
-                        guestsStats.sort((a,b) => getOpacity(a) - getOpacity(b)); // Sort by opacity
+                        guestsStats.sort((a,b) => getOpacity(b) - getOpacity(a) ); // Sort by opacity
                         let current = 0;
                         for(const electrifiedStats of guestsStats) {
                             guestCpuLayers.push({
@@ -169,10 +169,10 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
                                 if(!(layer.start <= barIndex+1 && layer.end > barIndex)) { // layer outside range?
                                     return;
                                 }
-                                const relativeStart = Math.max(0, layer.start - barIndex);
+                                let relativeStart = Math.max(0, layer.start - barIndex);
+                                relativeStart = Math.max(0.035, relativeStart); // Bug workaround: A too low value will make the bar start 1 pixel **below** it's container, cause the container is x + a fraction of pixels.
                                 let relativeEnd = Math.min(1, layer.end - barIndex);
-                                relativeEnd = Math.max(0.035, relativeEnd); // Bug workaround: A too low value will make the bar start 1 pixel **below** it's container, cause the container is x + a fraction of pixels.
-                                return <div key={layer.key} className={layer.cssClass} style={{position: "absolute", width: "100%", top: `${(1-relativeEnd) * 100}%`, height: `${(relativeEnd - relativeStart) * 100}%`, ...(layer.css || {})}}/>
+                                return <div key={layer.key} className={layer.cssClass} style={{position: "absolute", width: "100%", bottom: `${relativeStart * 100}%`, height: `${(relativeEnd - relativeStart) * 100}%`, ...(layer.css || {})}}/>
                             })}</div>)
                         }
 
