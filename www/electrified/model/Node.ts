@@ -25,7 +25,7 @@ export class Node extends ModelBase {
      * @protected
      */
     protected files = newDefaultMap<string, File>((path) => new File(this, path));
-    protected guests!: Map<number, Guest>
+    protected _guests!: Map<number, Guest>
 
     /**
      * The raw data record from the ResourceStore that was returned by the api https://pve.proxmox.com/pve-docs/api-viewer/#/cluster/resources
@@ -87,7 +87,7 @@ export class Node extends ModelBase {
     }
 
     async _initWhenLoggedOn() {
-        this.guests = new Map();
+        this._guests = new Map();
         await this.handleResourceStoreDataChanged();
         getElectrifiedApp()._resourceStore.on("datachanged", () => spawnAsync(() => this.handleResourceStoreDataChanged()));
     }
@@ -115,7 +115,7 @@ export class Node extends ModelBase {
                     else {
                         throw new Error("Unhandled type")
                     }
-                    this.guests.set(id, guest);
+                    this._guests.set(id, guest);
                 }
 
                 guest._updateFields(dataRecord);
@@ -123,9 +123,9 @@ export class Node extends ModelBase {
         }
 
         // Delete nodes that don't exist anymore:
-        [...this.guests.keys()].forEach(id => {
+        [...this._guests.keys()].forEach(id => {
             if(!guestsSeenInResourceStore.has(id)) {
-                this.guests.delete(id);
+                this._guests.delete(id);
             }
         })
     }
@@ -189,7 +189,7 @@ export class Node extends ModelBase {
 
 
     getGuest(id: number) : Guest | undefined{
-        return this.guests.get(id);
+        return this._guests.get(id);
     }
 
     getGuest_existing(id: number){
@@ -272,7 +272,7 @@ export class Node extends ModelBase {
         const clientTimestamp = new Date().getTime();
         const guestStats = await this.electrifiedApi.getGuestStats(window.document.hasFocus(), needsCpuUsage);
         const guestStatsMap = new Map(guestStats.map(g => [g.guestId, g])); // convert to map
-        for(const guest of this.guests.values()) {
+        for(const guest of this._guests.values()) {
             const stats = guestStatsMap.get(guest.id);
             const newStats = stats?{
                 clientTimestamp,
