@@ -128,15 +128,12 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
             },
             // CPU:
             {
-                text: t`CPU text`,
+                text: t`Host CPU usage`,
                 key: "cpu_text",
                 hidden: true,
                 cellRenderFn: (props: { item: object, rowIndex: number, colIndex: number, rawItemRecord: Record<string, unknown> }) => {
                     function formatCpu(cpu: number) {
-                        if (cpu > 1) {
-                            return `${cpu.toFixed(2)}\u00A0`;
-                        }
-                        return `${Math.ceil(cpu * 100)}%`
+                        return `${cpu.toFixed(2)}`;
                     }
 
                     const item = props.item;
@@ -146,7 +143,7 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
                             const ageTimeStamp = item.electrifiedStats.clientTimestamp - item.electrifiedStats.currentCpuUsage.ageMs;
                             const ageInSeconds = ((now - ageTimeStamp) / 1000) - 1; // -1 = fluctuations the first second window should be still at full opacity. Otherwise it flickers too much
                             const opacity = Math.min(1, 1 / Math.pow(2, ageInSeconds / 4)); // Half the opacity after 4 seconds
-                            return <div style={{opacity}}>{formatCpu(item.electrifiedStats.currentCpuUsage.value)}</div>
+                            return <div style={{opacity}}>{formatCpu(item.electrifiedStats.currentCpuUsage.value)}<span class="fa fa-fw pmx-itype-icon-processor pmx-icon"/></div>
                         }
                     } else {
                         return undefined;
