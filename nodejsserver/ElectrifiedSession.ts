@@ -34,7 +34,7 @@ export class ElectrifiedSession extends ServerSession {
         csrfProtectionMode: "corsReadToken"
     }
 
-    private static remoteMethodsThatNeedNoPermissions: (keyof ElectrifiedSession)[] = ["getWebBuildState","permissionsAreUp2Date", "clearCachedPermissions", "diagnosis_canAccessWeb", "onWebBuildStart", "getGuestStats"];
+    private static remoteMethodsThatNeedNoPermissions: (keyof ElectrifiedSession)[] = ["getWebBuildState","permissionsAreUp2Date", "clearCachedPermissions", "diagnosis_canAccessWeb", "onWebBuildStart", "getResourceStats"];
 
     static defaultRemoteMethodOptions: RemoteMethodOptions = {validateResult: false}
 
@@ -511,7 +511,7 @@ export class ElectrifiedSession extends ServerSession {
         return result;
     }
 
-    @remote async getGuestStats(browserWindowIsFocused: boolean, needsCpuUsage: boolean) {
+    @remote async getResourceStats(browserWindowIsFocused: boolean, needsCpuUsage: boolean) {
         await this.checkPermission("/", "Sys.Audit"); // TODO: check for individual guests and return only those's stats
         const browserWindow = this.getBrowserWindow();
         browserWindow.isFocused = browserWindowIsFocused;

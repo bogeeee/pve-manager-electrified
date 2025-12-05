@@ -5,7 +5,7 @@ import {RestfuncsClient} from "restfuncs-client";
 import type {ElectrifiedSession, ExecaOptions} from "pveme-nodejsserver/ElectrifiedSession"
 import {Guest} from "./Guest";
 import {ElectrifiedRestfuncsClient} from "../util/ElectrifiedRestfuncsClient";
-import {getElectrifiedApp} from "../globals";
+import {getElectrifiedApp, MeteredValue} from "../globals";
 import _ from "underscore"
 import {Lxc} from "./Lxc";
 import {Qemu} from "./Qemu";
@@ -26,6 +26,18 @@ export class Node extends ModelBase {
      */
     protected files = newDefaultMap<string, File>((path) => new File(this, path));
     protected _guests!: Map<number, Guest>
+
+    /**
+     * Undefined if the guest is not running
+     */
+    electrifiedStats?: {
+        /**
+         * In milliseconds in client time. When this stats were fetched from the server
+         * @see currentCpuUsage.ageMs
+         */
+        clientTimestamp: number,
+        currentCpuUsage?: MeteredValue
+    }
 
     /**
      * The raw data record from the ResourceStore that was returned by the api https://pve.proxmox.com/pve-docs/api-viewer/#/cluster/resources
@@ -58,6 +70,7 @@ export class Node extends ModelBase {
     "cgroup-mode"!:  number;
     /**
      * CPU utilization
+     * @see currentCpuUsage
      */
     cpu!:  number;
     /**
@@ -269,32 +282,44 @@ export class Node extends ModelBase {
     }
 
     /**
-     * ElectrifiedGuestStats are additional stats with cpu usage and [running/not running]. Cause the cluster cluster/resources's stats are too lame (~30 second average or so).
+     * ElectrifiedResourceStats are additional stats with cpu usage and [running/not running]. Cause the cluster cluster/resources's stats are too lame (~30 second average or so).
      * @protected
      */
-    async _refreshElectrifiedGuestStats(needsCpuUsage: boolean) {
+    async _refreshElectrifiedResourceStats(needsCpuUsage: boolean) {
         const clientTimestamp = new Date().getTime();
-        const guestStats = await this.electrifiedApi.getGuestStats(window.document.hasFocus(), needsCpuUsage);
-        const guestStatsMap = new Map(guestStats.map(g => [g.guestId, g])); // convert to map
-        for(const guest of this._guests.values()) {
-            const stats = guestStatsMap.get(guest.id);
-            const newStats = stats?{
+        const resourceStats = await this.electrifiedApi.getResourceStats(window.document.hasFocus(), needsCpuUsage);
+
+        {
+            const newStats = resourceStats ? {
                 clientTimestamp,
-                ...stats,
+                currentCpuUsage: resourceStats.totalCpuUsage,
+            } : undefined;
+            this.electrifiedStats = preserve(this.electrifiedStats, newStats);
+        }
 
-                // Create accessors, to trap, if someone actually needs the cpu usage. So we do the expensive fetch next time
-                _currentCpuUsage: stats.currentCpuUsage,
-                get currentCpuUsage() {
-                    getElectrifiedApp().datacenter._cpuUsageWasNeeded = true;
-                    this.clientTimestamp; // access a field that is always fluctuating, so the component gets rerendered next stats update and will call this method again, so we cab flag _cpuUsageWasNeeded again (not loose it)
+        // Guests:
+        {
+            const guestStatsMap = new Map(resourceStats.guestCpuUsage.map(g => [g.guestId, g])); // convert to map
+            for(const guest of this._guests.values()) {
+                const stats = guestStatsMap.get(guest.id);
+                const newStats = stats ? {
+                    clientTimestamp,
+                    ...stats,
 
-                    return this._currentCpuUsage
-                },
-                set currentCpuUsage(value: any) {
-                    this._currentCpuUsage = value;
-                }
-            }:undefined;
-            guest.electrifiedStats = preserve(guest.electrifiedStats, newStats);
+                    // Create accessors, to trap, if someone actually needs the cpu usage. So we do the expensive fetch next time
+                    _currentCpuUsage: stats.currentCpuUsage,
+                    get currentCpuUsage() {
+                        getElectrifiedApp().datacenter._cpuUsageWasNeeded = true;
+                        this.clientTimestamp; // access a field that is always fluctuating, so the component gets rerendered next stats update and will call this method again, so we cab flag _cpuUsageWasNeeded again (not loose it)
+
+                        return this._currentCpuUsage
+                    },
+                    set currentCpuUsage(value: any) {
+                        this._currentCpuUsage = value;
+                    }
+                } : undefined;
+                guest.electrifiedStats = preserve(guest.electrifiedStats, newStats);
+            }
         }
     }
 

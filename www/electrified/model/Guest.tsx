@@ -1,5 +1,5 @@
 import {AsyncConstructableClass} from "../util/AsyncConstructableClass";
-import {getElectrifiedApp} from "../globals";
+import {getElectrifiedApp, MeteredValue} from "../globals";
 import {ModelBase} from "./ModelBase";
 import {preserve} from "react-deepwatch";
 
@@ -18,6 +18,7 @@ export class Guest extends ModelBase {
     // *** Fields from ResourceStore / https://pve.proxmox.com/pve-docs/api-viewer/#/cluster/resources: ***
     /**
      * CPU utilization
+     * @see currentCpuUsage
      */
     cpu!: number
     /**
@@ -96,16 +97,7 @@ export class Guest extends ModelBase {
          * @see currentCpuUsage.ageMs
          */
         clientTimestamp: number,
-        currentCpuUsage?: {
-            value: number,
-            /**
-             * Age on server at the time it was fetched.
-             * It is the middle of the first and last sample in the (1 second) sample window. Meaning, when it's super fresh, it will be 500.
-             * In milliseconds
-             * @see clientTimestamp
-             */
-            ageMs: number,
-        }
+        currentCpuUsage?: MeteredValue
     }
 
     /**

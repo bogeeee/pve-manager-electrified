@@ -39,3 +39,14 @@ export type BufferEncoding =
     | "latin1"
     | "binary"
     | "hex";
+
+export type MeteredValue = {
+    value: number,
+    /**
+     * Age on server at the time it was fetched.
+     * It is the middle of the first and last sample in the (1 second) sample window. Meaning, when it's super fresh, it will be 500.
+     * In milliseconds
+     * @see clientTimestamp
+     */
+    ageMs: number,
+}

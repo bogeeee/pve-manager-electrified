@@ -16,6 +16,10 @@
     background-color: #C8C8C8;
 }
 
+.cpu-bar-host {
+    background-color: #E7CC00FF;
+}
+
 .cpu-bar-cpu {
     background-color: #000;
 }
@@ -23,6 +27,9 @@
 @media (prefers-color-scheme: dark) {
     .cpu-bar-unused {
         background-color: #666;
+    }
+    .cpu-bar-host {
+        background-color: #e0c651;
     }
     .cpu-bar-cpu {
         background-color: #FFF;

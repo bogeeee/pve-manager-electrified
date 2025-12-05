@@ -7,6 +7,7 @@ import "@blueprintjs/icons/lib/css/blueprint-icons.css";
 import {t} from "./globals";
 import "./styles.css"
 import {Guest} from "./model/Guest";
+import {Node} from "./model/Node";
 
 /**
  * Offers nice features.
@@ -73,19 +74,21 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
 
 
     getResourceTreeColumns() {
+        const getOpacity = (electrifiedStats: Node["electrifiedStats"] | Guest["electrifiedStats"]) => {
+            electrifiedStats = electrifiedStats!;
+            watched(this).timeForComponentAnimations; const now = new Date().getTime() // Access timer only to force regular refresh.
+            const ageTimeStamp = electrifiedStats.clientTimestamp - electrifiedStats.currentCpuUsage!.ageMs;
+            const ageInSeconds = ((now - ageTimeStamp) / 1000) - 2; // -1 = fluctuations the first second window should be still at full opacity. Otherwise it flickers too much
+            return Math.min(1, 1 / Math.pow(2, ageInSeconds / 4)); // Half the opacity after 4 seconds
+        }
+
         return [
             // CPU bars:
             {
                 text: t`CPU bars`,
                 key: "cpu_bars",
                 cellRenderFn: (props: { item: object, rowIndex: number, colIndex: number, rawItemRecord: Record<string, unknown> }) => {
-                    const getOpacity = (electrifiedStats: Guest["electrifiedStats"]) => {
-                        electrifiedStats = electrifiedStats!;
-                        watched(this).timeForComponentAnimations; const now = new Date().getTime() // Access timer only to force regular refresh.
-                        const ageTimeStamp = electrifiedStats.clientTimestamp - electrifiedStats.currentCpuUsage!.ageMs;
-                        const ageInSeconds = ((now - ageTimeStamp) / 1000) - 1; // -1 = fluctuations the first second window should be still at full opacity. Otherwise it flickers too much
-                        return Math.min(1, 1 / Math.pow(2, ageInSeconds / 4)); // Half the opacity after 4 seconds
-                    }
+
 
                     const item = props.item;
                     if (item instanceof this.app.classes.model.Guest) {
@@ -127,16 +130,32 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
                             });
                             current+= electrifiedStats.currentCpuUsage!.value
                         }
-                        const layers = [
-                            // Unused cores / background:
-                            {
-                                key: "background",
+                        const layers: Layer[] = [];
+                        // Unused cores / background:
+                        layers.push({
+                            key: "background",
+                            start: 0,
+                            end: item.maxcpu,
+                            cssClass: "cpu-bar-unused",
+                            css: {
+                                opacity: getOpacity(item.electrifiedStats)
+                            }
+                        });
+                        // host cpu:
+                        if(item.electrifiedStats?.currentCpuUsage) {
+                            layers.push({
+                                key: "host",
                                 start: 0,
-                                end: item.maxcpu,
-                                cssClass: "cpu-bar-unused",
-                            },
-                            ...guestCpuLayers
-                        ];
+                                end: item.electrifiedStats.currentCpuUsage.value,
+                                cssClass: "cpu-bar-host",
+                                css: {
+                                    opacity: getOpacity(item.electrifiedStats)
+                                }
+                            });
+                        }
+                        // guests:
+                        layers.push(...guestCpuLayers);
+
                         return <div className="cpu-bars-container">{getBars(layers)}</div>;
                     } else {
                         return undefined;
@@ -151,7 +170,8 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
                                     return;
                                 }
                                 const relativeStart = Math.max(0, layer.start - barIndex);
-                                const relativeEnd = Math.min(1, layer.end - barIndex);
+                                let relativeEnd = Math.min(1, layer.end - barIndex);
+                                relativeEnd = Math.max(0.035, relativeEnd); // Bug workaround: A too low value will make the bar start 1 pixel **below** it's container, cause the container is x + a fraction of pixels.
                                 return <div key={layer.key} className={layer.cssClass} style={{position: "absolute", width: "100%", top: `${(1-relativeEnd) * 100}%`, height: `${(relativeEnd - relativeStart) * 100}%`, ...(layer.css || {})}}/>
                             })}</div>)
                         }
@@ -173,11 +193,7 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
                     const item = props.item;
                     if (item instanceof this.app.classes.model.Guest) {
                         if(item.electrifiedStats?.currentCpuUsage) {
-                            watched(this).timeForComponentAnimations; const now = new Date().getTime() // Access timer only to force regular refresh.
-                            const ageTimeStamp = item.electrifiedStats.clientTimestamp - item.electrifiedStats.currentCpuUsage.ageMs;
-                            const ageInSeconds = ((now - ageTimeStamp) / 1000) - 1; // -1 = fluctuations the first second window should be still at full opacity. Otherwise it flickers too much
-                            const opacity = Math.min(1, 1 / Math.pow(2, ageInSeconds / 4)); // Half the opacity after 4 seconds
-                            return <div style={{opacity}}>{formatCpu(item.electrifiedStats.currentCpuUsage.value)}<span className="fa fa-fw pmx-itype-icon-processor pmx-icon"/></div>
+                            return <div style={{opacity: getOpacity(item.electrifiedStats)}}>{formatCpu(item.electrifiedStats.currentCpuUsage.value)}<span className="fa fa-fw pmx-itype-icon-processor pmx-icon"/></div>
                         }
                     } else {
                         return undefined;

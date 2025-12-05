@@ -66,7 +66,7 @@ export class Datacenter extends ModelBase {
         // Refresh electrufied stats regularly:
         setInterval(() => spawnAsync(async () => {
             try {
-                await this._refreshElectrifiedGuestStats();
+                await this._refreshElectrifiedResourceStats();
             }
             catch (e) {
                 if(e !== null && e instanceof FetchError && e.httpStatusCode === 401)  { // Failed because no ticket? (logged out in the meanwhile)
@@ -139,13 +139,13 @@ export class Datacenter extends ModelBase {
     }
 
     /**
-     * ElectrifiedGuestStats are additional stats with cpu usage and [running/not running]. Cause the cluster cluster/resources's stats are too lame (~30 second average or so).
+     * ElectrifiedResourceStats are additional stats with cpu usage and [running/not running]. Cause the cluster cluster/resources's stats are too lame (~30 second average or so).
      * <p>
      *     Works only for electrified nodes
      * </p>
      * @protected
      */
-    protected async _refreshElectrifiedGuestStats() {
+    protected async _refreshElectrifiedResourceStats() {
         for(const node of this.getNodes()) {
             // Skip non-electrified nodes:
             try {
@@ -155,7 +155,7 @@ export class Datacenter extends ModelBase {
                 continue;
             }
 
-            await node._refreshElectrifiedGuestStats(this._cpuUsageWasNeeded)
+            await node._refreshElectrifiedResourceStats(this._cpuUsageWasNeeded)
         }
         this._cpuUsageWasNeeded = false;
     }

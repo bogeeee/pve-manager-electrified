@@ -11,6 +11,8 @@ import {ElectrifiedSession} from "./ElectrifiedSession.js";
 export class GuestCpuMeters {
     lastPollTime : Date | undefined;
 
+    totalCpuMeter = new TotalCpuUsageMeter();
+
     /**
      * pid -> ...
      */
@@ -49,18 +51,26 @@ export class GuestCpuMeters {
             throw new Error("Process list not fetched. This can be a race condition on fresh server start (that's ok) or not enough coins to fetch the process list even once. Please adjust the parameters then.")
         }
 
-        return this.last_guest2Pids.map(g => {
-            const processCpuUsageMeter = this.processUsageMeters.get(g.pid);
-            const usage = processCpuUsageMeter.peekSpeed(1000);
-            return {
-                guestId: g.guestId,
-                pid: g.pid,
-                currentCpuUsage: usage?{
-                    value: usage.value / clockTicksPerSecond,
-                    ageMs: processCpuUsageMeter.getAgeMs(),
-                }:undefined,
-            }
-        });
+        const totalCpuUsage = this.totalCpuMeter.peekSpeed(1000);
+        return {
+            totalCpuUsage: totalCpuUsage?{
+                value: totalCpuUsage.value / clockTicksPerSecond,
+                ageMs: this.totalCpuMeter.getAgeMs(),
+            }:undefined,
+
+            guestCpuUsage: this.last_guest2Pids.map(g => {
+                const processCpuUsageMeter = this.processUsageMeters.get(g.pid);
+                const usage = processCpuUsageMeter.peekSpeed(1000);
+                return {
+                    guestId: g.guestId,
+                    pid: g.pid,
+                    currentCpuUsage: usage?{
+                        value: usage.value / clockTicksPerSecond,
+                        ageMs: processCpuUsageMeter.getAgeMs(),
+                    }:undefined,
+                }
+            })
+        };
     }
 
 
@@ -87,6 +97,14 @@ export class GuestCpuMeters {
             }
             this.coins = Math.min(this.coins, coinsPerMs * this.MAX_BURST_MS * boostFactor); // CAP to max burst size (+ allow more when boosted)
             this.lastPollTime = new Date();
+
+            // Retrieve total cpu:
+            const totalCpuMeasuring_cost = 11;
+            if (this.coins < totalCpuMeasuring_cost) {
+                return;
+            }
+            this.coins -= totalCpuMeasuring_cost;
+            await this.totalCpuMeter.getSpeed(); // Measure
 
             // Retrieve all processes:
             const guests2Pids_cost = 6000;
@@ -253,6 +271,31 @@ export class ProcessCpuUsageMeter extends ResourceMeter {
             }
         }
         return result;
+    }
+}
+
+/**
+ * For this whole machine
+ * the returns units are clock ticks and clock ticks / second
+ */
+export class TotalCpuUsageMeter extends ResourceMeter {
+    recordWindowSizeMs = 30000;
+    maxResolutionMs = 510;
+
+    protected async fetchDistance(): Promise<bigint> {
+        // Read stat file:
+        const statContent = fs.readFileSync(`/proc/stat`, {encoding: "ascii" /* should be faster */}); // fs.readFileSync is ~2 times as fast as the fsPromises version.
+        await yield_async(20); // Prevent too much blocking (theoretical), because this method gets called hundreds of times in a row.
+        let result = BigInt(0);
+        for(const line of statContent.split("\n")) {
+            if(!line.startsWith("cpu ")) {
+                continue;
+            }
+            const tokens = statContent.trim().split(" ");
+            const [cpu, user, nice, system, idle, iowait, irq, softirq, steal, guest, guest_nice] = tokens;
+            return (BigInt(user) + BigInt(nice) + BigInt(system) + BigInt(irq) + BigInt(softirq) + BigInt(guest) + BigInt(guest_nice));
+        }
+        throw new Error("Illegal file content");
     }
 }
 
