@@ -91,4 +91,32 @@ export abstract class ResourceMeter {
         await this.poll();
         return this.peekSpeed(timeWindowMs);
     }
+
+    /**
+     * Age of reading in milliseconds. It's the middle between the first and last sample in the window.
+     * Maximum is recordWindowSizeMs
+     */
+    getAgeMs(minTimeWindowMs = 1000) {
+        const speed = this.peekSpeed(minTimeWindowMs);
+        if(speed === undefined) {
+            return this.recordWindowSizeMs;
+        }
+
+        const now = process.hrtime.bigint();
+        return Number(now - (speed.earliestSample.time + speed.latestSample.time) / BigInt(2)) / 1e6;
+    }
+
+    /**
+     * Age of last sample in milliseconds
+     * Maximum is recordWindowSizeMs
+     */
+    getLatestSampleAgeMs() {
+        const speed = this.peekSpeed(0);
+        if(speed === undefined) {
+            return this.recordWindowSizeMs;
+        }
+
+        const now = process.hrtime.bigint();
+        return Number(now - speed.latestSample.time) / 1e6;
+    }
 }
