@@ -268,13 +268,29 @@ export class Node extends ModelBase {
      * ElectrifiedGuestStats are additional stats with cpu usage and [running/not running]. Cause the cluster cluster/resources's stats are too lame (~30 second average or so).
      * @protected
      */
-    async _refreshElectrifiedGuestStats() {
+    async _refreshElectrifiedGuestStats(needsCpuUsage: boolean) {
         const clientTimestamp = new Date().getTime();
-        const guestStats = await this.electrifiedApi.getGuestStats(window.document.hasFocus());
+        const guestStats = await this.electrifiedApi.getGuestStats(window.document.hasFocus(), needsCpuUsage);
         const guestStatsMap = new Map(guestStats.map(g => [g.guestId, g])); // convert to map
         for(const guest of this.guests.values()) {
             const stats = guestStatsMap.get(guest.id);
-            guest.electrifiedStats = stats?{clientTimestamp, ...stats}:undefined;
+            const newStats = stats?{
+                clientTimestamp,
+                ...stats,
+
+                // Create accessors, to trap, if someone actually needs the cpu usage. So we do the expensive fetch next time
+                _currentCpuUsage: stats.currentCpuUsage,
+                get currentCpuUsage() {
+                    getElectrifiedApp().datacenter._cpuUsageWasNeeded = true;
+                    this.clientTimestamp; // access a field that is always fluctuating, so the component gets rerendered next stats update and will call this method again, so we cab flag _cpuUsageWasNeeded again (not loose it)
+
+                    return this._currentCpuUsage
+                },
+                set currentCpuUsage(value: any) {
+                    this._currentCpuUsage = value;
+                }
+            }:undefined;
+            guest.electrifiedStats = preserve(guest.electrifiedStats, newStats);
         }
     }
 

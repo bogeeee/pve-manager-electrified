@@ -104,6 +104,10 @@ export class GuestCpuMeters {
                 }
             })
 
+            // *** retrieve cpu usage of guests: ****
+            if(!ElectrifiedSession.getBrowserWindows().some(w => w.needsCpuUsage)) { // no one needs it?
+                return;
+            }
             guests2Pids.sort((a, b) => (a.getMeasuringCost() / a.getUrgency() ) - (b.getMeasuringCost() / b.getUrgency()));  // Sort by cost
             for (const guest of guests2Pids) {
                 if (this.coins < guest.getMeasuringCost()) { // Not enough coins left ?

@@ -26,6 +26,8 @@ export class Datacenter extends ModelBase {
      */
     _earlyOnQuorumHandlers = new Set<() => Promise<void >>();
 
+    _cpuUsageWasNeeded = false;
+
     getGuest(id: number): Guest | undefined {
         for(const node of this.nodes.values()) {
             const guest = node.getGuest(id);
@@ -153,8 +155,9 @@ export class Datacenter extends ModelBase {
                 continue;
             }
 
-            await node._refreshElectrifiedGuestStats()
+            await node._refreshElectrifiedGuestStats(this._cpuUsageWasNeeded)
         }
+        this._cpuUsageWasNeeded = false;
     }
 
     getNode(name: string) {

@@ -511,9 +511,11 @@ export class ElectrifiedSession extends ServerSession {
         return result;
     }
 
-    @remote async getGuestStats(browserWindowIsFocused: boolean) {
+    @remote async getGuestStats(browserWindowIsFocused: boolean, needsCpuUsage: boolean) {
         await this.checkPermission("/", "Sys.Audit"); // TODO: check for individual guests and return only those's stats
-        this.getBrowserWindow().isFocused = browserWindowIsFocused;
+        const browserWindow = this.getBrowserWindow();
+        browserWindow.isFocused = browserWindowIsFocused;
+        browserWindow.needsCpuUsage = needsCpuUsage;
         return appServer.guestCpuMeters.getUsage();
     }
 
@@ -929,4 +931,5 @@ interface CookieSession extends Record<string, unknown> {
  */
 export class BrowserWindow {
     isFocused = false;
+    needsCpuUsage = false;
 }
