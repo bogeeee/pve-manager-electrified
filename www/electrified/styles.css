@@ -1,5 +1,5 @@
 .cpu-bars-container {
-    height: 1.2em;
+    height: 16px;
     transform: translate(0,0);
     display: flex;
     gap: 2px;

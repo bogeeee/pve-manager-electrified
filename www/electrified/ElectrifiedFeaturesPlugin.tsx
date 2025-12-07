@@ -10,6 +10,7 @@ import {Guest} from "./model/Guest";
 import {Node} from "./model/Node";
 import {string} from "prop-types";
 import {throwError} from "./util/util";
+import _ from "underscore";
 
 /**
  * Offers nice features.
@@ -106,7 +107,7 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
                         const guestCpuLayers: Layer[] = [];
                         {
                             const guestsStats = allGuests.filter(g => g.electrifiedStats?.currentCpuUsage?.value).map(guest => {
-                                return {...guest.electrifiedStats!, id: guest.id}
+                                return guest.electrifiedStats!
                             });
                             guestsStats.sort((a, b) => getOpacity(b) - getOpacity(a)); // Sort by opacity
                             let current = 0;
@@ -114,7 +115,6 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
                                 const opacity = getOpacity(electrifiedStats);
                                 if (opacity > 0) {
                                     guestCpuLayers.push({
-                                        key: `gues${electrifiedStats.id}`,
                                         start: current,
                                         end: current+= electrifiedStats.currentCpuUsage!.value,
                                         cssClass: "cpu-bar-cpu",
@@ -133,7 +133,6 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
                             for(const node of nodes) {
                                 const opacity = getOpacity(node.electrifiedStats)
                                 layers.push({
-                                    key: "background",
                                     start: current,
                                     end: current+= node.maxcpu,
                                     cssClass: "cpu-bar-unused",
@@ -148,13 +147,12 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
                             // stack up host cpu usages:
                             let current = 0;
                             const nodesStats = nodes.filter(g => g.electrifiedStats?.currentCpuUsage?.value).map(node => {
-                                return {...node.electrifiedStats!, name: node.name}
+                                return node.electrifiedStats!
                             });
                             nodesStats.sort((a, b) => getOpacity(b) - getOpacity(a)); // Sort by opacity
                             for(const stats of nodesStats) {
                                 const opacity = getOpacity(stats);
                                 layers.push({
-                                    key: `node_${stats.name}`,
                                     start: current,
                                     end: current+=stats.currentCpuUsage!.value,
                                     cssClass: "cpu-bar-host",
@@ -179,14 +177,12 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
                             const layers: Layer[] = [
                                 // Unused / background:
                                 {
-                                    key: "background",
                                     start: 0,
                                     end: item.maxcpu,
                                     cssClass: "cpu-bar-unused",
                                 },
                                 // Cpu:
                                 {
-                                    key: "cpu",
                                     start: 0,
                                     end: item.electrifiedStats.currentCpuUsage.value,
                                     cssClass: "cpu-bar-cpu",
@@ -205,19 +201,56 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
                     else {
                         return undefined;
                     }
-                    type Layer = {key: string | number, start: number, end: number, cssClass: string, css?: CSSProperties};
+                    type Layer = {start: number, end: number, cssClass: string, css?: CSSProperties};
                     function getBars(layers: Layer[]) {
+                        //
+                        function squeezeLayers(layers: Layer[]) {
+                            const result: Layer[] = [];
+                            for(let i = 0;i<layers.length;i++) {
+                                if(i === 0) {
+                                    result.push(layers[i]);
+                                    continue;
+                                }
+
+                                const prev = layers[i-1];
+                                const layer = layers[i];
+                                if(_.isEqual(prev, {...layer, start:prev.start, end: layer.start})) { // can be squeezed?
+                                    prev.end = layer.end;
+                                }
+                                else {
+                                    result.push(layer)
+                                }
+                            }
+                            return result;
+                        }
+                        layers = squeezeLayers(layers);
+
+
                         const result: ReactNode[] = [];
+                        const maxHeight = 16;
+
+                        /**
+                         * Note: Converting to pixels rather than using % prevents quirky rendering by the browser (
+                         * @param value between 0 and 1;
+                         */
+                        function toBarPixels(value: number) {
+                            value*=maxHeight;
+                            value = Math.round(value);
+                            // Make sure, it is in range
+                            Math.max(0, value);
+                            Math.min(maxHeight, value);
+                            return value;
+                        }
                         const max = Math.ceil(layers.reduce((max,current) => Math.max(max, current.end),0));
+                        let layerKey =0;
                         for(let barIndex = 0;barIndex<max;barIndex++) {
                             result.push(<div key={barIndex} className="cpu-bar">{layers.map(layer => {
                                 if(!(layer.start <= barIndex+1 && layer.end > barIndex)) { // layer outside range?
                                     return;
                                 }
-                                let relativeStart = Math.max(0, layer.start - barIndex);
-                                relativeStart = Math.max(0.035, relativeStart); // Bug workaround: A too low value will make the bar start 1 pixel **below** it's container, cause the container is x + a fraction of pixels.
+                                let relativeStart = Math.max(0, layer.start - barIndex) * maxHeight;
                                 let relativeEnd = Math.min(1, layer.end - barIndex);
-                                return <div key={layer.key} className={layer.cssClass} style={{position: "absolute", width: "100%", bottom: `${relativeStart * 100}%`, height: `${(relativeEnd - relativeStart) * 100}%`, ...(layer.css || {})}}/>
+                                return <div key={layerKey++} className={layer.cssClass} style={{position: "absolute", width: "100%", bottom: `${toBarPixels(relativeStart)}px`, height: `${toBarPixels(relativeEnd - relativeStart)}px`, ...(layer.css || {})}}/>
                             })}</div>)
                         }
 
