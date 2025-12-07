@@ -14,7 +14,7 @@ export class Datacenter extends ModelBase {
     static ELECTRIFIED_GUEST_STATS_REFRESH_INTERVAL = 250; // In ms
     static STATUS_REFRESH_INTERVAL = 3000; // In ms
 
-    nodes!: Map<string, Node>;
+    _nodes!: Map<string, Node>;
     /**
      * When not true, we save the listeners that are called when flipped to true
      * @protected
@@ -29,7 +29,7 @@ export class Datacenter extends ModelBase {
     _cpuUsageWasNeeded = false;
 
     getGuest(id: number): Guest | undefined {
-        for(const node of this.nodes.values()) {
+        for(const node of this._nodes.values()) {
             const guest = node.getGuest(id);
             if(guest) {
                 return guest;
@@ -40,9 +40,9 @@ export class Datacenter extends ModelBase {
     protected async constructAsync(): Promise<void> {
         const app = getElectrifiedApp();
 
-        this.nodes = new Map<string, Node>();
+        this._nodes = new Map<string, Node>();
 
-        this.nodes.set((window as any).Proxmox.NodeName, app.currentNode); // Must re-use this instance  / don't let it auto-crate a new one
+        this._nodes.set((window as any).Proxmox.NodeName, app.currentNode); // Must re-use this instance  / don't let it auto-crate a new one
 
         await this.handleResourceStoreDataChanged();
         app._resourceStore.on("datachanged", () => spawnAsync(() => this.handleResourceStoreDataChanged()));
@@ -86,10 +86,10 @@ export class Datacenter extends ModelBase {
             nodesSeenInResourceStore.add(name);
 
             // Create if not exists:
-            if(!this.nodes.has(name)) {
+            if(!this._nodes.has(name)) {
                 const node = await Node.create({name});
                 await node._initWhenLoggedOn();
-                this.nodes.set(name, node); // Create it
+                this._nodes.set(name, node); // Create it
             }
 
             // Update node fields:
@@ -97,9 +97,9 @@ export class Datacenter extends ModelBase {
         }
 
         // Delete nodes that don't exist anymore:
-        [...this.nodes.keys()].forEach(name => {
+        [...this._nodes.keys()].forEach(name => {
             if(!nodesSeenInResourceStore.has(name)) {
-                this.nodes.delete(name);
+                this._nodes.delete(name);
             }
         })
 
@@ -161,15 +161,15 @@ export class Datacenter extends ModelBase {
     }
 
     getNode(name: string) {
-        return this.nodes.get(name);
+        return this._nodes.get(name);
     }
 
     getNode_existing(name: string) {
-        return this.nodes.get(name) || throwError(`Node does not exist: ${name}`);
+        return this._nodes.get(name) || throwError(`Node does not exist: ${name}`);
     }
 
     getNodes() {
-        return this.nodes.values();
+        return this._nodes.values();
     }
 
     /**
