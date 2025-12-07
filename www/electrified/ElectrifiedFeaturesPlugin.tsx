@@ -275,17 +275,26 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
                         // TODO: use monopaced font, that does not look ugly like style={{fontFamily: "'Cascadia Code', Consolas, 'Courier New', Courier, monospace"}}. I.e. https://github.com/weiweihuanghuang/fragment-mono
                         return <span>{formattedNumber}{intDigits === 3?<span style={{visibility: "hidden"}}>.</span>:undefined}{showUnit?<span className="fa fa-fw pmx-itype-icon-processor pmx-icon"/>:undefined}</span>;
                     }
+                    function getGuestAndHostSummary(nodes2guests: Map<Node, Set<Guest>>) {
+                        let nodes = [...nodes2guests.keys()];
+                        let allGuests = [...nodes2guests.keys()].map(k => [...nodes2guests.get(k)!.values()]).flat();
+                        //nodes = [...nodes, ...nodes]; allGuests = [...allGuests, ...allGuests]; // Debug: double entries
 
-                    const item = props.item;
-                    if (item instanceof this.app.classes.model.Node) {
-                        const node = item;
-                        if(!node.electrifiedStats?.currentCpuUsage) {
-                            return undefined;
+                        // Compute nodesOpacity and nodesCpuUsage:
+                        let nodesOpacity = 1;
+                        let nodesCpuUsage = 0;
+                        for(const node of nodes) {
+                            nodesOpacity = Math.min(nodesOpacity, getOpacity(node.electrifiedStats));
+                            if(nodesOpacity <= 0 || node.electrifiedStats?.currentCpuUsage === undefined) {
+                                break;
+                            }
+                            nodesCpuUsage+= node.electrifiedStats.currentCpuUsage.value;
                         }
-
+                        
+                        // Compute guestsOpacity and guestsCpuUsage:
                         let guestsOpacity = 1;
                         let guestsCpuUsage = 0;
-                        for(const guest of node.guests) {
+                        for(const guest of allGuests) {
                             if(!guest.electrifiedStats) {
                                 continue;
                             }
@@ -298,17 +307,26 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
 
                         const smallSpace = <div style={{display: "inline-block", width:"2px"}} />
 
-                        return guestsOpacity > 0 ?
+                        return (nodesOpacity > 0 && guestsOpacity > 0) ?
                             <span style={{opacity: guestsOpacity}}>
                                 {formatCpu(guestsCpuUsage, false)}{smallSpace}<span className={`fa fa-fw ${getIconClass("qemu")}`}/><span className={`fa fa-fw ${getIconClass("lxc")}`}/>
                                 &#160;&#160;+&#160;&#160;
-                                {formatCpu(node.electrifiedStats.currentCpuUsage.value - guestsCpuUsage, false)}{smallSpace}<span className={`fa fa-fw ${getIconClass("node")}`}/>
+                                {formatCpu(nodesCpuUsage - guestsCpuUsage, false)}{smallSpace}<span className={`fa fa-fw ${getIconClass("node")}`}/>
                             </span>
                             :
-                            <span style={{opacity: getOpacity(node.electrifiedStats)}}>
-                                {formatCpu(node.electrifiedStats.currentCpuUsage.value)}
+                            <span style={{opacity: nodesOpacity}}>
+                                {formatCpu(nodesCpuUsage)}
                             </span>
+                    }
 
+                    const item = props.item;
+                    if(item instanceof this.app.classes.model.Node) {
+                        const node = item;
+                        return getGuestAndHostSummary(new Map([[node, new Set(node.guests)]]))
+                    } else if(item instanceof this.app.classes.model.Datacenter) {
+                        const node2guests = new Map(item.nodes.map(node => [node, new Set(node.guests)]));
+                        //const node2guests = new Map([[watched(this.app.currentNode), new Set(watched(this.app.currentNode).guests)]]); // debug: only use current node
+                        return getGuestAndHostSummary(node2guests)
                     }
                     else if (item instanceof this.app.classes.model.Guest) {
                         if(item.electrifiedStats?.currentCpuUsage) {
