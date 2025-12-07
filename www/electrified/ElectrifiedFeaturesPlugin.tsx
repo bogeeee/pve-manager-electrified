@@ -114,9 +114,10 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
                             return <div style={{opacity: getOpacity(item.electrifiedStats)}} className="cpu-bars-container">{getBars(layers)}</div>
                         }
                     } else if(item instanceof this.app.classes.model.Node) {
+                        const node = item;
                         // Stack up the guest cpu as layers
                         const guestCpuLayers: Layer[] = [];
-                        const guestsStats = item.guests.filter(g => g.electrifiedStats?.currentCpuUsage).map(guest => {return {...guest.electrifiedStats!, id: guest.id}});
+                        const guestsStats = node.guests.filter(g => g.electrifiedStats?.currentCpuUsage).map(guest => {return {...guest.electrifiedStats!, id: guest.id}});
                         guestsStats.sort((a,b) => getOpacity(b) - getOpacity(a) ); // Sort by opacity
                         let current = 0;
                         for(const electrifiedStats of guestsStats) {
@@ -137,21 +138,21 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
                         layers.push({
                             key: "background",
                             start: 0,
-                            end: item.maxcpu,
+                            end: node.maxcpu,
                             cssClass: "cpu-bar-unused",
                             css: {
-                                opacity: getOpacity(item.electrifiedStats)
+                                opacity: getOpacity(node.electrifiedStats)
                             }
                         });
                         // host cpu:
-                        if(item.electrifiedStats?.currentCpuUsage) {
+                        if(node.electrifiedStats?.currentCpuUsage) {
                             layers.push({
                                 key: "host",
                                 start: 0,
-                                end: item.electrifiedStats.currentCpuUsage.value,
+                                end: node.electrifiedStats.currentCpuUsage.value,
                                 cssClass: "cpu-bar-host",
                                 css: {
-                                    opacity: getOpacity(item.electrifiedStats)
+                                    opacity: getOpacity(node.electrifiedStats)
                                 }
                             });
                         }
