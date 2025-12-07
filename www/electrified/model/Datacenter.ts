@@ -146,7 +146,7 @@ export class Datacenter extends ModelBase {
      * @protected
      */
     protected async _refreshElectrifiedResourceStats() {
-        for(const node of this.getNodes()) {
+        for(const node of this.nodes) {
             // Skip non-electrified nodes:
             try {
                 node.electrifiedClient
@@ -168,8 +168,8 @@ export class Datacenter extends ModelBase {
         return this._nodes.get(name) || throwError(`Node does not exist: ${name}`);
     }
 
-    getNodes() {
-        return this._nodes.values();
+    get nodes() {
+        return [...this._nodes.values()];
     }
 
     /**
