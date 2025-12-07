@@ -96,6 +96,81 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
                 text: t`CPU bars`,
                 key: "cpu_bars",
                 cellRenderFn: (props: { item: object, rowIndex: number, colIndex: number, rawItemRecord: Record<string, unknown> }) => {
+                    function getSummedUpBars(nodes2guests: Map<Node, Set<Guest>>) {
+                        const layers: Layer[] = [];
+                        const nodes = [...nodes2guests.keys()];
+                        const allGuests = [...nodes2guests.keys()].map(k => [...nodes2guests.get(k)!.values()]).flat();
+
+                        // Stack up the guest cpu as layers:
+                        const guestCpuLayers: Layer[] = [];
+                        {
+                            const guestsStats = allGuests.filter(g => g.electrifiedStats?.currentCpuUsage?.value).map(guest => {
+                                return {...guest.electrifiedStats!, id: guest.id}
+                            });
+                            guestsStats.sort((a, b) => getOpacity(b) - getOpacity(a)); // Sort by opacity
+                            let current = 0;
+                            for (const electrifiedStats of guestsStats) {
+                                const opacity = getOpacity(electrifiedStats);
+                                if (opacity > 0) {
+                                    guestCpuLayers.push({
+                                        key: `gues${electrifiedStats.id}`,
+                                        start: current,
+                                        end: current+= electrifiedStats.currentCpuUsage!.value,
+                                        cssClass: "cpu-bar-cpu",
+                                        css: {
+                                            opacity
+                                        }
+
+                                    });
+                                }
+                            }
+                        }
+
+                        {
+                            // Stack up unused cores / background:
+                            let current = 0;
+                            for(const node of nodes) {
+                                let current = 0;
+                                const opacity = getOpacity(node.electrifiedStats)
+                                layers.push({
+                                    key: "background",
+                                    start: current,
+                                    end: current+= node.maxcpu,
+                                    cssClass: "cpu-bar-unused",
+                                    css: {
+                                        opacity
+                                    }
+                                });
+                            }
+                        }
+
+                        {
+                            // stack up host cpu usages:
+                            let current = 0;
+                            const nodesStats = nodes.filter(g => g.electrifiedStats?.currentCpuUsage?.value).map(node => {
+                                return {...node.electrifiedStats!, name: node.name}
+                            });
+                            nodesStats.sort((a, b) => getOpacity(b) - getOpacity(a)); // Sort by opacity
+                            for(const stats of nodesStats) {
+                                const opacity = getOpacity(stats);
+                                layers.push({
+                                    key: `node_${stats.name}`,
+                                    start: current,
+                                    end: current+=stats.currentCpuUsage!.value,
+                                    cssClass: "cpu-bar-host",
+                                    css: {
+                                        opacity
+                                    }
+                                });
+                            }
+                        }
+
+                        // guests:
+                        layers.push(...guestCpuLayers);
+
+                        return <div className="cpu-bars-container">{getBars(layers)}</div>;
+                    }
+
 
 
                     const item = props.item;
@@ -121,56 +196,9 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
                         }
                     } else if(item instanceof this.app.classes.model.Node) {
                         const node = item;
-                        if(!node.electrifiedStats?.currentCpuUsage) {
-                            return undefined;
-                        }
-
-                        // Stack up the guest cpu as layers
-                        const guestCpuLayers: Layer[] = [];
-                        const guestsStats = node.guests.filter(g => g.electrifiedStats?.currentCpuUsage).map(guest => {return {...guest.electrifiedStats!, id: guest.id}});
-                        guestsStats.sort((a,b) => getOpacity(b) - getOpacity(a) ); // Sort by opacity
-                        let current = 0;
-                        for(const electrifiedStats of guestsStats) {
-                            guestCpuLayers.push({
-                                key: electrifiedStats.id,
-                                start: current,
-                                end: current + electrifiedStats.currentCpuUsage!.value,
-                                cssClass: "cpu-bar-cpu",
-                                css: {
-                                    opacity: getOpacity(electrifiedStats)
-                                }
-
-                            });
-                            current+= electrifiedStats.currentCpuUsage!.value
-                        }
-                        const layers: Layer[] = [];
-                        // Unused cores / background:
-                        layers.push({
-                            key: "background",
-                            start: 0,
-                            end: node.maxcpu,
-                            cssClass: "cpu-bar-unused",
-                            css: {
-                                opacity: getOpacity(node.electrifiedStats)
-                            }
-                        });
-                        // host cpu:
-                        if(node.electrifiedStats?.currentCpuUsage) {
-                            layers.push({
-                                key: "host",
-                                start: 0,
-                                end: node.electrifiedStats.currentCpuUsage.value,
-                                cssClass: "cpu-bar-host",
-                                css: {
-                                    opacity: getOpacity(node.electrifiedStats)
-                                }
-                            });
-                        }
-                        // guests:
-                        layers.push(...guestCpuLayers);
-
-                        return <div className="cpu-bars-container">{getBars(layers)}</div>;
-                    } else {
+                        return getSummedUpBars(new Map([[node, new Set(node.guests)]]))
+                    }
+                    else {
                         return undefined;
                     }
                     type Layer = {key: string | number, start: number, end: number, cssClass: string, css?: CSSProperties};
