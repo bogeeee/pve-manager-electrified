@@ -74,8 +74,10 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
 
 
     getResourceTreeColumns() {
-        const getOpacity = (electrifiedStats: Node["electrifiedStats"] | Guest["electrifiedStats"]) => {
-            electrifiedStats = electrifiedStats!;
+        const getOpacity = (electrifiedStats?: Node["electrifiedStats"] | Guest["electrifiedStats"]) => {
+            if(!electrifiedStats) {
+                return 0;
+            }
             watched(this).timeForComponentAnimations; const now = new Date().getTime() // Access timer only to force regular refresh.
             const ageTimeStamp = electrifiedStats.clientTimestamp - electrifiedStats.currentCpuUsage!.ageMs;
             const ageInSeconds = ((now - ageTimeStamp) / 1000) - 2; // -1 = fluctuations the first second window should be still at full opacity. Otherwise it flickers too much
