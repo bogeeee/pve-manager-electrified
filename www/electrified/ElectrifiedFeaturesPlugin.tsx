@@ -8,6 +8,8 @@ import {t} from "./globals";
 import "./styles.css"
 import {Guest} from "./model/Guest";
 import {Node} from "./model/Node";
+import {string} from "prop-types";
+import {throwError} from "./util/util";
 
 /**
  * Offers nice features.
@@ -75,13 +77,17 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
 
     getResourceTreeColumns() {
         const getOpacity = (electrifiedStats?: Node["electrifiedStats"] | Guest["electrifiedStats"]) => {
-            if(!electrifiedStats) {
+            if(!electrifiedStats?.currentCpuUsage) {
                 return 0;
             }
             watched(this).timeForComponentAnimations; const now = new Date().getTime() // Access timer only to force regular refresh.
-            const ageTimeStamp = electrifiedStats.clientTimestamp - electrifiedStats.currentCpuUsage!.ageMs;
+            const ageTimeStamp = electrifiedStats.clientTimestamp - electrifiedStats.currentCpuUsage.ageMs;
             const ageInSeconds = ((now - ageTimeStamp) / 1000) - 2; // -1 = fluctuations the first second window should be still at full opacity. Otherwise it flickers too much
             return Math.min(1, 1 / Math.pow(2, ageInSeconds / 4)); // Half the opacity after 4 seconds
+        }
+
+        function getIconClass(type: string) {
+            return (window as any).PVE.tree.ResourceTree.typeDefaults[type]?.iconCls || throwError("No icon for " + type);
         }
 
         return [
@@ -115,6 +121,10 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
                         }
                     } else if(item instanceof this.app.classes.model.Node) {
                         const node = item;
+                        if(!node.electrifiedStats?.currentCpuUsage) {
+                            return undefined;
+                        }
+
                         // Stack up the guest cpu as layers
                         const guestCpuLayers: Layer[] = [];
                         const guestsStats = node.guests.filter(g => g.electrifiedStats?.currentCpuUsage).map(guest => {return {...guest.electrifiedStats!, id: guest.id}});
@@ -189,14 +199,55 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
                 key: "cpu_text",
                 hidden: true,
                 cellRenderFn: (props: { item: object, rowIndex: number, colIndex: number, rawItemRecord: Record<string, unknown> }) => {
-                    function formatCpu(cpu: number) {
-                        return `${cpu.toFixed(2)}`;
+                    /**
+                     * @returns Cpu formatted to a fixed width + the core symbol
+                     */
+                    function formatCpu(cpu: number, showUnit = true) {
+                        cpu = Math.max(0, cpu);
+                        const intDigits = Math.max(1, String(Math.round(cpu)).length);
+                        const fractiondigits = Math.max(0, 3 - intDigits);
+                        let formattedNumber = new Intl.NumberFormat(undefined, {minimumIntegerDigits: 1, minimumFractionDigits:  fractiondigits, maximumFractionDigits:fractiondigits}).format(cpu).trim();
+                        // TODO: use monopaced font, that does not look ugly like style={{fontFamily: "'Cascadia Code', Consolas, 'Courier New', Courier, monospace"}}. I.e. https://github.com/weiweihuanghuang/fragment-mono
+                        return <span>{formattedNumber}{intDigits === 3?<span style={{visibility: "hidden"}}>.</span>:undefined}{showUnit?<span className="fa fa-fw pmx-itype-icon-processor pmx-icon"/>:undefined}</span>;
                     }
 
                     const item = props.item;
-                    if (item instanceof this.app.classes.model.Guest) {
+                    if (item instanceof this.app.classes.model.Node) {
+                        const node = item;
+                        if(!node.electrifiedStats?.currentCpuUsage) {
+                            return undefined;
+                        }
+
+                        let guestsOpacity = 1;
+                        let guestsCpuUsage = 0;
+                        for(const guest of node.guests) {
+                            if(!guest.electrifiedStats) {
+                                continue;
+                            }
+                            guestsOpacity = Math.min(guestsOpacity, getOpacity(guest.electrifiedStats));
+                            if(guestsOpacity <= 0 || guest.electrifiedStats.currentCpuUsage === undefined) {
+                                break;
+                            }
+                            guestsCpuUsage+= guest.electrifiedStats.currentCpuUsage.value;
+                        }
+
+                        const smallSpace = <div style={{display: "inline-block", width:"2px"}} />
+
+                        return guestsOpacity > 0 ?
+                            <span style={{opacity: guestsOpacity}}>
+                                {formatCpu(guestsCpuUsage, false)}{smallSpace}<span className={`fa fa-fw ${getIconClass("qemu")}`}/><span className={`fa fa-fw ${getIconClass("lxc")}`}/>
+                                &#160;&#160;+&#160;&#160;
+                                {formatCpu(node.electrifiedStats.currentCpuUsage.value - guestsCpuUsage, false)}{smallSpace}<span className={`fa fa-fw ${getIconClass("node")}`}/>
+                            </span>
+                            :
+                            <span style={{opacity: getOpacity(node.electrifiedStats)}}>
+                                {formatCpu(node.electrifiedStats.currentCpuUsage.value)}
+                            </span>
+
+                    }
+                    else if (item instanceof this.app.classes.model.Guest) {
                         if(item.electrifiedStats?.currentCpuUsage) {
-                            return <div style={{opacity: getOpacity(item.electrifiedStats)}}>{formatCpu(item.electrifiedStats.currentCpuUsage.value)}<span className="fa fa-fw pmx-itype-icon-processor pmx-icon"/></div>
+                            return <div style={{opacity: getOpacity(item.electrifiedStats)}}>{formatCpu(item.electrifiedStats.currentCpuUsage.value)}</div>
                         }
                     } else {
                         return undefined;
