@@ -298,7 +298,7 @@ export class TotalCpuUsageMeter extends ResourceMeter {
             }
             const tokens = statContent.trim().split(" ");
             const [cpu, user, nice, system, idle, iowait, irq, softirq, steal, guest, guest_nice] = tokens;
-            return (BigInt(user) + BigInt(nice) + BigInt(system) + BigInt(irq) + BigInt(softirq) + BigInt(guest) + BigInt(guest_nice));
+            return (BigInt(user) + BigInt(nice) + BigInt(system) + BigInt(irq) + BigInt(softirq));
         }
         throw new Error("Illegal file content");
     }
