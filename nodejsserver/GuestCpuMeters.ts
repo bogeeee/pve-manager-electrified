@@ -244,7 +244,12 @@ export class ProcessCpuUsageMeter extends ResourceMeter {
     protected async fetchDistance(): Promise<bigint> {
         let result = BigInt(0);
         for(const pid of [this.pid, ...this.runtime_descendantPids!]) {
-            result += await ProcessCpuUsageMeter.getClockTicksForProcess(pid);
+            try {
+                result += await ProcessCpuUsageMeter.getClockTicksForProcess(pid);
+            }
+            catch (e) { // I.e proc file does not exist anymore because the process has terminated in the meanwhile ?
+
+            }
         }
         return result;
     }
