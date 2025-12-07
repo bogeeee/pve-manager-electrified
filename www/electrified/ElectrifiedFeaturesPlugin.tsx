@@ -197,6 +197,9 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
                     } else if(item instanceof this.app.classes.model.Node) {
                         const node = item;
                         return getSummedUpBars(new Map([[node, new Set(node.guests)]]))
+                    } else if(item instanceof this.app.classes.model.Datacenter) {
+                        const node2guests = new Map([[this.app.currentNode, new Set(this.app.currentNode.guests)]]);
+                        return getSummedUpBars(node2guests)
                     }
                     else {
                         return undefined;

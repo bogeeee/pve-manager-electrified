@@ -208,7 +208,10 @@ export class Datacenter extends ModelBase {
      * @param record Record, returned from https://pve.proxmox.com/pve-docs/api-viewer/#/cluster/resources
      */
     _getItemForResourceRecord(record: {id: string, type: string, node: string, vmid: number}) {
-        if(record.type === "node") {
+        if(record.id === "root") {
+            return this;
+        }
+        else if(record.type === "node") {
             return this.getNode(record.node) || throwError( `Node does not exist: ${record.node}`)
         }
         else if(record.type === "qemu" || record.type === "lxc") {
