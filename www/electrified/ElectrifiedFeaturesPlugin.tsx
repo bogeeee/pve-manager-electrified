@@ -130,7 +130,6 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
                             // Stack up unused cores / background:
                             let current = 0;
                             for(const node of nodes) {
-                                let current = 0;
                                 const opacity = getOpacity(node.electrifiedStats)
                                 layers.push({
                                     key: "background",
