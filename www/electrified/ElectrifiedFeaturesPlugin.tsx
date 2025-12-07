@@ -98,8 +98,9 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
                 cellRenderFn: (props: { item: object, rowIndex: number, colIndex: number, rawItemRecord: Record<string, unknown> }) => {
                     function getSummedUpBars(nodes2guests: Map<Node, Set<Guest>>) {
                         const layers: Layer[] = [];
-                        const nodes = [...nodes2guests.keys()];
-                        const allGuests = [...nodes2guests.keys()].map(k => [...nodes2guests.get(k)!.values()]).flat();
+                        let nodes = [...nodes2guests.keys()];
+                        let allGuests = [...nodes2guests.keys()].map(k => [...nodes2guests.get(k)!.values()]).flat();
+                        //nodes = [...nodes, ...nodes]; allGuests = [...allGuests, ...allGuests]; // Debug: double entries
 
                         // Stack up the guest cpu as layers:
                         const guestCpuLayers: Layer[] = [];
@@ -197,7 +198,8 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
                         const node = item;
                         return getSummedUpBars(new Map([[node, new Set(node.guests)]]))
                     } else if(item instanceof this.app.classes.model.Datacenter) {
-                        const node2guests = new Map([[this.app.currentNode, new Set(this.app.currentNode.guests)]]);
+                        const node2guests = new Map(item.nodes.map(node => [node, new Set(node.guests)]));
+                        //const node2guests = new Map([[watched(this.app.currentNode), new Set(watched(this.app.currentNode).guests)]]); // debug: only use current node
                         return getSummedUpBars(node2guests)
                     }
                     else {
@@ -289,3 +291,4 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
 
     // ... for more plugin-hooks, use code completion here (ctrl+space).
 }
+let debug_renderCounter = 0;
