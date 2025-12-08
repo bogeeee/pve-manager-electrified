@@ -252,6 +252,11 @@ export class Datacenter extends ModelBase {
         return this._hasQuorum;
     }
 
+    async ensureUp2Date() {
+        await this.refreshStatus();
+        throw new Error("TODO: trigger re-fetch of resource store");
+    }
+
     /**
      *
      * @param record Record, returned from https://pve.proxmox.com/pve-docs/api-viewer/#/cluster/resources
