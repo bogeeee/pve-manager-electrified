@@ -8,12 +8,25 @@
         "check": "tsc --noemit",
         "###publish_to_npm:###": "share your plugin to other internet users: Create your self an NPM account, adjust package name and version, and run the following scripts:",
         "publish_to_npm:login": "npm login",
-        "publish_to_npm:publish": "npm run check && npm publish",
+        "publish_to_npm:publish": "npm run check && npm publish"
     },
     "dependencies": {
-        "typescript": "=5.1.6"
+        "react": "^18.3.1",
+        "@types/react": "^18.3.11",
+        "react-dom": "^18.3.1",
+        "@types/react-dom": "^18.3.1",
+        "react-deepwatch": "^1.4.0",
+        "@mui/material": "^7.3.5",
+        "@emotion/react": "^11.14.0",
+        "@emotion/styled": "^11.14.1",
+        "@blueprintjs/core": "^6.3.4",
+        "underscore": "^1.13.7",
+        "@types/underscore": "^1.13.0"
     },
     "peerDependencies": {
         "pveme-ui": "^1.0.5"
+    },
+    "devDependencies": {
+        "typescript": "=5.1.6"
     }
 }
