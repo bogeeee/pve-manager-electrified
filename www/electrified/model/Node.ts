@@ -234,6 +234,10 @@ export class Node extends GuestsContainerBase {
         return `Node: ${this.name}`;
     }
 
+    get type(): "node" {
+        return "node";
+    }
+
     /**
      * ElectrifiedResourceStats are additional stats with cpu usage and [running/not running]. Cause the cluster cluster/resources's stats are too lame (~30 second average or so).
      * @protected

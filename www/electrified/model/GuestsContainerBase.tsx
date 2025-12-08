@@ -4,7 +4,9 @@ import {spawnAsync, throwError} from "../util/util";
 import {Guest} from "./Guest";
 import {Lxc} from "./Lxc";
 import {Qemu} from "./Qemu";
-import {Node} from "./Node"
+import type {Datacenter} from "./Datacenter";
+import type {Node} from "./Node";
+import type {Pool} from "./Pool";
 
 /**
  * Base for Node and Pool
@@ -12,9 +14,12 @@ import {Node} from "./Node"
 export abstract class GuestsContainerBase extends ModelBase{
     protected _guests!: Map<number, Guest>
 
-    async _initWhenLoggedOn() {
+    /**
+     * @param datacenter needed by pool in early init phase
+     */
+    async _initWhenLoggedOn(datacenter?: Datacenter) {
         this._guests = new Map();
-        await this.handleResourceStoreDataChanged();
+        await this.handleResourceStoreDataChanged(datacenter);
         getElectrifiedApp()._resourceStore.on("datachanged", () => spawnAsync(() => this.handleResourceStoreDataChanged()));
     }
 
@@ -31,14 +36,26 @@ export abstract class GuestsContainerBase extends ModelBase{
         return this.getGuest(id) || throwError(`Guest with id ${id} does not exist on ${this.toString()}`);
     }
 
-    protected async handleResourceStoreDataChanged() {
+    /**
+     *
+     * @param datacenter needed in early init phase
+     * @protected
+     */
+    protected async handleResourceStoreDataChanged(datacenter?: Datacenter) {
         const guestsSeenInResourceStore = new Set<number>()
-        for (const item of getElectrifiedApp()._resourceStore.getData().getRange()) { // Iterate all items from the resource store
+        const app = getElectrifiedApp();
+        for (const item of app._resourceStore.getData().getRange()) { // Iterate all items from the resource store
             const dataRecord: any = item.data;
             const type = dataRecord.type as string;
-            // Check if the item is for this container:
-            if(this instanceof Node) {
-                if (dataRecord.node !== this.name) { // Not for this node?
+
+            // Filter, if the item is for this container:
+            if(this.type === "node") {
+                if (dataRecord.node !== (this as any as Node).name) { // Not for this node?
+                    continue
+                }
+            }
+            else if(this.type === "pool") {
+                if (dataRecord.pool !== (this as any as Pool).name) { // Not for this pool?
                     continue
                 }
             }
@@ -52,13 +69,22 @@ export abstract class GuestsContainerBase extends ModelBase{
                 let guest = this.getGuest(id);
 
                 if (!guest) { // Guest is new?
-                    if (type === "lxc") {
-                        guest = await Lxc.create({id});
-                    } else if (type === "qemu") {
-                        guest = await Qemu.create({id});
-                    } else {
-                        throw new Error("Unhandled type")
+                    if(this.type === "node") {
+                        const node = this as any as Node;
+                        // Create new guest object:
+                        if (type === "lxc") {
+                            guest = await Lxc.create({id, node});
+                        } else if (type === "qemu") {
+                            guest = await Qemu.create({id, node});
+                        } else {
+                            throw new Error("Unhandled type")
+                        }
                     }
+                    else {
+                        datacenter = datacenter || app.datacenter;
+                        guest = datacenter.getNode_existing(dataRecord.node).getGuest(id) || throwError("Expected guest to exist: " + id); // Get existing guest from datacenter
+                    }
+
                     this._guests.set(id, guest);
                 }
 
@@ -68,4 +94,7 @@ export abstract class GuestsContainerBase extends ModelBase{
     }
 
     abstract toString(): string;
+
+
+    abstract get type(): "pool" | "node"
 }

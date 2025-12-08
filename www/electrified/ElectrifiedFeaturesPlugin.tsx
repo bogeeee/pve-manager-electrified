@@ -9,8 +9,9 @@ import "./styles.css"
 import {Guest} from "./model/Guest";
 import {Node} from "./model/Node";
 import {string} from "prop-types";
-import {throwError} from "./util/util";
+import {newDefaultMap, throwError} from "./util/util";
 import _ from "underscore";
+import {Pool} from "./model/Pool";
 
 /**
  * Offers nice features.
@@ -164,7 +165,56 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
 
                         return <div className="cpu-bars-container">{getBars(layers)}</div>;
                     }
+                    function getSummedUpBarsForPool(pool: Pool) {
+                        const layers: Layer[] = [];
+                        let nodeInfo = newDefaultMap<Node, {guestCores: number}>((n) => {return {guestCores: 0}})
+                        for(const guest of pool.guests) {
+                            const info = nodeInfo.get(guest.node);
+                            info.guestCores+=guest.maxcpu;
+                        }
 
+                        {
+                            // Stack up unused cores / background:
+                            let current = 0;
+                            for(const node of nodeInfo.keys()) {
+                                const opacity = getOpacity(node.electrifiedStats)
+                                const maxUsableCpuForNode = Math.min(node.maxcpu, nodeInfo.get(node).guestCores);
+                                layers.push({
+                                    start: current,
+                                    end: current+= maxUsableCpuForNode,
+                                    cssClass: "cpu-bar-unused",
+                                    css: {
+                                        opacity
+                                    }
+                                });
+                            }
+                        }
+
+                        // Stack up the guest cpu as layers:
+                        {
+                            const guestsStats = pool.guests.filter(g => g.electrifiedStats?.currentCpuUsage?.value).map(guest => {
+                                return guest.electrifiedStats!
+                            });
+                            guestsStats.sort((a, b) => getOpacity(b) - getOpacity(a)); // Sort by opacity
+                            let current = 0;
+                            for (const electrifiedStats of guestsStats) {
+                                const opacity = getOpacity(electrifiedStats);
+                                if (opacity > 0) {
+                                    layers.push({
+                                        start: current,
+                                        end: current+= electrifiedStats.currentCpuUsage!.value,
+                                        cssClass: "cpu-bar-cpu",
+                                        css: {
+                                            opacity
+                                        }
+
+                                    });
+                                }
+                            }
+                        }
+
+                        return <div className="cpu-bars-container">{getBars(layers)}</div>;
+                    }
 
 
                     const item = props.item;
@@ -193,6 +243,9 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
                         const node2guests = new Map(item.nodes.map(node => [node, new Set(node.guests)]));
                         //const node2guests = new Map([[watched(this.app.currentNode), new Set(watched(this.app.currentNode).guests)]]); // debug: only use current node
                         return getSummedUpBars(node2guests)
+                    }
+                    else if (item instanceof this.app.classes.model.Pool) {
+                        return getSummedUpBarsForPool(item);
                     }
                     else {
                         return undefined;
@@ -314,12 +367,33 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
                                 {formatCpu(nodesCpuUsage)}
                             </span>
                     }
+                    function getGuestAndHostSummaryForPool(pool: Pool) {
+                        // Compute opacity and cpuUsage:
+                        let opacity = 1;
+                        let cpuUsage = 0;
+                        for(const guest of pool.guests) {
+                            if(!guest.electrifiedStats) {
+                                continue;
+                            }
+                            opacity = Math.min(opacity, getOpacity(guest.electrifiedStats));
+                            if(opacity <= 0 || guest.electrifiedStats.currentCpuUsage === undefined) {
+                                break;
+                            }
+                            cpuUsage+= guest.electrifiedStats.currentCpuUsage.value;
+                        }
+
+                        return <span style={{opacity: opacity}}>{formatCpu(cpuUsage)}</span>
+                    }
 
                     const item = props.item;
                     if(item instanceof this.app.classes.model.Node) {
                         const node = item;
                         return getGuestAndHostSummary(new Map([[node, new Set(node.guests)]]))
-                    } else if(item instanceof this.app.classes.model.Datacenter) {
+                    }
+                    else if(item instanceof this.app.classes.model.Pool) {
+                        return getGuestAndHostSummaryForPool(item);
+                    }
+                    else if(item instanceof this.app.classes.model.Datacenter) {
                         const node2guests = new Map(item.nodes.map(node => [node, new Set(node.guests)]));
                         //const node2guests = new Map([[watched(this.app.currentNode), new Set(watched(this.app.currentNode).guests)]]); // debug: only use current node
                         return getGuestAndHostSummary(node2guests)

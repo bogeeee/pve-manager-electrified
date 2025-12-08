@@ -5,6 +5,7 @@ import {Node} from "./Node"
 import {getElectrifiedApp} from "../globals";
 import {ModelBase} from "./ModelBase";
 import {ExternalPromise} from "restfuncs-common";
+import {Pool} from "./Pool";
 
 
 export class Datacenter extends ModelBase {
@@ -15,6 +16,7 @@ export class Datacenter extends ModelBase {
     static STATUS_REFRESH_INTERVAL = 3000; // In ms
 
     _nodes!: Map<string, Node>;
+    _pools!: Map<string, Pool>;
     /**
      * When not true, we save the listeners that are called when flipped to true
      * @protected
@@ -41,6 +43,7 @@ export class Datacenter extends ModelBase {
         const app = getElectrifiedApp();
 
         this._nodes = new Map<string, Node>();
+        this._pools = new Map<string, Pool>();
 
         this._nodes.set((window as any).Proxmox.NodeName, app.currentNode); // Must re-use this instance  / don't let it auto-crate a new one
 
@@ -79,29 +82,63 @@ export class Datacenter extends ModelBase {
     }
 
     protected async handleResourceStoreDataChanged() {
-        const nodesSeenInResourceStore = new Set<string>()
-        for(const nodeDesc of getElectrifiedApp()._resourceStore.getNodes()) {
-            const name = nodeDesc.node as string || throwError("Name not set");
+        // Nodes:
+        {
+            const nodesSeenInResourceStore = new Set<string>()
+            for (const nodeDesc of getElectrifiedApp()._resourceStore.getNodes()) {
+                const name = nodeDesc.node as string || throwError("Name not set");
 
-            nodesSeenInResourceStore.add(name);
+                nodesSeenInResourceStore.add(name);
 
-            // Create if not exists:
-            if(!this._nodes.has(name)) {
-                const node = await Node.create({name});
-                await node._initWhenLoggedOn();
-                this._nodes.set(name, node); // Create it
+                // Create if not exists:
+                if (!this._nodes.has(name)) {
+                    const node = await Node.create({name});
+                    await node._initWhenLoggedOn(this);
+                    this._nodes.set(name, node); // Create it
+                }
+
+                // Update node fields:
+                this.getNode(name)!._updateFields(nodeDesc);
             }
 
-            // Update node fields:
-            this.getNode(name)!._updateFields(nodeDesc);
+            // Delete nodes that don't exist anymore:
+            [...this._nodes.keys()].forEach(name => {
+                if (!nodesSeenInResourceStore.has(name)) {
+                    this._nodes.delete(name);
+                }
+            })
         }
+        
+        // Pools
+        {
+            const poolsSeenInResourceStore = new Set<string>()
+            for (const record of getElectrifiedApp()._resourceStore.getData().getRange().map((r:any) => r.data)) { // Iterate all items from the resource store
+                if(record.type !== "pool") {
+                    continue;
+                }
 
-        // Delete nodes that don't exist anymore:
-        [...this._nodes.keys()].forEach(name => {
-            if(!nodesSeenInResourceStore.has(name)) {
-                this._nodes.delete(name);
+                const name = record.pool as string || throwError("pool not set");
+
+                poolsSeenInResourceStore.add(name);
+
+                // Create if not exists:
+                if (!this._pools.has(name)) {
+                    const pool = new Pool(name);
+                    await pool._initWhenLoggedOn(this);
+                    this._pools.set(name, pool); // Create it
+                }
+
+                // Update pool fields:
+                this.getPool(name)!._updateFields(record);
             }
-        })
+
+            // Delete pools that don't exist anymore:
+            [...this._pools.keys()].forEach(name => {
+                if (!poolsSeenInResourceStore.has(name)) {
+                    this._pools.delete(name);
+                }
+            })
+        }
 
         this._fireUpdate();
     }
@@ -172,6 +209,18 @@ export class Datacenter extends ModelBase {
         return [...this._nodes.values()];
     }
 
+    get pools() {
+        return [...this._pools.values()];
+    }
+
+    getPool(name: string) {
+        return this._pools.get(name);
+    }
+
+    getPool_existing(name: string) {
+        return this._pools.get(name) || throwError(`Pool does not exist: ${name}`);
+    }
+
     /**
      *
      * @return hasQuorum / cluster is in sync (from this node's perspective). The value may be some seconds old.
@@ -207,12 +256,15 @@ export class Datacenter extends ModelBase {
      *
      * @param record Record, returned from https://pve.proxmox.com/pve-docs/api-viewer/#/cluster/resources
      */
-    _getItemForResourceRecord(record: {id: string, type: string, node: string, vmid: number}) {
+    _getItemForResourceRecord(record: {id: string, type: string, node: string, pool: string, vmid: number}) {
         if(record.id === "root") {
             return this;
         }
         else if(record.type === "node") {
             return this.getNode(record.node) || throwError( `Node does not exist: ${record.node}`)
+        }
+        else if(record.type === "pool") {
+            return this.getPool(record.pool) || throwError( `Pool does not exist: ${record.pool}`)
         }
         else if(record.type === "qemu" || record.type === "lxc") {
             const node = this.getNode(record.node) || throwError( `Node does not exist: ${record.node}`)

@@ -2,10 +2,15 @@ import {AsyncConstructableClass} from "../util/AsyncConstructableClass";
 import {getElectrifiedApp, MeteredValue} from "../globals";
 import {ModelBase} from "./ModelBase";
 import {preserve} from "react-deepwatch";
+import type {Node} from "./Node"
 
 export class Guest extends ModelBase {
     id!: number;
     name!: string;
+    /**
+     * Back reference
+     */
+    node!: Node;
 
     /**
      * The raw data record from the ResourceStore that was returned by the api https://pve.proxmox.com/pve-docs/api-viewer/#/cluster/resources

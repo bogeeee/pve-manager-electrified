@@ -34,6 +34,7 @@ import {ElectrifiedFeaturesPlugin} from "./ElectrifiedFeaturesPlugin";
 import {watchedComponent} from "react-deepwatch";
 import {ErrorBoundary} from "react-error-boundary";
 import {Icon, Tooltip} from "@blueprintjs/core";
+import {Pool} from "./model/Pool";
 
 let app: Application | undefined = undefined;
 
@@ -88,7 +89,7 @@ export class Application extends AsyncConstructableClass{
          * Category
          */
         model: {
-            Datacenter, Node, Guest, Qemu, Lxc
+            Datacenter, Node, Pool, Guest, Qemu, Lxc
         },
         Plugin
     }
