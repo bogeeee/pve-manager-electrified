@@ -9,7 +9,7 @@ import {
     returnWithErrorHandling, showBlueprintDialog, showErrorDialog,
     showResultText,
     spawnAsync, TestComponent, throwError, topLevel_withErrorLogging,
-    spawnWithErrorHandling
+    spawnWithErrorHandling, showMuiDialog, withLoadingDialog, InfoTooltip, messageBox
 } from "./util/util";
 import {generated_pluginList as pluginList} from "../_generated_pluginList";
 import {
@@ -96,8 +96,15 @@ export class Application extends AsyncConstructableClass{
     }
 
     util = {
+        errorToString, topLevel_withErrorLogging, spawnAsync, showErrorDialog, spawnWithErrorHandling, returnWithErrorHandling,
         ui: {
-            showBlueprintDialog
+            showBlueprintDialog,
+            showMuiDialog,
+            withLoadingDialog,
+            isPVEDarkTheme,
+            InfoTooltip,
+            confirm,
+            messageBox,
         }
     }
 

@@ -972,6 +972,11 @@ export function isPVEDarkTheme() {
     }
 }
 
+/**
+ * Shows an info icon with a tooltip with the specified content
+ * @param props
+ * @constructor
+ */
 export function InfoTooltip(props: {children: React.ReactElement}) {
     return <Tooltip content={props.children} interactionKind={"hover"}><Icon icon={"small-info-sign"}/></Tooltip>
 }
