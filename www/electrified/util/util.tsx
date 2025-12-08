@@ -188,7 +188,7 @@ export async function showErrorDialog(e: unknown) {
     console.error(e); // Also show in console, so there's a more accurate source map and better interactivity
     const origTitle = window.document.title;
     try {
-        window.document.title = e.message;
+        window.document.title = (e as Error).message;
         await showResultText(errorToString(e), "Error", "error");
     }
     finally {
