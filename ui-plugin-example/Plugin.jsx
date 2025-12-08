@@ -4,7 +4,7 @@ import {PvemePlugin} from "./_pluginTypeFix";
 import _ from "underscore";
 import React from "react";
 import {watchedComponent, watched, useWatchedState, load, isLoading, loadFailed, poll, binding, bind, READS_INSIDE_LOADER_FN} from "react-deepwatch"
-import {Button, ButtonGroup, Checkbox,  Classes,  HTMLSelect, Icon, Intent, InputGroup, Intentm Label, Menu, MenuItem, Popover, Tooltip} from "@blueprintjs/core";
+import {Button, ButtonGroup, Checkbox,  Classes,  HTMLSelect, Icon, Intent, InputGroup, Label, Menu, MenuItem, Popover, Tooltip} from "@blueprintjs/core";
 import "@blueprintjs/core/lib/css/blueprint.css";
 import "@blueprintjs/icons/lib/css/blueprint-icons.css";
 import {Table, TableBody, TableCell, TableContainer, TableHead, TableRow} from "@mui/material"; // For tables, MUI offers the simpler and better version
