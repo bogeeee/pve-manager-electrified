@@ -35,6 +35,7 @@ import {watchedComponent} from "react-deepwatch";
 import {ErrorBoundary} from "react-error-boundary";
 import {Icon, Tooltip} from "@blueprintjs/core";
 import {Pool} from "./model/Pool";
+import {Ext} from "./classicGlobalObjects";
 
 let app: Application | undefined = undefined;
 
@@ -198,8 +199,16 @@ export class Application extends AsyncConstructableClass{
             }
         }
 
+        for(const plugin of this.plugins) {
+            await plugin.earlyInit();
+        }
+
         this.setup_logoutPropagation();
 
+        // Start the classic app:
+        Ext.onReady(async () => {
+            Ext.create('PVE.StdWorkspace');
+        });
     }
 
     /**
@@ -462,9 +471,7 @@ export class Application extends AsyncConstructableClass{
 }
 
 withErrorHandling(async () => {
-    const promise = Application.create();
-    (window as any).electrifiedAppPromise =  promise;
-    await promise; // Await it to provide error handling
+    await Application.create();
 })
 
 
