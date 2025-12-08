@@ -186,7 +186,14 @@ export async function showErrorDialog(e: unknown) {
 
     fixErrorStack(e as Error);
     console.error(e); // Also show in console, so there's a more accurate source map and better interactivity
-    await showResultText(errorToString(e), "Error", "error");
+    const origTitle = window.document.title;
+    try {
+        window.document.title = e.message;
+        await showResultText(errorToString(e), "Error", "error");
+    }
+    finally {
+        window.document.title = origTitle;
+    }
 }
 
 /**
@@ -199,7 +206,6 @@ export function withErrorHandling(fn: () => void | Promise<void>): void {
             await fn();
         }
         catch (e) {
-            // Handle very very uncommon case of non-error:
             await showErrorDialog(e);
         }
     })

@@ -274,7 +274,7 @@ export class Application extends AsyncConstructableClass{
         }
         this.loginData = loginData;
 
-        spawnAsync(async () => {
+        withErrorHandling(async () => {
             await this.initWhenLoggedOn();
         });
     }
