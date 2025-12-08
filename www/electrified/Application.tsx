@@ -199,8 +199,14 @@ export class Application extends AsyncConstructableClass{
             }
         }
 
+        // call plugin's.earlyInit:
         for(const plugin of this.plugins) {
-            await plugin.earlyInit();
+            try {
+                await plugin.earlyInit();
+            }
+            catch (e) {
+                await showErrorDialog(e); // Show a dialog instead of crashing the whole app which prevents the user from reconfiguring plugins
+            }
         }
 
         this.setup_logoutPropagation();

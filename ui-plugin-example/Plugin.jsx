@@ -96,3 +96,5 @@ export function t(englishTextTokens /* :TemplateStringsArray */, ...values /* :a
 
 //@ts-ignore
 export var Ext = window.Ext;
+//@ts-ignore
+export var PVE = window.PVE;

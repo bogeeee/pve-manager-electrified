@@ -25,8 +25,21 @@ export class Plugin {
     }
 
     /**
-     * Initializes this plugin. Prefer this point, instead of the constructor.
+     * Called, when classic components have been defined but are not started yet.
+     * Use this hook, to modify them.
+     * <p>
+     *     this.app has not been fully initialized at that time.
+     * </p>
+     * @see init
+     */
+    async earlyInit() {
+
+    }
+
+    /**
+     * Initializes this plugin. Prefer this point, instead of the constructor and {@link earlyInit}.
      * The configs have already been initialized at this time
+     * @see earlyInit
      * @see onUiReady
      */
     async init() {
