@@ -8,8 +8,8 @@ import {
     isPVEDarkTheme,
     returnWithErrorHandling, showBlueprintDialog, showErrorDialog,
     showResultText,
-    spawnAsync, TestComponent, throwError,
-    withErrorHandling
+    spawnAsync, TestComponent, throwError, topLevel_withErrorLogging,
+    spawnWithErrorHandling
 } from "./util/util";
 import {generated_pluginList as pluginList} from "../_generated_pluginList";
 import {
@@ -274,7 +274,7 @@ export class Application extends AsyncConstructableClass{
         }
         this.loginData = loginData;
 
-        withErrorHandling(async () => {
+        spawnWithErrorHandling(async () => {
             await this.initWhenLoggedOn();
         });
     }
@@ -478,7 +478,7 @@ export class Application extends AsyncConstructableClass{
     }
 }
 
-withErrorHandling(async () => {
+spawnWithErrorHandling(async () => {
     await Application.create();
 })
 

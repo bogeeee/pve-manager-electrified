@@ -9,7 +9,7 @@ import {
 } from "proxy-facades/retsync";
 import {FileStats} from "pveme-nodejsserver/ElectrifiedSession";
 import _ from "underscore";
-import {withErrorHandling} from "../util/util";
+import {spawnWithErrorHandling} from "../util/util";
 import {WatchedProxyFacade} from "proxy-facades";
 import {BufferEncoding, getElectrifiedApp} from "../globals";
 
@@ -230,7 +230,7 @@ export class File {
     constructor(node: Node, path: string) {
         this.node = node;
         this.path = path;
-        this._jsonObject_watchedProxyFacade.onAfterChange(() => withErrorHandling(() => retsync2promise(() => this.writeJsonObjectToDisk(this.cache_jsonObject as object))));
+        this._jsonObject_watchedProxyFacade.onAfterChange(() => spawnWithErrorHandling(() => retsync2promise(() => this.writeJsonObjectToDisk(this.cache_jsonObject as object))));
         this._jsonObject_safe_watchedProxyFacade.onAfterChange(() => this.writeJsonObjectToDisk(this.cache_jsonObject as object));
     }
 

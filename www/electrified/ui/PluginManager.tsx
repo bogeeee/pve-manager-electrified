@@ -15,7 +15,7 @@ import {
 } from "@blueprintjs/core";
 import "@blueprintjs/core/lib/css/blueprint.css";
 import "@blueprintjs/icons/lib/css/blueprint-icons.css";
-import {confirm, formatDate, showBlueprintDialog, spawnAsync, throwError, withErrorHandling} from "../util/util";
+import {confirm, formatDate, showBlueprintDialog, spawnAsync, throwError, spawnWithErrorHandling} from "../util/util";
 import {getElectrifiedApp, gettext, t} from "../globals";
 import _ from "underscore";
 import {Table, TableBody, TableCell, TableContainer, TableHead, TableRow} from "@mui/material";
@@ -221,7 +221,7 @@ export async function showPluginManager() {
                                                         // Publish to all nodes in the datacenter:
                                                         plugin.codeLocation === "local" ?
                                                             <MenuItem text={t`Publish to all nodes in the datacenter`}
-                                                                      onClick={() => withErrorHandling(async () => {
+                                                                      onClick={() => spawnWithErrorHandling(async () => {
                                                                           await app.datacenter.queryHasQuorum() || throwError("No quorum");
                                                                           await app.currentNode.execCommand`mkdir -p /etc/pve/manager/plugin-packages`
                                                                           await app.currentNode.execCommand`rsync -r --exclude='node_modules' /root/pveme-plugin-source-projects/${shortName}/ /etc/pve/manager/plugin-packages/${shortName}`
@@ -231,7 +231,7 @@ export async function showPluginManager() {
                                                         // delete package
                                                         plugin.codeLocation === "datacenter" ?
                                                             <MenuItem text={t`Delete`}
-                                                                      onClick={() => withErrorHandling(async () => {
+                                                                      onClick={() => spawnWithErrorHandling(async () => {
                                                                           if (!await confirm(t`Delete plugin ${shortName}`, t`The plugin files will be deleted on all nodes in the datacenter.`)) {
                                                                               return
                                                                           }

@@ -197,10 +197,9 @@ export async function showErrorDialog(e: unknown) {
 }
 
 /**
- * TODO: rename spawnWithErrorHandling
  * Shows an error dialog, if something goes wrong. Void version
  */
-export function withErrorHandling(fn: () => void | Promise<void>): void {
+export function spawnWithErrorHandling(fn: () => void | Promise<void>): void {
     spawnAsync(async () => {
         try {
             await fn();
