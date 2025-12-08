@@ -11,11 +11,12 @@ import {Lxc} from "./Lxc";
 import {Qemu} from "./Qemu";
 import {ModelBase} from "./ModelBase";
 import {preserve} from "react-deepwatch";
+import {GuestsContainerBase} from "./GuestsContainerBase";
 
 /**
  * A PVE-Node. All fields are live updated.
  */
-export class Node extends ModelBase {
+export class Node extends GuestsContainerBase {
     name!: string;
 
     _electrifiedClient?: RestfuncsClient<ElectrifiedSession>;
@@ -25,7 +26,6 @@ export class Node extends ModelBase {
      * @protected
      */
     protected files = newDefaultMap<string, File>((path) => new File(this, path));
-    protected _guests!: Map<number, Guest>
 
     /**
      * Undefined if the guest is not running
@@ -105,44 +105,6 @@ export class Node extends ModelBase {
         getElectrifiedApp()._resourceStore.on("datachanged", () => spawnAsync(() => this.handleResourceStoreDataChanged()));
     }
 
-    protected async handleResourceStoreDataChanged() {
-        const guestsSeenInResourceStore = new Set<number>()
-        for(const item of getElectrifiedApp()._resourceStore.getData().getRange()) { // Iterate all items from the resource store
-            const dataRecord: any = item.data;
-            const type = dataRecord.type as string;
-            if(dataRecord.node !== this.name) { // Not for this node?
-                continue
-            }
-            if(type === "lxc" || type == "qemu") { // is a guest?
-                const id = dataRecord.vmid as number;
-                guestsSeenInResourceStore.add(id);
-                let guest = this.getGuest(id);
-
-                if(!guest) { // Guest is new?
-                    if(type === "lxc") {
-                        guest = await Lxc.create({id});
-                    }
-                    else if(type === "qemu") {
-                        guest = await Qemu.create({id});
-                    }
-                    else {
-                        throw new Error("Unhandled type")
-                    }
-                    this._guests.set(id, guest);
-                }
-
-                guest._updateFields(dataRecord);
-            }
-        }
-
-        // Delete nodes that don't exist anymore:
-        [...this._guests.keys()].forEach(id => {
-            if(!guestsSeenInResourceStore.has(id)) {
-                this._guests.delete(id);
-            }
-        })
-    }
-
     get electrifiedClient() {
         if(this._electrifiedClient) {
             return this._electrifiedClient;
@@ -200,20 +162,7 @@ export class Node extends ModelBase {
         return this.files.get(normalizePath(path));
     }
 
-    get guests() {
-        return [...this._guests.values()];
-    }
-
-
-    getGuest(id: number) : Guest | undefined{
-        return this._guests.get(id);
-    }
-
-    getGuest_existing(id: number){
-        return this.getGuest(id) || throwError(`Guest with id ${id} does not exist on node: ${this.name}`);
-    }
-
-    get isCurrentNode() {
+      get isCurrentNode() {
         const app = getElectrifiedApp();
         if(!app.currentNode) {
             return true; // If we are at this early initialization phase, this must be the one and only current node
@@ -279,6 +228,10 @@ export class Node extends ModelBase {
      */
     get hostNameForBrowser() {
         return this.name
+    }
+
+    toString() {
+        return `Node: ${this.name}`;
     }
 
     /**
