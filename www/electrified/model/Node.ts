@@ -99,12 +99,6 @@ export class Node extends GuestsContainerBase {
         await super.constructAsync();
     }
 
-    async _initWhenLoggedOn() {
-        this._guests = new Map();
-        await this.handleResourceStoreDataChanged();
-        getElectrifiedApp()._resourceStore.on("datachanged", () => spawnAsync(() => this.handleResourceStoreDataChanged()));
-    }
-
     get electrifiedClient() {
         if(this._electrifiedClient) {
             return this._electrifiedClient;

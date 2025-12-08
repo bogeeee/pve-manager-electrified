@@ -91,6 +91,13 @@ export abstract class GuestsContainerBase extends ModelBase{
                 guest._updateFields(dataRecord);
             }
         }
+
+        // Delete guests that don't exist anymore:
+        [...this._guests.keys()].forEach(id => {
+            if(!guestsSeenInResourceStore.has(id)) {
+                this._guests.delete(id);
+            }
+        })
     }
 
     abstract toString(): string;
