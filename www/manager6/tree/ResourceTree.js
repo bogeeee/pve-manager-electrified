@@ -700,6 +700,16 @@ Ext.define('PVE.tree.ResourceTree', {
                     }
                     me.getView().focusRow(node);
                 }
+
+                if(!me.selectExpandCalled) {
+                    // ** use this plaace as a kind of initialization hook**
+
+                    for(const t of [0,100, 500]) {
+                        setTimeout(() => {me.slapForDoubleRefresh()},t);
+                    }
+                    // Mind that each 3500ms comes a regular refresh, which will fix it anyway
+                }
+                me.selectExpandCalled = true;
             },
             selectById: function (nodeid) {
                 let rootnode = me.store.getRootNode();
@@ -724,13 +734,6 @@ Ext.define('PVE.tree.ResourceTree', {
 
         rstore.on('load', updateTree);
         rstore.startUpdate();
-
-        me.slapForDoubleRefresh();
-        // Fix: Sometimes, the above doesn't work. Do multiple refreshes:
-        for(const t of [100, 500, 800, 1600]) {
-            setTimeout(() => {me.slapForDoubleRefresh()},t);
-        }
-        // Mind that each 3500ms comes a regular refresh, which will fix it anyway
 
         me.mon(Ext.GlobalEvents, 'loadedUiOptions', () => {
             me.store.getRootNode().cascadeBy({
