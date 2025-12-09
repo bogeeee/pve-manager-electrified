@@ -276,7 +276,7 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
 
 
                         const result: ReactNode[] = [];
-                        const maxHeight = 16;
+                        const maxHeight = 15;
 
                         /**
                          * Note: Converting to pixels rather than using % prevents quirky rendering by the browser (
