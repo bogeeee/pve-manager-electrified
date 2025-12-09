@@ -103,6 +103,7 @@ class AppServer {
     startup_nodeEnv = process.env.NODE_ENV;
 
     constructor() {
+        const thisServer = this;
         spawnAsync(async () => {
 
             await this.cleanUpIfInstallHung();
@@ -201,6 +202,40 @@ class AppServer {
                             }
                             return code;
                         },
+                    },
+                    // Sends a cache header for the scripts that have set mTime=... in the url, to allow the browser to cache them. This speeds up page loading for the numerous scripts under manager6
+                    {
+                        name: 'cache-scripts',
+                        configureServer(server) {
+                            server.middlewares.use((req, res, next) => {
+                                const inner = () => {
+                                    try {
+                                        const urlPath = req.url;
+                                        if(!urlPath) {
+                                            return;
+                                        }
+                                        const match = urlPath.match(/(.*\.js)?.*&mTime=([0-9.]+).*/);
+                                        if(!match) {
+                                            return;
+                                        }
+                                        const path = match[1];
+                                        const mTime = match[2];
+                                        if (mTime) { // Cache-breaker hint was set in the script url?
+                                            const localFile = `${thisServer.wwwSourceDir}${path}`;
+                                            const stats = fs.statSync(localFile);
+                                            if (stats.mtimeMs === Number(mTime)) {
+                                                res.setHeader('Cache-Control', 'max-age=3600');
+                                            }
+                                        }
+                                    }
+                                    catch (e) { // File does not exist or other?
+                                    }
+                                }
+
+                                inner();
+                                next();
+                            });
+                        }
                     },
                 ],
             });
@@ -405,6 +440,23 @@ class AppServer {
             if(this.useViteDevServer) {
                 indexHtml = await this.viteDevServer.transformIndexHtml(req.url, indexHtml)
             }
+
+            // Insert mTime=... lastModified hint for non-module script files, so they can be cached during development.
+            if(this.useViteDevServer) {
+                indexHtml = indexHtml.replaceAll(/<script type="text\/javascript" src="(.*\.js)(.*?)"><\/script>/g, (match, scriptPath, existingCacheBreaker) => {
+                    const localFile = `${this.wwwSourceDir}${scriptPath}`;
+                    try {
+                        const stats = fs.statSync(localFile);
+                        return `<script type="text/javascript" src="${scriptPath}${existingCacheBreaker || "?"}&mTime=${stats.mtimeMs}"></script>`;
+
+                    }
+                    catch (e) { // File does not exist?
+                        return match;
+                    }
+
+                });
+            }
+
 
             res.send(indexHtml)
         } catch (e: any) {
