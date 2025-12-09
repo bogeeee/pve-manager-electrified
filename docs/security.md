@@ -1,17 +1,20 @@
 # Security
 
-PVE electrified's main goal is to allow faster coding of new features. That's why it uses a different architecture for serving the web, based on Node.js.
-So here are the things listed, that are different to the original proxmox's pve-manager in terms of security, so you can revise it.
+PVE electrified's main goal is to allow faster coding of new features. That's why it uses a different architecture for serving the web, based on Node.js and NPM.
+So here are the things listed, that are different to the original proxmox's pve-manager in terms of security, so you can revise it:
+
 
 # Supply chain
 
 - `apt install pve-manager-electrified` adds ~470 additional debian packages for Node.js and npm
 - For the nodejsserver code, after install, there are ~300 Node.js packages installed. You can find them under `/usr/share/pve-manager-nodejsserver/node_modules`
 - For the client/web, there are TODO:how-many Node.js packages installed. You can find them under: `/var/lib/pve-manager/bundledWww/node_modules`
-  - These packages have pinned versions, cause exploit ability is considered lower that a future supply chain attack:
+  - These packages have pinned versions, cause exploit ability is considered lower than a future supply chain attack:
     - **react-draggable + it's dependencies** See commit c65e7a7c.
-- Npm is run for the server and web packages **with the --ignore-scripts argument**, for some extra security. A lot of code paths are not used in reality and even complete packages are often listed but not actually used. So this doesn't give them a hook upfront.
+- Npm is run for the server and for the web **with the --ignore-scripts argument**, for some extra security. A lot of code paths are not used in reality and even complete packages are often listed but not actually used. So this doesn't give them a hook upfront.
 - Npm is currently run with --no-audit. This ignores warnings about critical security vulnerabilities but prevents the situation suddenly not starting up anymore just because of a **theroretical** threat. TODO: run npm audit later **at runtime** and warn the user in the ui.
+
+_As an open source author, i'm feeling very responsible for security in my own code and carefully select dependent libraries, but **i have no resources to constantly monitor all transient dependent libraries**. So it's up to you, to regularly investigate here._
 
 # CSRF protection
 - For classic, API calls, the CSRFToken is handed by index.html to a (non http-only) cookie. This is the original behaviour. The nodejsserver extracts it from the original index.html on port 8005 and serves it in the new GET-only index.html which is also not readable cross-origin. 
