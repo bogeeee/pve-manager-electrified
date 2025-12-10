@@ -946,7 +946,7 @@ export type Clazz<T> = {
     new(...args: any[]): T
 }
 
-function getCookieByName(name: string) {
+export function getCookieByName(name: string) {
     const nameEQ = name + "=";
     const cookies = document.cookie.split(';');
     for(let cookie of cookies) {
@@ -1012,7 +1012,7 @@ export async function confirm(title: string, message: string | ReactNode, icon: 
  * Shows an informational message popup, like <code>alert()</code>
  * @param title
  * @param message
- * @param icon
+ * @param icon "info-sign", "warning-sign", or any other blueprint icon
  * @return
  */
 export async function messageBox(title: string, message: string | ReactNode, icon: string = "info-sign") {

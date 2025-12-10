@@ -9,7 +9,7 @@ import {
     returnWithErrorHandling, showBlueprintDialog, showErrorDialog,
     showResultText,
     spawnAsync, TestComponent, throwError, topLevel_withErrorLogging,
-    spawnWithErrorHandling, showMuiDialog, withLoadingDialog, InfoTooltip, messageBox
+    spawnWithErrorHandling, showMuiDialog, withLoadingDialog, InfoTooltip, messageBox, getCookieByName
 } from "./util/util";
 import {generated_pluginList as pluginList} from "../_generated_pluginList";
 import {
@@ -265,6 +265,11 @@ export class Application extends AsyncConstructableClass{
                 this.unregisterPlugin(plugin);
                 await showErrorDialog(new Error(`Error initializing plugin ${plugin.name}. See cause.`, {cause: e})); // Show a dialog instead of crashing the whole app which prevents the user from reconfiguring plugins
             }
+        }
+
+        // Warn, when theme explicitly set
+        if(getCookieByName( "PVEThemeCookie") === "proxmox-dark") {
+            await messageBox(t`Dark theme set`, t`You've set the dark them explicitly. Some electrified features won't be displayed properly. Please set it to auto and set up your browser/os to prefer dark mode.`, "warning-sign");
         }
 
 
