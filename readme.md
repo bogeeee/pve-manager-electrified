@@ -10,10 +10,11 @@ Update: Heavily working on the plugin system. Expect the first release on Novemb
 ## Install
 **!!!!It's not yet released!!!. Please be patient!** Here, you'll find some random in-development release in the meanwhile.
 ````bash
-wget https://pve-electrified.net/pubkey.asc -O /etc/apt/trusted.gpg.d/pve-electrified.asc
-apt install -y lsb-release
+wget https://pve-electrified.net/pubkey.asc -O /etc/apt/trusted.gpg.d/pve-electrified.asc && \
+apt install -y lsb-release && \
 echo "deb https://pve-electrified.net/debian $(lsb_release -c -s) main" >> /etc/apt/sources.list
-apt update && apt install -y pve-manager-electrified
+apt update
+apt install -y pve-manager-electrified
 ````
 
 ## Uninstall
