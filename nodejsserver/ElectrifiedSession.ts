@@ -10,12 +10,15 @@ import path from "node:path";
 import fsPromises  from "node:fs/promises";
 import {execa, StdioOption} from "execa";
 import {Request} from "express";
-import {ServerSocketConnection, RemoteMethodOptions} from "restfuncs-server";
+import {RemoteMethodOptions} from "restfuncs-server";
 import _ from "underscore";
 import chokidar from "chokidar";
 import {ClientCallbackSet} from "restfuncs-server";
 import {Buffer} from "node:buffer";
 import {Readable as ReadableStream} from "stream";
+
+//import {ServerSocketConnection} from "restfuncs-server";
+type ServerSocketConnection = any; // Bug workaround: Don't know why the above line causes typescript-rtti to emit an `import ... from /dist/commonjs/index`. Does not look different than with i.e. ServerSesssion
 
 export class ElectrifiedSession extends ServerSession {
     static options: ServerSessionOptions = {
