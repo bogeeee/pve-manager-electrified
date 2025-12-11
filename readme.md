@@ -2,8 +2,9 @@
 
 # PVE electrified
 
-This is a modification of the [Proxmox Virtual Environment](https://www.proxmox.com/en/products/proxmox-virtual-environment/overview) **user interface**, that brings some nice features, mainly for homelab'ers. 
-The goal is also, to provide a plugin system and give plugin authors the tools to develop such and publish them with very little effort. 
+This is a modification of the [Proxmox Virtual Environment](https://www.proxmox.com/en/products/proxmox-virtual-environment/overview) **user interface**, that brings some nice features, mainly for homelab'ers.
+The goal is also, to provide a plugin system and give plugin authors the tools to develop such and publish them with very little effort.
+PVE electrified is **independant** of the company Proxmox. 
 
 Update: Heavily working on the plugin system. Expect the first release on November 16.
 
