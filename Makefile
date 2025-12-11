@@ -108,6 +108,10 @@ dinstall: $(DEB)
 index.html: readme.md docs/github-pandoc.css /usr/bin/pandoc
 	pandoc --css=docs/github-pandoc.css -s -f markdown -t html --metadata "pagetitle=PVE electrified" readme.md > index.html
 
+.PHONY: ui-plugin-example.zip
+ui-plugin-example.zip:
+	zip -r ui-plugin-example.zip ui-plugin-example
+
 ###################################################################################
 # IDE_... targets are to be run on the machine where the IDE is (not the pve-host)
 ###################################################################################
@@ -174,8 +178,8 @@ IDE_rsync_project_to_targt_pve_host: local.config.mk
 	@sshpass -p "$(TARGT_PVE_HOST_ROOTPASSWORD)" rsync -a $(RSYNC_PARAMS) --exclude="**/node_modules" --exclude="local.config.mk" . root@$(TARGT_PVE_HOST):/root/proxmox/pve-manager-electrified/
 
 .PHONY: IDE_publish_docs_to_website
-IDE_publish_docs_to_website: local.config.mk clean index.html /usr/bin/sshpass
-	@sshpass -p "$(REPO_SERVER_PASSWORD)" rsync  -a index.html pubkey.asc docs www/images/favicon.ico pve-electrified.net@pve-electrified.net:httpdocs
+IDE_publish_docs_to_website: local.config.mk clean index.html ui-plugin-example.zip /usr/bin/sshpass
+	@sshpass -p "$(REPO_SERVER_PASSWORD)" rsync  -a index.html pubkey.asc ui-plugin-example.zip docs www/images/favicon.ico pve-electrified.net@pve-electrified.net:httpdocs
 
 # Creates a local aptly repo on the IDE machine (if needed). Aptly offers an easy way, to generate the static files for publishing to a webserver.
 # See also [this blogpost about running an apt repo with aptly](https://perlgeek.de/blog-en/automating-deployments/2016-006-distributing-packages.html)
