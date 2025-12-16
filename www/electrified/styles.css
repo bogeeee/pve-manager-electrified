@@ -35,3 +35,8 @@
         background-color: #FFF;
     }
 }
+
+:focus{
+    /* remove ugly outline from blueprint (looks only good for blueprint components)*/
+    outline:initial !important;
+}
