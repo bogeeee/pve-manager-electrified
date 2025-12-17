@@ -381,7 +381,7 @@ export class ElectrifiedSession extends ServerSession {
         ['add','change', 'unlink','addDir', 'unlinkDir'].forEach(async (eventName) => {
             (watcher as any).on(eventName, async (trigger_path?: any) => {
                 const fileStat = await ElectrifiedSession.getFileStat(path);
-                console.log("changeevent path: " + path + "; trigger_path:" + trigger_path + ": " + eventName + " stat: " + JSON.stringify(fileStat));
+                //console.log("changeevent path: " + path + "; trigger_path:" + trigger_path + ": " + eventName + " stat: " + JSON.stringify(fileStat));
                 clientCallbacks.call(fileStat);
             });
         });
