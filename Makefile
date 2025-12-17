@@ -180,6 +180,7 @@ IDE_rsync_project_to_targt_pve_host: local.config.mk
 .PHONY: IDE_publish_docs_to_website
 IDE_publish_docs_to_website: local.config.mk clean index.html ui-plugin-example.zip /usr/bin/sshpass
 	@sshpass -p "$(REPO_SERVER_PASSWORD)" rsync  -a index.html pubkey.asc ui-plugin-example.zip docs www/images/favicon.ico pve-electrified.net@pve-electrified.net:httpdocs
+	rm ui-plugin-example.zip
 
 # Creates a local aptly repo on the IDE machine (if needed). Aptly offers an easy way, to generate the static files for publishing to a webserver.
 # See also [this blogpost about running an apt repo with aptly](https://perlgeek.de/blog-en/automating-deployments/2016-006-distributing-packages.html)
