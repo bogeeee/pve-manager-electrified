@@ -42,6 +42,9 @@ These are the differences to the original pve-manager package from Proxmox: Thes
 
 # Security consideration when using it in an enterprise
 Read [here](https://github.com/bogeeee/pve-manager-electrified/blob/main/docs/security.md)
+
+# Plugin development guide
+See [here](https://github.com/bogeeee/pve-manager-electrified/blob/main/docs/plugin-development.md)
   
 # Source code / license
 

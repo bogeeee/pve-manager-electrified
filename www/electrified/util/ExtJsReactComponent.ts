@@ -10,13 +10,16 @@ Ext.namespace("electrified.util");
  * Usage:
  *
  * <pre><code>
- * Ext.create(ReactComponent,{
+ * Ext.create(app.util.ui.ReactComponent,{
  *   	                		componentClass: MyReactComponent
  *   	                		props: {...reactProps},
  *   	                		...extJsProps
  *   	                	});
  * </code></pre>
- * @type {*|void}
+ *
+ * <p>
+ * TODO: Allow to pass a component **function**, wrap in watchedcomponent, suspense, error-handler, theme providers.
+ * </p>
  */
 export const ReactComponent = Ext.define("electrified.util.ReactComponent", {
     extend: "Ext.Component",

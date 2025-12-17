@@ -131,10 +131,13 @@ export class Node extends GuestsContainerBase {
      * <p>
      *      Example: <code>const result = await electrifiedApp.currentNode.api2fetch("POST", "/lxc/820/status/stop", {skiplock: true}); // stops the guest 820 while ignoring locks</code>
      * </p>
+     * <p>
+     *     Erroneous results are taken care of and a Error is thrown then.
+     * </p>
      * @param method
      * @param url path after /api2/json/nodes/{node}. Must begin with a /
      * @param params booleans will be converted to "1" or "0". undefineds will be omitted.
-     * @returns the json result
+     * @returns the json result from under rawResult.data = the data that you want to work with.
      * @see Application#api2fetch
      * @see Node#electrifiedClient
      *

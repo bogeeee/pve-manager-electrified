@@ -390,7 +390,8 @@ export class ElectrifiedSession extends ServerSession {
     })
 
     /**
-     * Informs you when a file content was changes, or it was added or deleted
+     * Informs you when a file content was changes, or it was added or deleted.
+     * For directories, when the directory was added or deleted or it's children were added/deleted (not deep)
      * @param path
      * @param callback
      */

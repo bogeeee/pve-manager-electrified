@@ -36,6 +36,7 @@ import {ErrorBoundary} from "react-error-boundary";
 import {Icon, Tooltip} from "@blueprintjs/core";
 import {Pool} from "./model/Pool";
 import {Ext} from "./classicGlobalObjects";
+import {ReactComponent} from "./util/ExtJsReactComponent";
 
 let app: Application | undefined = undefined;
 
@@ -96,11 +97,13 @@ export class Application extends AsyncConstructableClass{
     }
 
     util = {
-        errorToString, topLevel_withErrorLogging, spawnAsync, showErrorDialog, spawnWithErrorHandling, returnWithErrorHandling,
+        errorToString, spawnAsync, spawnWithErrorHandling, returnWithErrorHandling,
         ui: {
             showBlueprintDialog,
             showMuiDialog,
+            showErrorDialog,
             withLoadingDialog,
+            ReactComponent,
             isPVEDarkTheme,
             InfoTooltip,
             confirm,
@@ -369,10 +372,13 @@ export class Application extends AsyncConstructableClass{
      * <p>
      *      Example: <code>const result = await electrifiedApp.api2fetch("POST", "/nodes/myPve/lxc/820/status/stop", {skiplock: true}); // stops the guest 820 while ignoring locks</code>
      * </p>
+     * <p>
+     *     Erroneous results are taken care of and a Error is thrown then.
+     * </p>
      * @param method
      * @param url path after /api2/json. Must begin with a /
      * @param params booleans will be converted to "1" or "0". undefineds will be omitted.
-     * @returns the json result
+     * @returns the json result from under rawResult.data = the data that you want to work with.
      * @see Node#electrifiedClient
      */
     async api2fetch(method: "GET" | "POST" | "PUT" | "DELETE", url: string, params?: Record<string, unknown>): Promise<unknown> {

@@ -211,7 +211,8 @@ export class File {
     }
 
     /**
-     * Watches file changes on the server
+     * Watches file changes on the server or when it was added or deleted.
+     * For directories, when the directory was added or deleted or it's children were added/deleted (not deep).
      * @param listener
      */
     onChange(listener: () => void) {

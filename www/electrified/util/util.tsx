@@ -551,7 +551,7 @@ const muiTheme = createTheme({
  import {useWatchedState} from "react-deepwatch";
 
  const result = await showBlueprintDialog({title: "SayHello"},(props) => {
-     const state = useWatchedState({}); // contentComponentFn was wrapped for you in a watchedComponent, so you can use its features
+     const state = useWatchedState({}); // contentComponentFn was wrapped for you in a watchedComponent, so you can use watchedComponent features (see react-deepwatch)
      return <div>
                 <div className={Classes.DIALOG_BODY}>
                     ...
