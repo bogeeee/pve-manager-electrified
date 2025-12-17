@@ -358,7 +358,7 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
 
                         return (nodesOpacity > 0 && guestsOpacity > 0) ?
                             <span style={{opacity: guestsOpacity}}>
-                                {formatCpu(guestsCpuUsage, false)}{smallSpace}<span className={`fa fa-fw ${getIconClass("qemu")}`}/><span className={`fa fa-fw ${getIconClass("lxc")}`}/>
+                                {formatCpu(guestsCpuUsage, false)}{smallSpace}<span className={`fa fa-fw ${getIconClass("qemu")}`} style={{width: "10px"}}/><span className={`fa fa-fw ${getIconClass("lxc")}`}/>
                                 &#160;&#160;+&#160;&#160;
                                 {formatCpu(nodesCpuUsage - guestsCpuUsage, false)}{smallSpace}<span className={`fa fa-fw ${getIconClass("node")}`}/>
                             </span>
