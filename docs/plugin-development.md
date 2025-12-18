@@ -24,6 +24,8 @@ Now, explore [Plugin.jsx](https://github.com/bogeeee/pve-manager-electrified/blo
 
 The api is documented **in jsdoc only**. Use your IDE's code completion / intellisense. You can also explore it via [the stackblitz IDE in the browser](https://stackblitz.com/fork/github/bogeeee/pve-manager-electrified/tree/main/ui-plugin-example?title=Electrified%2plugin&file=Plugin.jsx). 
 
+**The API is still work-in-progress:** A model for the hardware under a guest and more hooks will come soon.
+
 Here are some picked api methods, to give you an orientation:
 
 | Symbol | Description | Example |
@@ -142,22 +144,14 @@ Some methods are [retsync](https://github.com/bogeeee/proxy-facades/blob/main/re
             this.app.currentNode.getFile("/etc/hosts").content;
     });
 ````
-You can use retsync functions in watchedcomponents without wrapping them👍.
+You can use retsync functions in watchedcomponents, like in the [example dialog](#example-dialog), without wrapping them👍.
 
 # Modding classic pve code
 In case you don't find a plugin hook for the feature, you want to code on, create an [issue](https://github.com/bogeeee/pve-manager-electrified/issues) or otherwise, if you're impatient, dig your self into the clasic code:
 
 ### Directly editing the classic sources
-During development, it might be handy to directly edit the sources, to find the spot that you want to patch or hook into.
-On the host, do:
-````bash
-mkdir /root/proxmox
-cd /root/proxmox
-git clone https://github.com/bogeeee/pve-manager-electrified
-systemctl restart pvenodejsserver
-````
-Note: Make sure, the versions of the running server and the client code match, so eventually `git checkout` a few commits back to the last release commit.  
-Now, under `/root/proxmox/pve-manager-electrified/www` you have all sources and editing them **hot-reloads** the page👍.
+_During development, it might be handy to directly edit the sources, to find the spot that you want to patch or hook into._  
+You can directly edit the files under `/usr/share/pve-manager` and changes will **hot-reload** the page👍.
 
 ### Modding/Patching
 After you've found the desired spot and want to deliver a patch via your plugin, override the `Plugin#earlyInit` method. Example:

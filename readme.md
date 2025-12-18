@@ -8,9 +8,21 @@ PVE electrified is **independant** of the company Proxmox.
 
 Update: Heavily working on the plugin system. Expect the first release on November 16.
 
+# Features
+- **CPU usage bars** in the tree. Updated in realtime.[^1]  
+  ![](docs/images/Screenshot_cpu_bars.png)  
+  [^1]: Realtime = 1 second interval. As this comes with some cost, on systems with many lxcs, the interval will increase automatically.
+- **A plugin system** that allows to easily [create and publish UI plugins](https://github.com/bogeeee/pve-manager-electrified/blob/main/docs/plugin-development.md).  
+  ![](docs/images/Screenshot_plugin_manager.png)
+- PLANNED: Show real thin **disk usage** in the tree.
+- PLANNED: **Instant cloning** of guests from zfs snapshots.
+- PLANNED: **Docker support**.
+- PLANNED: **Assistants for several small optimizations for home-lab usage:** Gpu passthrough; Dynamic ip; Prevent ssd wear-down; Install microcode update packages; Fix zfs memory settings; Fix disk stalling; Warn on simultaneous USB device use; Show password prompts for encrypted disks; 
+
+
 ## Install
 **!!!!It's not yet released!!!. Please be patient!** Here, you'll find some random in-development release in the meanwhile.
-````bash
+````
 wget https://pve-electrified.net/pubkey.asc -O /etc/apt/trusted.gpg.d/pve-electrified.asc && \
 apt install -y lsb-release && \
 echo "deb https://pve-electrified.net/debian $(lsb_release -c -s) main" >> /etc/apt/sources.list
@@ -20,7 +32,7 @@ apt install -y pve-manager-electrified
 
 ## Uninstall
 
-````bash
+````
 apt install -y pve-manager-electrified- pve-manager+
 ````
 
