@@ -51,10 +51,10 @@ export class Datacenter extends ModelBase {
         app._resourceStore.on("datachanged", () => spawnAsync(() => this._handleResourceStoreDataChanged()));
 
         // Refresh status regularly:
-        await this.refreshStatus();
+        await this._refreshStatus();
         setInterval(() => spawnAsync(async () => {
             try {
-                await this.refreshStatus();
+                await this._refreshStatus();
             }
             catch (e) {
                 if(e !== null && e instanceof FetchError && e.httpStatusCode === 401)  { // Failed because no ticket? (logged out in the meanwhile)
@@ -143,7 +143,7 @@ export class Datacenter extends ModelBase {
         this._fireUpdate();
     }
 
-    protected async refreshStatus() {
+    protected async _refreshStatus() {
         const fetchResult = await getElectrifiedApp().api2fetch("GET", "/cluster/status") as any[];
         let clusterData = fetchResult.filter(r => r.type === "cluster");
         let newHasQuorum = true;
@@ -235,7 +235,7 @@ export class Datacenter extends ModelBase {
      * @see hasQuorum
      */
     async queryHasQuorum() {
-        await this.refreshStatus();
+        await this._refreshStatus();
         return this.hasQuorum;
     }
 
@@ -253,7 +253,7 @@ export class Datacenter extends ModelBase {
     }
 
     async ensureUp2Date() {
-        await this.refreshStatus();
+        await this._refreshStatus();
         throw new Error("TODO: trigger re-fetch of resource store");
     }
 
