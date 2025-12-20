@@ -33,7 +33,7 @@ Ext.define('PVE.Workspace', {
         me.response401count = 0;
 
         me.onLogin(loginData);
-		window.electrifiedApp.onLogin(loginData);
+		window.electrifiedApp._onLogin(loginData);
     },
 
     // private

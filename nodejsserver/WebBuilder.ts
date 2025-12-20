@@ -110,7 +110,7 @@ export default class WebBuildProgress extends PromiseTask<BuildResult> {
             })
 
 
-            // note: Duplicates can be here but will be filtered out later by Application.ts#registerPlugin
+            // note: Duplicates can be here but will be filtered out later by Application.ts#_registerPlugin
             packages = [
                 ...WebBuildProgress.getUiPluginSourceProjects_fixed().map(p => {return {name: p.pkg.name, diagnosis_dir: p.dir}}),
                 ...WebBuildProgress.getClusterPackages().map(p => {return {name: p.pkg.name, diagnosis_dir: p.dir}}),

@@ -125,7 +125,7 @@ export class Application extends AsyncConstructableClass{
      */
     get datacenter(): Datacenter {
         if(!this._datacenter) {
-            throw new Error("Application has not been fully initialized yet (initWhenLoggedOn not yet called)")
+            throw new Error("Application has not been fully initialized yet (_initWhenLoggedOn not yet called)")
         }
         return this._datacenter;
     }
@@ -146,7 +146,7 @@ export class Application extends AsyncConstructableClass{
         return this.plugins.find(p => p.packageName === name);
     }
 
-    registerPlugin(pluginClass: PluginClass, packageName: string) {
+    _registerPlugin(pluginClass: PluginClass, packageName: string) {
         pluginClass = fixPluginClass(pluginClass);
 
         if(this.getPluginByClass(pluginClass)) { // Already registered
@@ -171,7 +171,7 @@ export class Application extends AsyncConstructableClass{
 
     }
 
-    protected unregisterPlugin(plugin: Plugin,) {
+    protected _unregisterPlugin(plugin: Plugin,) {
         this._plugins.delete(plugin.constructor as PluginClass)
     }
 
@@ -202,7 +202,7 @@ export class Application extends AsyncConstructableClass{
         // Create and register user plugins:
         for(const entry of pluginList) {
             try {
-                this.registerPlugin(entry.pluginClass, entry.packageName);
+                this._registerPlugin(entry.pluginClass, entry.packageName);
             }
             catch (e) {
                 await showErrorDialog(new Error(`Error registering plugin ${entry.packageName}. Path: ${entry.diagnosis_sourceDir || ""}`, {cause: e})); // Show a dialog instead of crashing the whole app which prevents the user from reconfiguring plugins
@@ -232,7 +232,7 @@ export class Application extends AsyncConstructableClass{
     /**
      * Called after login or on start, with valid login ticket
      */
-    async initWhenLoggedOn() {
+    async _initWhenLoggedOn() {
 
         // Wait till the first data is available in this.resourcestore:
         if(this._resourceStore.getNodes().length === 0) {
@@ -257,7 +257,7 @@ export class Application extends AsyncConstructableClass{
                 await initialize_nodeConfig_and_datacenterConfig(plugin);
 
                 if(plugin.needsAdminPermissions && !this.userIsAdmin) { // Plugin makes no sense without enough permissions?
-                    this.unregisterPlugin(plugin);
+                    this._unregisterPlugin(plugin);
                     continue;
                 }
 
@@ -265,7 +265,7 @@ export class Application extends AsyncConstructableClass{
                 await plugin._validate();
             }
             catch (e) {
-                this.unregisterPlugin(plugin);
+                this._unregisterPlugin(plugin);
                 await showErrorDialog(new Error(`Error initializing plugin ${plugin.name}. See cause.`, {cause: e})); // Show a dialog instead of crashing the whole app which prevents the user from reconfiguring plugins
             }
         }
@@ -288,14 +288,14 @@ export class Application extends AsyncConstructableClass{
      * Called by workspace after login or on start, with valid login ticket
      * @param loginData
      */
-    onLogin(loginData: Application["loginData"]) {
+    _onLogin(loginData: Application["loginData"]) {
         if(this.loginData) { // User logged out and re-logged in
             window.location.reload(); // Cause the File/Node/etc. objects can't deal with a potential different user and changed permissions or with beeing teporary logged out. And there's no cleanup for the whole app implemented.
         }
         this.loginData = loginData;
 
         spawnWithErrorHandling(async () => {
-            await this.initWhenLoggedOn();
+            await this._initWhenLoggedOn();
         });
     }
 
