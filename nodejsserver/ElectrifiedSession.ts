@@ -37,7 +37,7 @@ export class ElectrifiedSession extends ServerSession {
         csrfProtectionMode: "corsReadToken"
     }
 
-    private static remoteMethodsThatNeedNoPermissions: (keyof ElectrifiedSession)[] = ["getWebBuildState","permissionsAreUp2Date", "clearCachedPermissions", "diagnosis_canAccessWeb", "onWebBuildStart", "getResourceStats", "getServerWarnings"];
+    private static remoteMethodsThatNeedNoPermissions: (keyof ElectrifiedSession)[] = ["getWebBuildState","permissionsAreUp2Date", "ensurePermissionsAreUp2Date", "clearCachedPermissions", "diagnosis_canAccessWeb", "onWebBuildStart", "getResourceStats", "getServerWarnings"];
 
     static defaultRemoteMethodOptions: RemoteMethodOptions = {validateResult: false}
 
