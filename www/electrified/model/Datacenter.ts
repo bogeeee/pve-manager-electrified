@@ -47,8 +47,8 @@ export class Datacenter extends ModelBase {
 
         this._nodes.set((window as any).Proxmox.NodeName, app.currentNode); // Must re-use this instance  / don't let it auto-crate a new one
 
-        await this.handleResourceStoreDataChanged();
-        app._resourceStore.on("datachanged", () => spawnAsync(() => this.handleResourceStoreDataChanged()));
+        await this._handleResourceStoreDataChanged();
+        app._resourceStore.on("datachanged", () => spawnAsync(() => this._handleResourceStoreDataChanged()));
 
         // Refresh status regularly:
         await this.refreshStatus();
@@ -81,7 +81,7 @@ export class Datacenter extends ModelBase {
         }), Datacenter.ELECTRIFIED_GUEST_STATS_REFRESH_INTERVAL); // Refresh status regularly
     }
 
-    protected async handleResourceStoreDataChanged() {
+    protected async _handleResourceStoreDataChanged() {
         // Nodes:
         {
             const nodesSeenInResourceStore = new Set<string>()

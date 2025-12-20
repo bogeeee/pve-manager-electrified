@@ -19,8 +19,8 @@ export abstract class GuestsContainerBase extends ModelBase{
      */
     async _initWhenLoggedOn(datacenter?: Datacenter) {
         this._guests = new Map();
-        await this.handleResourceStoreDataChanged(datacenter);
-        getElectrifiedApp()._resourceStore.on("datachanged", () => spawnAsync(() => this.handleResourceStoreDataChanged()));
+        await this._handleResourceStoreDataChanged(datacenter);
+        getElectrifiedApp()._resourceStore.on("datachanged", () => spawnAsync(() => this._handleResourceStoreDataChanged()));
     }
 
     get guests() {
@@ -41,7 +41,7 @@ export abstract class GuestsContainerBase extends ModelBase{
      * @param datacenter needed in early init phase
      * @protected
      */
-    protected async handleResourceStoreDataChanged(datacenter?: Datacenter) {
+    protected async _handleResourceStoreDataChanged(datacenter?: Datacenter) {
         const guestsSeenInResourceStore = new Set<number>()
         const app = getElectrifiedApp();
         for (const item of app._resourceStore.getData().getRange()) { // Iterate all items from the resource store
