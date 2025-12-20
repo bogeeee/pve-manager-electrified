@@ -270,6 +270,11 @@ export class Application extends AsyncConstructableClass{
             }
         }
 
+        // Show server warnings:
+        for(const warning of await this.currentNode.electrifiedApi.getServerWarnings()) {
+            await messageBox(t`Warning`, warning.message, "warning-sign");
+        }
+
         // Warn, when theme explicitly set
         if(getCookieByName( "PVEThemeCookie") === "proxmox-dark") {
             await messageBox(t`Dark theme set`, t`You've set the dark them explicitly. Some electrified features won't be displayed properly. Please set it to auto and set up your browser/os to prefer dark mode.`, "warning-sign");

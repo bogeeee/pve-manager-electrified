@@ -22,21 +22,18 @@ _As an open source author, i'm feeling very responsible for security in my own c
 
 # Proxying/ IP restrictions
 
-- As the nodejsserver proxies all requests to the original server, later one sees them as coming from **localhost**!
-  **It has to be investigated, how this could be an issue!**
-- Also, IP filter settings for the UI and Proxmox's PROXY_REAL_IP_HEADER and PROXY_REAL_IP_ALLOW_FROM currently don't work and **are not yet implemented as you're reading this**!! 
-  **This has to be fixed**.
-- Custom IP filters and ssl settings from /etc/default/pveproxy have no effect with PVE electrified.
-- The original server on port 8005 is bound to localhost/loopback interface only👍.
+- Settings from [/etc/default/pveproxy (access control, listening ip, ssl, ...)](https://pve.proxmox.com/pve-docs/pveproxy.8.html#pveproxy_host_acls) have no effect with PVE electrified. So a warning is displayed, if that file is found.
+- The original server on port 8005 (pveproxy) is bound to localhost/loopback interface only👍.
 
 # Web code
 
 Compared to classic proxmox, the processing is shifted much more towards the client (browser). 
-Pve-electrified- or plugin client code request the server directly to run shell commands. The server will check, if the current web user has root permissions (yes, you must be logged in as root, for most of the new features, this is a bit the downside here).
-This different paradigm doesn't weaken security, because it's the same semantics: If someone pwns the browser, we're screwed in both cases.
-The logon state will be cached in the pve-electrified's browser session (opposed to the **original pve server on 8005**'s browser session). This allows us fast websocket calls for the small price that **logouts** get propagated a few seconds later (10 seconds in prod, 2hours in vite-devserver mode).
-TODO: implement regular login-state polling, to propagate logouts.
+Pve-electrified- or plugin client code can request the server directly to run shell commands, if the client is authorized with `Sys.console` permission. _So, you must have this permission for a lot of the new features. This is a bit the downside here, feature wise_.
+The `pvenodejsserver` services runs as root therefore (opposed to the original `pveproxxy` which runs as `www-data` with limited permissions and controls the `pvedaemon` with root permissions).
+This different paradigm doesn't weaken security per se, because it's the same semantics: If someone pwns the browser or the front-facing service, we're screwed in both cases (classic/electrified).
 
+# Permissions / logon state
+The logon state and user's permissions will be cached in the **pve-electrified-**(pvenodejsserver)'s browser session, additionally to the **original** pveproxy on 8005's browser session, holding it. This allows us fast websocket calls for the small price that **logouts** might get propagated a few seconds later (10 seconds in prod, 2hours in vite-devserver mode). A manual logout in the ui also clears the permission cache. 
   
 # Development mode
 

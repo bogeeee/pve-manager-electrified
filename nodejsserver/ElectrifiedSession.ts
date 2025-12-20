@@ -37,7 +37,7 @@ export class ElectrifiedSession extends ServerSession {
         csrfProtectionMode: "corsReadToken"
     }
 
-    private static remoteMethodsThatNeedNoPermissions: (keyof ElectrifiedSession)[] = ["getWebBuildState","permissionsAreUp2Date", "clearCachedPermissions", "diagnosis_canAccessWeb", "onWebBuildStart", "getResourceStats"];
+    private static remoteMethodsThatNeedNoPermissions: (keyof ElectrifiedSession)[] = ["getWebBuildState","permissionsAreUp2Date", "clearCachedPermissions", "diagnosis_canAccessWeb", "onWebBuildStart", "getResourceStats", "getServerWarnings"];
 
     static defaultRemoteMethodOptions: RemoteMethodOptions = {validateResult: false}
 
@@ -93,6 +93,17 @@ export class ElectrifiedSession extends ServerSession {
             viteDevServer_allowUnauthorizedClients: appServer.viteDevServer_allowUnauthorizedClients,
             NODE_ENV: process.env.NODE_ENV,
         };
+    }
+
+    @remote async getServerWarnings()  {
+        // Needs no permissions!
+
+        const result: {message:string}[] = [];
+        if(await fileExists("/etc/default/pveproxy")) {
+            result.push({message: `Rules from /etc/default/pveproxy are not supported by pve-manager-electrified. See here: https://github.com/bogeeee/pve-manager-electrified/blob/main/docs/security.md#proxying-ip-restrictions`});
+        }
+
+        return result;
     }
 
     @remote()
