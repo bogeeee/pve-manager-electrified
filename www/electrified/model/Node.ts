@@ -218,15 +218,6 @@ export class Node extends GuestsContainerBase {
         throw new Error("TODO")
     }
 
-
-
-    /**
-     * Host name under which this node is reachable from the browser
-     */
-    get hostNameForBrowser() {
-        return this.name
-    }
-
     toString() {
         return `Node: ${this.name}`;
     }
