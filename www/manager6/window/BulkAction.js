@@ -87,9 +87,10 @@ Ext.define('PVE.window.BulkAction', {
                         },
                         {
                             xtype: 'proxmoxintegerfield',
+                            // TODO: change to newer max-worker spelling for PVE 10
                             name: 'maxworkers',
                             minValue: 1,
-                            maxValue: 100,
+                            maxValue: 64,
                             value: 1,
                             fieldLabel: gettext('Parallel jobs'),
                             allowBlank: false,
@@ -148,7 +149,7 @@ Ext.define('PVE.window.BulkAction', {
                         boxLabel: gettext('Force stop guest if shutdown times out.'),
                         checked: true,
                         uncheckedValue: 0,
-                        flex: 1,
+                        flex: 7,
                     },
                     {
                         xtype: 'proxmoxintegerfield',
@@ -159,7 +160,30 @@ Ext.define('PVE.window.BulkAction', {
                         minValue: 0,
                         maxValue: 7200,
                         allowBlank: true,
-                        flex: 1,
+                        flex: 3,
+                    },
+                ],
+            });
+        }
+        if (me.action !== 'migrateall' && me.action !== 'migrate') {
+            items.push({
+                xtype: 'fieldcontainer',
+                layout: 'hbox',
+                items: [
+                    {
+                        xtype: 'box',
+                        flex: 7,
+                    },
+                    {
+                        xtype: 'proxmoxintegerfield',
+                        name: 'max-workers',
+                        minValue: 1,
+                        maxValue: 64,
+                        emptyText: 'auto',
+                        fieldLabel: gettext('Parallel jobs'),
+                        labelWidth: 120,
+                        allowBlank: true,
+                        flex: 3,
                     },
                 ],
             });
@@ -219,18 +243,11 @@ Ext.define('PVE.window.BulkAction', {
 
         let clearFilters = function () {
             me.down('#namefilter').setValue('');
-            [
-                'name',
-                'status',
-                'pool',
-                'type',
-                'hastate',
-                'includetag',
-                'excludetag',
-                'vmid',
-            ].forEach((filter) => {
-                me.down(`#${filter}filter`).setValue('');
-            });
+            ['name', 'status', 'pool', 'type', 'hastate', 'includetag', 'excludetag'].forEach(
+                (filter) => {
+                    me.down(`#${filter}filter`).setValue('');
+                },
+            );
         };
 
         let filterChange = function () {

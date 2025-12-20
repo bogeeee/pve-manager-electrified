@@ -213,6 +213,7 @@ Ext.define('PVE.storage.BackupView', {
                 },
             };
             me.extraColumns.verification = {
+                // TRANSLATORS: The state of the verification task
                 header: gettext('Verify State'),
                 dataIndex: 'verification',
                 renderer: PVE.Utils.render_backup_verification,

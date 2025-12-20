@@ -41,6 +41,7 @@ Ext.define('PVE.window.Backup', {
             xtype: 'proxmoxKVComboBox',
             comboItems: [
                 ['notification-system', gettext('Use global settings')],
+                // TRANSLATORS: sendmail is a piece of software
                 ['legacy-sendmail', gettext('Use sendmail (legacy)')],
             ],
             fieldLabel: gettext('Notification'),

@@ -179,7 +179,7 @@ Ext.define('PVE.ceph.CephInstallWizard', {
                           );
                 } else if (repo === 'manual') {
                     return gettext(
-                        'The manual repository option expects that the repository is already configured. For example, in combination with the Promox Offline Mirror.',
+                        'The manual repository option expects that the repository is already configured. For example, in combination with the Proxmox Offline Mirror.',
                     );
                 } else {
                     return gettext(

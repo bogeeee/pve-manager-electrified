@@ -184,6 +184,7 @@ Ext.define('PVE.panel.Config', {
                 'type/pool': { onlineHelp: 'pveum_pools' },
                 'type/qemu': { onlineHelp: 'chapter_virtual_machines' },
                 'type/sdn': { onlineHelp: 'chapter_pvesdn' },
+                'type/network': { onlineHelp: 'chapter_pvesdn' },
                 'type/storage': { onlineHelp: 'chapter_storage' },
             };
             me.onlineHelp = typeToOnlineHelp[me.pveSelNode.data.id]?.onlineHelp;

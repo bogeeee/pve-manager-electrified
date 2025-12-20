@@ -376,6 +376,7 @@ Ext.define('PVE.grid.BackupView', {
                     renderer: PVE.Utils.render_backup_encryption,
                 },
                 {
+                    // TRANSLATORS: The state of the verification task
                     header: gettext('Verify State'),
                     dataIndex: 'verification',
                     renderer: PVE.Utils.render_backup_verification,

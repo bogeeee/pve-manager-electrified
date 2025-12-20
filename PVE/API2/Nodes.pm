@@ -8,6 +8,7 @@ use Digest::SHA;
 use Filesys::Df;
 use HTTP::Status qw(:constants);
 use JSON;
+use List::Util qw(max min);
 use POSIX qw(LONG_MAX);
 use Time::Local qw(timegm_nocheck);
 use Socket;
@@ -2003,6 +2004,19 @@ my $remove_locks_on_startup = sub {
     }
 };
 
+my sub get_max_workers {
+    my ($param) = @_;
+
+    return $param->{'max-workers'} if $param->{'max-workers'};
+
+    my $datacenter_config = PVE::Cluster::cfs_read_file('datacenter.cfg');
+    return $datacenter_config->{max_workers} if $datacenter_config->{max_workers};
+
+    my $cpuinfo = PVE::ProcFSTools::read_cpuinfo();
+
+    return min(max(1, $cpuinfo->{cpus} - 1), 8);
+}
+
 __PACKAGE__->register_method({
     name => 'startall',
     path => 'startall',
@@ -2032,6 +2046,15 @@ __PACKAGE__->register_method({
                 type => 'string',
                 format => 'pve-vmid-list',
                 optional => 1,
+            },
+            'max-workers' => {
+                description => "Defines the maximum number of tasks running concurrently. If"
+                    . " not set, uses 'max_workers' from datacenter.cfg, and if that's not set, the"
+                    . " available CPU threads, clamped to a maximum of 8, are used.",
+                optional => 1,
+                type => 'integer',
+                minimum => 1,
+                maximum => 64,
             },
         },
     },
@@ -2079,6 +2102,22 @@ __PACKAGE__->register_method({
             my $autostart = $force ? undef : 1;
             my $startList = get_start_stop_list($nodename, $autostart, $param->{vms});
 
+            my $max_workers = get_max_workers($param);
+            my $workers = {};
+            my $finish_worker = sub {
+                my $pid = shift;
+                my $worker = delete $workers->{$pid} || return;
+
+                my ($w_upid, $w_vmid, $w_type) = $worker->@{ 'upid', 'vmid', 'type' };
+
+                my $status = PVE::Tools::upid_read_status($w_upid);
+                if (PVE::Tools::upid_status_is_error($status)) {
+                    my $rendered_type = $w_type eq 'lxc' ? 'CT' : 'VM';
+                    print STDERR "Starting $rendered_type $w_vmid failed: $status\n";
+                }
+
+            };
+
             # Note: use numeric sorting with <=>
             for my $order (sort { $a <=> $b } keys %$startList) {
                 my $vmlist = $startList->{$order};
@@ -2108,27 +2147,36 @@ __PACKAGE__->register_method({
                         }
 
                         my $task = PVE::Tools::upid_decode($upid);
-                        while (PVE::ProcFSTools::check_process_running($task->{pid})) {
-                            sleep(1);
+                        $workers->{ $task->{pid} } =
+                            { upid => $upid, vmid => $vmid, type => $d->{type} };
+
+                        # use default delay to reduce load
+                        my $delay = defined($d->{up}) ? int($d->{up}) : $default_delay;
+                        if ($delay > 0) {
+                            print STDERR "Waiting for $delay seconds (startup delay)\n"
+                                if $d->{up};
+                            for (my $i = 0; $i < $delay; $i++) {
+                                sleep(1);
+                            }
                         }
 
-                        my $status = PVE::Tools::upid_read_status($upid);
-                        if (!PVE::Tools::upid_status_is_error($status)) {
-                            # use default delay to reduce load
-                            my $delay = defined($d->{up}) ? int($d->{up}) : $default_delay;
-                            if ($delay > 0) {
-                                print STDERR "Waiting for $delay seconds (startup delay)\n"
-                                    if $d->{up};
-                                for (my $i = 0; $i < $delay; $i++) {
-                                    sleep(1);
-                                }
+                        while (scalar(keys $workers->%*) >= $max_workers) {
+                            for my $pid (keys $workers->%*) {
+                                next if PVE::ProcFSTools::check_process_running($pid);
+                                $finish_worker->($pid);
                             }
-                        } else {
-                            my $rendered_type = $d->{type} eq 'lxc' ? 'CT' : 'VM';
-                            print STDERR "Starting $rendered_type $vmid failed: $status\n";
+                            sleep(1);
                         }
                     };
                     warn $@ if $@;
+                }
+
+                while (scalar(keys %$workers)) {
+                    for my $pid (keys $workers->%*) {
+                        next if PVE::ProcFSTools::check_process_running($pid);
+                        $finish_worker->($pid);
+                    }
+                    sleep(1);
                 }
             }
             return;
@@ -2196,6 +2244,15 @@ __PACKAGE__->register_method({
                 minimum => 0,
                 maximum => 2 * 3600, # mostly arbitrary, but we do not want to high timeouts
             },
+            'max-workers' => {
+                description => "Defines the maximum number of tasks running concurrently. If "
+                    . " not set, uses 'max_workers' from datacenter.cfg, and if that's not set, the"
+                    . " available CPU threads, clamped to a maximum of 8, are used.",
+                optional => 1,
+                type => 'integer',
+                minimum => 1,
+                maximum => 64,
+            },
         },
     },
     returns => {
@@ -2225,10 +2282,7 @@ __PACKAGE__->register_method({
 
             my $stopList = get_start_stop_list($nodename, undef, $param->{vms});
 
-            my $cpuinfo = PVE::ProcFSTools::read_cpuinfo();
-            my $datacenterconfig = cfs_read_file('datacenter.cfg');
-            # if not set by user spawn max cpu count number of workers
-            my $maxWorkers = $datacenterconfig->{max_workers} || $cpuinfo->{cpus};
+            my $max_workers = get_max_workers($param);
 
             for my $order (sort { $b <=> $a } keys %$stopList) {
                 my $vmlist = $stopList->{$order};
@@ -2262,7 +2316,7 @@ __PACKAGE__->register_method({
                     my $pid = $task->{pid};
 
                     $workers->{$pid} = { type => $d->{type}, upid => $upid, vmid => $vmid };
-                    while (scalar(keys %$workers) >= $maxWorkers) {
+                    while (scalar(keys %$workers) >= $max_workers) {
                         foreach my $p (keys %$workers) {
                             if (!PVE::ProcFSTools::check_process_running($p)) {
                                 $finish_worker->($p);
@@ -2324,6 +2378,15 @@ __PACKAGE__->register_method({
                 format => 'pve-vmid-list',
                 optional => 1,
             },
+            'max-workers' => {
+                description => "Maximal number of parallel migration job. If not set, uses"
+                    . "'max_workers' from datacenter.cfg, and if that's not set the available'
+                    .' CPU threads, clamped to a maximum of 8, are used.",
+                optional => 1,
+                type => 'integer',
+                minimum => 1,
+                maximum => 64,
+            },
         },
     },
     returns => {
@@ -2354,10 +2417,7 @@ __PACKAGE__->register_method({
 
             my $toSuspendList = get_start_stop_list($nodename, undef, $param->{vms});
 
-            my $cpuinfo = PVE::ProcFSTools::read_cpuinfo();
-            my $datacenterconfig = cfs_read_file('datacenter.cfg');
-            # if not set by user spawn max cpu count number of workers
-            my $maxWorkers = $datacenterconfig->{max_workers} || $cpuinfo->{cpus};
+            my $max_workers = get_max_workers($param);
 
             for my $order (sort { $b <=> $a } keys %$toSuspendList) {
                 my $vmlist = $toSuspendList->{$order};
@@ -2386,7 +2446,7 @@ __PACKAGE__->register_method({
                     my $pid = $task->{pid};
                     $workers->{$pid} = { type => $d->{type}, upid => $upid, vmid => $vmid };
 
-                    while (scalar(keys %$workers) >= $maxWorkers) {
+                    while (scalar(keys %$workers) >= $max_workers) {
                         for my $p (keys %$workers) {
                             if (!PVE::ProcFSTools::check_process_running($p)) {
                                 $finish_worker->($p);
@@ -2500,10 +2560,20 @@ __PACKAGE__->register_method({
             target => get_standard_option('pve-node', { description => "Target node." }),
             maxworkers => {
                 description => "Maximal number of parallel migration job. If not set, uses"
+                    . "'max_workers' from datacenter.cfg. One of both must be set!"
+                    . "Deprecated, use 'max-workers' instead.",
+                optional => 1,
+                type => 'integer',
+                minimum => 1,
+                maximum => 64,
+            },
+            'max-workers' => {
+                description => "Maximal number of parallel migration job. If not set, uses"
                     . "'max_workers' from datacenter.cfg. One of both must be set!",
                 optional => 1,
                 type => 'integer',
                 minimum => 1,
+                maximum => 64,
             },
             vms => {
                 description => "Only consider Guests with these IDs.",
@@ -2549,10 +2619,10 @@ __PACKAGE__->register_method({
 
         my $datacenterconfig = cfs_read_file('datacenter.cfg');
         # prefer parameter over datacenter cfg settings
-        my $maxWorkers =
-            $param->{maxworkers}
+        my $max_workers = $param->{'max-workers'}
+            || $param->{'maxworkers'} # alias
             || $datacenterconfig->{max_workers}
-            || die "either 'maxworkers' parameter or max_workers in datacenter.cfg must be set!\n";
+            || die "either 'max-workers' parameter or max_workers in datacenter.cfg must be set!\n";
 
         my $code = sub {
             $rpcenv->{type} = 'priv'; # to start tasks in background
@@ -2578,7 +2648,7 @@ __PACKAGE__->register_method({
 
                 $workers_started++;
                 $workers->{$pid} = 1;
-                while (scalar(keys %$workers) >= $maxWorkers) {
+                while (scalar(keys %$workers) >= $max_workers) {
                     foreach my $p (keys %$workers) {
                         if (!PVE::ProcFSTools::check_process_running($p)) {
                             delete $workers->{$p};

@@ -39,7 +39,15 @@ $rpcenv->set_user('root@pam');
 
 my $nodename = PVE::INotify::nodename();
 
-eval { PVE::API2::Subscription->update({ node => $nodename }); };
+eval {
+    my $subscription_info = PVE::API2::Subscription::read_etc_subscription();
+    return if !$subscription_info; # return from eval, the API endpoint would early-return too.
+
+    # return from eval, no point in updating offline subscription keys
+    return if $subscription_info->{signature};
+
+    PVE::API2::Subscription->update({ node => $nodename });
+};
 if (my $err = $@) {
     syslog('err', "update subscription info failed: $err");
 }

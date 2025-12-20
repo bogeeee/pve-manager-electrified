@@ -247,6 +247,18 @@ sub print_start_action {
     }
 }
 
+sub get_max_workers {
+    my ($param, $default) = @_;
+
+    return $param->{'max-workers'} if $param->{'max-workers'};
+    return $param->{maxworkers} if $param->{maxworkers}; # alias
+
+    my $datacenter_config = PVE::Cluster::cfs_read_file('datacenter.cfg');
+    return $datacenter_config->{max_workers} if $datacenter_config->{max_workers};
+
+    return $default || 1;
+}
+
 __PACKAGE__->register_method({
     name => 'start',
     path => 'start',
@@ -275,10 +287,21 @@ __PACKAGE__->register_method({
                 optional => 1,
             },
             maxworkers => {
-                description => "How many parallel tasks at maximum should be started.",
+                description => "Defines the maximum number of tasks running concurrently."
+                    . " Deprecated, use 'max-workers' instead.",
                 optional => 1,
-                default => 1,
+                default => 4,
                 type => 'integer',
+                minimum => 1,
+                maximum => 64,
+            },
+            'max-workers' => {
+                description => "Defines the maximum number of tasks running concurrently.",
+                optional => 1,
+                default => 4,
+                type => 'integer',
+                minimum => 1,
+                maximum => 64,
             },
             # TODO:
             # Failure resolution mode (fail, warn, retry?)
@@ -358,7 +381,7 @@ __PACKAGE__->register_method({
                 }
             };
 
-            my $max_workers = $param->{maxworkers} // 1;
+            my $max_workers = get_max_workers($param, 4);
             my $failed =
                 handle_task_foreach_guest($startlist, $max_workers, $start_task, $check_task);
 
@@ -406,10 +429,21 @@ __PACKAGE__->register_method({
                 optional => 1,
             },
             maxworkers => {
-                description => "How many parallel tasks at maximum should be started.",
+                description => "Defines the maximum number of tasks running concurrently."
+                    . " Deprecated, use 'max-workers' instead.",
                 optional => 1,
-                default => 1,
+                default => 4,
                 type => 'integer',
+                minimum => 1,
+                maximum => 64,
+            },
+            'max-workers' => {
+                description => "Defines the maximum number of tasks running concurrently.",
+                optional => 1,
+                default => 4,
+                type => 'integer',
+                minimum => 1,
+                maximum => 64,
             },
             # TODO:
             # Failure resolution mode (fail, warn, retry?)
@@ -493,7 +527,7 @@ __PACKAGE__->register_method({
                 }
             };
 
-            my $max_workers = $param->{maxworkers} // 1;
+            my $max_workers = get_max_workers($param, 4);
             my $failed =
                 handle_task_foreach_guest($startlist, $max_workers, $start_task, $check_task);
 
@@ -546,10 +580,21 @@ __PACKAGE__->register_method({
                 optional => 1,
             },
             maxworkers => {
-                description => "How many parallel tasks at maximum should be started.",
+                description => "Defines the maximum number of tasks running concurrently."
+                    . " Deprecated, use 'max-workers' instead.",
                 optional => 1,
-                default => 1,
+                default => 4,
                 type => 'integer',
+                minimum => 1,
+                maximum => 64,
+            },
+            'max-workers' => {
+                description => "Defines the maximum number of tasks running concurrently.",
+                optional => 1,
+                default => 4,
+                type => 'integer',
+                minimum => 1,
+                maximum => 64,
             },
             # TODO:
             # Failure resolution mode (fail, warn, retry?)
@@ -631,7 +676,7 @@ __PACKAGE__->register_method({
                 }
             };
 
-            my $max_workers = $param->{maxworkers} // 1;
+            my $max_workers = get_max_workers($param, 4);
             my $failed =
                 handle_task_foreach_guest($startlist, $max_workers, $start_task, $check_task);
 
@@ -678,12 +723,24 @@ __PACKAGE__->register_method({
                 optional => 1,
             },
             maxworkers => {
-                description => "How many parallel tasks at maximum should be started.",
+                description => "Defines the maximum number of tasks running concurrently."
+                    . " Deprecated, use 'max-workers' instead.",
                 optional => 1,
                 default => 1,
                 type => 'integer',
+                minimum => 1,
+                maximum => 64,
+            },
+            'max-workers' => {
+                description => "Defines the maximum number of tasks running concurrently.",
+                optional => 1,
+                default => 1,
+                type => 'integer',
+                minimum => 1,
+                maximum => 64,
             },
             # TODO:
+            # Node mappings, not just a single target node!
             # Failure resolution mode (fail, warn, retry?)
             # mode-limits (offline only, suspend only, ?)
             # filter (tags, name, ?)
@@ -748,7 +805,7 @@ __PACKAGE__->register_method({
                 }
             };
 
-            my $max_workers = $param->{maxworkers} // 1;
+            my $max_workers = get_max_workers($param);
             my $failed =
                 handle_task_foreach_guest({ '0' => $list }, $max_workers, $start_task, $check_task);
 

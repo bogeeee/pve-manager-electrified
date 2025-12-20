@@ -43,6 +43,7 @@ Ext.define('PVE.sdn.Fabric.OpenFabric.Fabric.Edit', {
         },
         {
             xtype: 'proxmoxintegerfield',
+            // TRANSLATORS: See https://en.wikipedia.org/wiki/IS-IS#Packet_types
             fieldLabel: gettext('Hello Interval'),
             labelWidth: 120,
             name: 'hello_interval',
@@ -55,6 +56,8 @@ Ext.define('PVE.sdn.Fabric.OpenFabric.Fabric.Edit', {
         },
         {
             xtype: 'proxmoxintegerfield',
+            // TRANSLATORS: Stands for Complete Sequence Number Packet, see
+            // https://datatracker.ietf.org/doc/html/draft-ietf-lsr-distoptflood#name-flooding-failures
             fieldLabel: gettext('CSNP Interval'),
             labelWidth: 120,
             name: 'csnp_interval',

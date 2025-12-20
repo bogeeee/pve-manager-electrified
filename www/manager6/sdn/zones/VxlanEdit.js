@@ -62,6 +62,7 @@ Ext.define('PVE.sdn.zones.VxlanInputPanel', {
                     width: 600,
                     columns: [
                         {
+                            // TRANSLATORS: As in "Network Fabric": https://en.wikipedia.org/wiki/Switched_fabric
                             header: gettext('Fabric'),
                             width: 90,
                             dataIndex: 'iface',

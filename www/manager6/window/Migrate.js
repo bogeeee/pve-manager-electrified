@@ -645,6 +645,7 @@ Ext.define('PVE.window.Migrate', {
                         {
                             xtype: 'proxmoxcheckbox',
                             name: 'withConntrackState',
+                            // TRANSLATORS: See https://www.kernel.org/doc/html/next/networking/netlink_spec/conntrack.html
                             fieldLabel: gettext('Conntrack state'),
                             autoEl: {
                                 tag: 'div',

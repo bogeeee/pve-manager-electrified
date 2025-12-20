@@ -217,12 +217,16 @@ Ext.define('PVE.storage.OciRegistryPull', {
         },
 
         parseReference: function (value) {
-            const re =
-                /^((?:(?:[a-zA-Z\d]|[a-zA-Z\d][a-zA-Z\d-]*[a-zA-Z\d])(?:\.(?:[a-zA-Z\d]|[a-zA-Z\d][a-zA-Z\d-]*[a-zA-Z\d]))*(?::\d+)?\/)?[a-z\d]+(?:(?:[._]|__|[-]*)[a-z\d]+)*(?:\/[a-z\d]+(?:(?:[._]|__|[-]*)[a-z\d]+)*)*)(:(\w[\w.-]{0,127}))?$/;
+            const re = new RegExp(
+                '^((?:[a-zA-Z\\d](?:[a-zA-Z\\d-]*[a-zA-Z\\d])?(?:\\.(?:[a-zA-Z\\d]' +
+                    '(?:[a-zA-Z\\d-]*[a-zA-Z\\d])?))*(?::\\d+)?/)?[a-z\\d]+(?:(?:[._]|__|-+)' +
+                    '[a-z\\d]+)*(?:/[a-z\\d]+(?:(?:[._]|__|-+)[a-z\\d]+)*)*)' +
+                    '(?::(\\w[\\w.-]{0,127}))?$',
+            );
             let matches = value.match(re);
             if (matches) {
                 let ref = matches[1];
-                let tag = matches[3];
+                let tag = matches[2];
                 return [ref, tag];
             }
             return undefined;
@@ -305,6 +309,7 @@ Ext.define('PVE.storage.OciRegistryPull', {
                     xtype: 'proxmoxKVComboBox',
                     name: 'tag',
                     allowBlank: false,
+                    // TRANSLATORS: As in a version of an OCI container, e.g. debian:latest
                     emptyText: gettext("for example 'latest'"),
                     fieldLabel: gettext('Tag'),
                     forceSelection: false,

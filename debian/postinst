@@ -103,36 +103,6 @@ update_ceph_conf() {
     fi
 }
 
-migrate_apt_auth_conf() {
-    output=""
-    removed=""
-    match=0
-
-    while read -r l; do
-        if echo "$l" | grep -q "^machine enterprise.proxmox.com/debian/pve"; then
-            match=1
-        elif echo "$l" | grep -q "machine"; then
-            match=0
-        fi
-
-        if test "$match" = "1"; then
-            removed="$removed\n$l"
-        else
-            output="$output\n$l"
-        fi
-    done < /etc/apt/auth.conf
-
-    if test -n "$removed"; then
-        if test ! -e /etc/apt/auth.conf.d/pve.conf; then
-            echo "Migrating APT auth config for enterprise.proxmox.com to /etc/apt/auth.conf.d/pve.conf .."
-            echo "$removed" > /etc/apt/auth.conf.d/pve.conf
-        else
-            echo "Removing stale APT auth config from /etc/apt/auth.conf"
-        fi
-        echo "$output" > /etc/apt/auth.conf
-    fi
-}
-
 # Copied from dh_installtmpfiles/13.24.2
 if [ "$1" = "configure" ] || [ "$1" = "abort-upgrade" ] || [ "$1" = "abort-deconfigure" ] || [ "$1" = "abort-remove" ] ; then
        if [ -x "$(command -v systemd-tmpfiles)" ]; then
@@ -236,12 +206,6 @@ case "$1" in
           rm -f /var/pveme-postinst_restarting-services
       fi
 
-    fi
-
-    if test ! -e /proxmox_install_mode && test -n "$2" && dpkg --compare-versions "$2" 'lt' '7.2-11~'; then
-        if test -e /etc/apt/auth.conf ; then
-            migrate_apt_auth_conf
-        fi
     fi
 
     if test -n "$2" && dpkg --compare-versions "$2" 'lt' '9.0.4'; then

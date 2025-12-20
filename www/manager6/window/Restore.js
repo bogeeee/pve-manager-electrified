@@ -96,12 +96,11 @@ Ext.define('PVE.window.Restore', {
             };
 
             if (view.vmid) {
-                confirmMsg += `. ${Ext.String.format(
-                    gettext('This will permanently erase current {0} data.'),
-                    view.vmtype === 'lxc' ? 'CT' : 'VM',
-                )}`;
                 if (view.vmtype === 'lxc') {
+                    confirmMsg += `. ${gettext('This will permanently erase current CT data.')}`;
                     confirmMsg += `<br>${gettext('Mount point volumes are also erased.')}`;
+                } else {
+                    confirmMsg += `. ${gettext('This will permanently erase current VM data.')}`;
                 }
                 Ext.Msg.confirm(gettext('Confirm'), confirmMsg, function (btn) {
                     if (btn === 'yes') {

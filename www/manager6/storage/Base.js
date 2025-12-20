@@ -81,6 +81,7 @@ Ext.define('PVE.panel.StorageBase', {
             addAdvancedWidget({
                 xtype: 'proxmoxcheckbox',
                 name: 'snapshot-as-volume-chain',
+                // TRANSLATORS: As in "a chain of volumes, each referencing the next one".
                 boxLabel: gettext('Allow Snapshots as Volume-Chain'),
                 deleteEmpty: !me.isCreate,
                 // can only allow to enable this on creation for storages that previously already

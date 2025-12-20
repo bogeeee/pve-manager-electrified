@@ -170,6 +170,40 @@ Ext.define('PVE.qemu.CmdMenu', {
             },
             { xtype: 'menuseparator' },
             {
+                text: gettext('Take Snapshot'),
+                iconCls: 'fa fa-fw fa-history',
+                itemId: 'takeSnapshotBtn',
+                disabled: true,
+                handler: () => {
+                    Ext.create('PVE.window.Snapshot', {
+                        nodename: info.node,
+                        vmid: info.vmid,
+                        vmname: info.name,
+                        viewonly: false,
+                        type: info.type,
+                        isCreate: true,
+                        submitText: gettext('Take Snapshot'),
+                        autoShow: true,
+                        running: running,
+                    });
+                },
+            },
+            {
+                text: gettext('Backup now'),
+                iconCls: 'fa fa-fw fa-floppy-o',
+                disabled: !caps.vms['VM.Backup'],
+                handler: () => {
+                    Ext.create('PVE.window.Backup', {
+                        nodename: info.node,
+                        vmid: info.vmid,
+                        vmtype: info.type,
+                        vmname: info.name,
+                        autoShow: true,
+                    });
+                },
+            },
+            { xtype: 'menuseparator' },
+            {
                 text: gettext('Console'),
                 iconCls: 'fa fa-fw fa-terminal',
                 handler: function () {
@@ -194,5 +228,20 @@ Ext.define('PVE.qemu.CmdMenu', {
         ];
 
 	me.callParent();
+
+        if (caps.vms['VM.Snapshot']) {
+            Proxmox.Utils.API2Request({
+                url: `/nodes/${info.node}/${info.type}/${info.vmid}/feature`,
+                params: { feature: 'snapshot' },
+                method: 'GET',
+                success: (response) => {
+                    let hasFeature = response.result.data.hasFeature;
+                    let btn = me.down('#takeSnapshotBtn');
+                    if (btn) {
+                        btn.setDisabled(!hasFeature);
+                    }
+                },
+            });
+        }
     },
 });

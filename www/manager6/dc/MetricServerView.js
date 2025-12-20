@@ -369,7 +369,7 @@ Ext.define('PVE.dc.InfluxDBEdit', {
                 {
                     xtype: 'proxmoxintegerfield',
                     name: 'max-body-size',
-                    fieldLabel: gettext('Batch Size (b)'),
+                    fieldLabel: gettext('Batch Size (bytes)'),
                     minValue: 1,
                     emptyText: '25000000',
                     submitEmpty: false,
@@ -585,6 +585,7 @@ Ext.define('PVE.dc.OpenTelemetryEdit', {
                     name: 'server',
                     fieldLabel: gettext('Server'),
                     allowBlank: false,
+                    // TRANSLATORS: otel-collector is an OpenTelemetry endpoint.
                     emptyText: gettext('otel-collector.example.com'),
                 },
                 {
@@ -680,6 +681,7 @@ Ext.define('PVE.dc.OpenTelemetryEdit', {
                             name: 'headers_advanced',
                             fieldLabel: gettext('HTTP Headers (JSON)'),
                             labelAlign: 'top',
+                            // TRANSLATORS: These are sample json payloads, only translate the values
                             emptyText: gettext(
                                 '{\n  "Authorization": "Bearer token",\n  "X-Custom-Header": "value"\n}',
                             ),
@@ -701,6 +703,7 @@ Ext.define('PVE.dc.OpenTelemetryEdit', {
                             name: 'resource_attributes_advanced',
                             fieldLabel: gettext('Resource Attributes (JSON)'),
                             labelAlign: 'top',
+                            // TRANSLATORS: These are sample json payloads, only translate the values
                             emptyText: gettext(
                                 '{\n  "environment": "production",\n  "datacenter": "dc1",\n  "region": "us-east-1"\n}',
                             ),

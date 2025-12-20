@@ -6,6 +6,7 @@ use warnings;
 use Time::HiRes qw(usleep);
 
 use PVE::Cluster;
+use PVE::IPRoute2;
 use PVE::Network::SDN;
 use PVE::Network::SDN::Zones;
 use PVE::Network::SDN::Vnets;
@@ -53,6 +54,17 @@ sub fabrics_changed {
     return has_pending_changes($pending_fabrics) || has_pending_changes($pending_nodes);
 }
 
+sub zone_uses_non_vlan_aware_bridge {
+    my ($zone, $ip_links) = @_;
+
+    return 0 if ($zone->{type} ne 'vlan' && $zone->{type} ne 'qinq');
+
+    my $ip_link = $ip_links->{ $zone->{bridge} };
+    return 0 if !defined($ip_link);
+
+    return !PVE::IPRoute2::bridge_is_vlan_aware($ip_link);
+}
+
 sub sdn_changed {
     my $running_config = PVE::Network::SDN::running_config();
 
@@ -69,6 +81,16 @@ sub sdn_changed {
         );
 
         return 1 if has_pending_changes($pending_config);
+    }
+
+    my $ip_links = PVE::IPRoute2::ip_link_details();
+
+    for my $zone (values $configs->{zones}->{ids}->%*) {
+        return 1 if zone_uses_non_vlan_aware_bridge($zone, $ip_links);
+    }
+
+    for my $running_zone (values $running_config->{zones}->{ids}->%*) {
+        return 1 if zone_uses_non_vlan_aware_bridge($running_zone, $ip_links);
     }
 
     return fabrics_changed();
