@@ -232,7 +232,7 @@ export class Node extends GuestsContainerBase {
      */
     async _refreshElectrifiedResourceStats(needsCpuUsage: boolean) {
         const clientTimestamp = new Date().getTime();
-        const resourceStats = await this.electrifiedApi.getResourceStats(window.document.hasFocus(), needsCpuUsage);
+        const resourceStats = getElectrifiedApp().loginData?.cap.nodes["Sys.Audit"]?await this.electrifiedApi.getResourceStats(window.document.hasFocus(), needsCpuUsage):undefined;
 
         {
             const newStats = resourceStats ? {
@@ -243,7 +243,7 @@ export class Node extends GuestsContainerBase {
         }
 
         // Guests:
-        {
+        if(resourceStats) {
             const guestStatsMap = new Map(resourceStats.guestCpuUsage.map(g => [g.guestId, g])); // convert to map
             for(const guest of this._guests.values()) {
                 const stats = guestStatsMap.get(guest.id);

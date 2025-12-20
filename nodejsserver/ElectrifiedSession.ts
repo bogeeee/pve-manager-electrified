@@ -89,7 +89,7 @@ export class ElectrifiedSession extends ServerSession {
                     rejectReason: appServer.builtWeb.promiseState.state === "rejected"?errorToHtml(appServer.builtWeb.promiseState.rejectReason):undefined,
                 },
             },
-            hasPermissions: this.cachedPermissions?.permissions["/"]["Sys.Console"] === 1,
+            hasPermissions: this.cachedPermissions?.permissions["/"]?.["Sys.Console"] === 1,
             viteDevServer_allowUnauthorizedClients: appServer.viteDevServer_allowUnauthorizedClients,
             NODE_ENV: process.env.NODE_ENV,
         };

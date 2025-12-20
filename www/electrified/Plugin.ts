@@ -340,14 +340,16 @@ export async function initialize_nodeConfig_and_datacenterConfig(plugin: Plugin)
                 initialized = true;
             }
             if(cfg.isDatacenterConfig) {
-                if(app.datacenter.hasQuorum) {
-                    await init();
-                }
-                else {
-                    // Handle immediately when quorum is achieved (before the plugin's `await datacenter.quorumPromise` gets called)
-                    app.datacenter._earlyOnQuorumHandlers.add(async () => {
+                if(app.loginData?.cap.nodes["Sys.Audit"]) {
+                    if(app.datacenter.hasQuorum) {
                         await init();
-                    });
+                    }
+                    else {
+                        // Handle immediately when quorum is achieved (before the plugin's `await datacenter.quorumPromise` gets called)
+                        app.datacenter._earlyOnQuorumHandlers.add(async () => {
+                            await init();
+                        });
+                    }
                 }
             }
             else {
@@ -357,12 +359,12 @@ export async function initialize_nodeConfig_and_datacenterConfig(plugin: Plugin)
             // Define accessors
             Object.defineProperty(plugin, cfg.key, {
                 get() {
-                    if(cfg.isDatacenterConfig && !app.datacenter.hasQuorum) {
-                        throw new Error("Cannot read from datacenter-wide plugin config. Datacenter has no quorum.")
-                    }
-
                     if(!app.userIsAdmin) {
                         throw new Error("User does not have the permissions (Sys.Cosole) to read the config file");
+                    }
+
+                    if(cfg.isDatacenterConfig && !app.datacenter.hasQuorum) {
+                        throw new Error("Cannot read from datacenter-wide plugin config. Datacenter has no quorum.")
                     }
 
                     if(!initialized) {

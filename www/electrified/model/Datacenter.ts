@@ -144,6 +144,10 @@ export class Datacenter extends ModelBase {
     }
 
     protected async _refreshStatus() {
+        if(!getElectrifiedApp().loginData?.cap.nodes["Sys.Audit"]) {
+            return; // /cluster/status needs that permission so we can't do anything here. Quorum related method will check for this permission also
+        }
+
         const fetchResult = await getElectrifiedApp().api2fetch("GET", "/cluster/status") as any[];
         let clusterData = fetchResult.filter(r => r.type === "cluster");
         let newHasQuorum = true;
@@ -227,6 +231,8 @@ export class Datacenter extends ModelBase {
      * @see queryHasQuorum
      */
     get hasQuorum() {
+        getElectrifiedApp().loginData?.cap.nodes["Sys.Audit"] || throwError("Cannot determine hasQuorum status. No Sys.Audit permission."); // Permission check
+
         return this._hasQuorum  === true;
     }
 
@@ -246,6 +252,8 @@ export class Datacenter extends ModelBase {
      * </p>
      */
     get quorumPromise(): Promise<void> {
+        getElectrifiedApp().loginData?.cap.nodes["Sys.Audit"] || throwError("Cannot determine hasQuorum status. No Sys.Audit permission."); // Permission check
+
         if(this._hasQuorum === true) {
             return (async() => {})();
         }
