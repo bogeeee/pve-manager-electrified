@@ -1,7 +1,7 @@
 {
   "name": "pveme-nodejsserver",
   "description": "PVE manager electrified nodejsserver. The npm-published version is for the plugin dev's IDE and contains only the .ts files",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "type": "module",
   "scripts": {
     "dev": "npm prune --ignore-scripts && npm run clean && cross-env NODE_ENV=development tsx watch --inspect=9229 server.ts",

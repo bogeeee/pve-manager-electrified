@@ -2,7 +2,7 @@
   "name": "pveme-ui",
   "description": "PVE manager electrified user interface. The npm-published version is for the plugin dev's IDE and contains only the .ts files",
   "type": "module",
-  "version": "1.1.2",
+  "version": "1.2.0",
   "scripts": {
     "IDE:link_nodejsserver_dir": "npm install --save false --ignore-scripts --no-audit ../nodejsserver ",
     "IDE_check": "npm run IDE:link_nodejsserver_dir && tsc --noemit",
