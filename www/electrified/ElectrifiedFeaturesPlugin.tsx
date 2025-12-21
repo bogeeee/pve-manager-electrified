@@ -12,6 +12,7 @@ import {string} from "prop-types";
 import {newDefaultMap, throwError} from "./util/util";
 import _ from "underscore";
 import {Pool} from "./model/Pool";
+import {ElectrifiedJsonConfig} from "pveme-nodejsserver/Common";
 
 /**
  * Offers nice features.
@@ -45,9 +46,8 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
      *
      * Because this field may be updated to a new object instance (on external config change), make sure to to not **hold* references to sub-objects over a long time. I.e. <WRONG>const myLongTermConst = this.nodeConfig.treeColumnConfigs;</WRONG>
      */
-    nodeConfig = {
-        // myConfigurationProperty1: "initial value",
-        // ...
+    nodeConfig: ElectrifiedJsonConfig = {
+        plugins: []
     }
 
     /**
@@ -408,6 +408,18 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
 
                 },
             }]
+    }
+
+    get _localStorageConfigKey() {
+        return `electrified_config`
+    }
+
+    get _nodeConfigFilePath() {
+        return `/etc/pve/local/electrified.json`
+    }
+
+    get _datacenterConfigFilePath() {
+        return `/etc/pve/manager/electrified.json`
     }
 
     // ... for more plugin-hooks, use code completion here (ctrl+space).

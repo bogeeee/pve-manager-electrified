@@ -68,11 +68,39 @@ export class Application extends AsyncConstructableClass{
     }
 
     /**
-     * /etc/pve/local/electrified.json
+     * User-wide configuration. Will be stored in the browser's localstorage under the key electrified_config.
+     * <p>
+     * (Deep) modifications are automatically written. Modifications to the localstorage entry (i.e. by other browser tabs) are updated to this field.
      *
+     * Because this field may be updated to a new object instance (on external config change), make sure to to not **hold* references to sub-objects over a long time. I.e. <WRONG>const myLongTermConst = this.userConfig.treeColumnConfigs;</WRONG>
+     * </p>
      */
-    get electrifiedJsonConfig(): ElectrifiedJsonConfig {
-        return this.currentNode.getFile(ElectrifiedJsonConfig.filePath).jsonObject as ElectrifiedJsonConfig // TODO create if it doesnt exist, like with plugins
+    get userConfig() {
+        return this._electrifiedFeaturesPlugin.userConfig;
+    }
+
+    /**
+     * Node-wide configuration. Stored under /etc/pve/local/electrified.json
+     * <p>
+     * (Deep) modifications are automatically written. Modifications on disk are immediately updated to this field.
+     *
+     * Because this field may be updated to a new object instance (on external config change), make sure to to not **hold* references to sub-objects over a long time. I.e. <WRONG>const myLongTermConst = this.nodeConfig.treeColumnConfigs;</WRONG>
+     * </p>
+     */
+    get nodeConfig(): ElectrifiedJsonConfig {
+        return this._electrifiedFeaturesPlugin.nodeConfig;
+    }
+
+    /**
+     * Datacenter-wide configuration. Stored under /etc/pve/manager/electrified.json
+     * <p>
+     * (Deep) modifications are automatically written. Modifications on disk are immediately updated to this field.
+     *
+     * Because this field may be updated to a new object instance (on external config change), make sure to to not **hold* references to sub-objects over a long time. I.e. <WRONG>const myLongTermConst = this.nodeConfig.treeColumnConfigs;</WRONG>
+     * </p>
+     */
+    get datacenterConfig() {
+        return this._electrifiedFeaturesPlugin.datacenterConfig;
     }
 
 
@@ -247,7 +275,7 @@ export class Application extends AsyncConstructableClass{
         this._datacenter = await Datacenter.create();
 
         if(this.userIsAdmin) {
-            await retsync2promise(() => this.electrifiedJsonConfig); // Fetch this once, so the next access can be without retsync
+            await retsync2promise(() => this.nodeConfig); // Fetch this once, so the next access can be without retsync
         }
 
         // Init plugins:
@@ -498,6 +526,10 @@ export class Application extends AsyncConstructableClass{
             return <ErrorBoundary fallbackRender={errorRender}><OuterComponent {...props}/></ErrorBoundary>
         }
         return Result;
+    }
+
+    get _electrifiedFeaturesPlugin(): ElectrifiedFeaturesPlugin {
+        return this.getPluginByClass(ElectrifiedFeaturesPlugin)  as ElectrifiedFeaturesPlugin || throwError("Not yet initialized / constructor has not been called yet");
     }
 }
 

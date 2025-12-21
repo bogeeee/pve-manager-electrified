@@ -28,7 +28,7 @@ export async function showPluginManager() {
         const state = useWatchedState(new class {
             filterByType: "all" | "installed" = "installed";
             filterText= ""; // Searchfilter
-            stagingPluginConfig = clone(app.electrifiedJsonConfig.plugins); // Staging until apply is clicked
+            stagingPluginConfig = clone(app.nodeConfig.plugins); // Staging until apply is clicked
         })
 
         let plugins = load(() => app.currentNode.electrifiedApi.getPlugins(state.filterByType), {preserve: false, fallback: [], name: "plugins"});
@@ -39,17 +39,17 @@ export async function showPluginManager() {
         }
 
         const pluginsDisabledInCurrentBuild = app.webBuildState.builtWeb.buildOptions.enablePlugins === false;
-        const stagingPluginConfigHasChanged = !_.isEqual(app.electrifiedJsonConfig.plugins, state.stagingPluginConfig);
+        const stagingPluginConfigHasChanged = !_.isEqual(app.nodeConfig.plugins, state.stagingPluginConfig);
 
         function applyChanges() {
             spawnAsync(async () => {
-                if(state.stagingPluginConfig.some(plugin => plugin.codeLocation === "npm" && !app.electrifiedJsonConfig.plugins.some(s => s.codeLocation === plugin.codeLocation && s.name === plugin.name))) { // A new npm plugin was added?
+                if(state.stagingPluginConfig.some(plugin => plugin.codeLocation === "npm" && !app.nodeConfig.plugins.some(s => s.codeLocation === plugin.codeLocation && s.name === plugin.name))) { // A new npm plugin was added?
                     if(!await confirm(gettext("Security: Confirm trusting the author"), gettext("You are adding plugin(s) from a public repository. Be aware that these plugins can be authored by **anyone from the internet**! Make sure, you trust the author(s). Also check the exact spelling of the plugin name(s)"))) {
                         return;
                     }
                 }
 
-                app.electrifiedJsonConfig.plugins = state.stagingPluginConfig; // Apply changes and automatically rebuilds and reloads
+                app.nodeConfig.plugins = state.stagingPluginConfig; // Apply changes and automatically rebuilds and reloads
                 // For, when only re-enabling enablePlugins:
                 await app.currentNode.electrifiedApi.rebuildWebAsync({...app.webBuildState.builtWeb.buildOptions, enablePlugins: true});
 
