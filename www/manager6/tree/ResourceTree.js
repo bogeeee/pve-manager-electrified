@@ -98,9 +98,9 @@ Ext.define('PVE.tree.ResourceTree', {
             ...electrifiedApp.plugins.map(plugin => plugin.getResourceTreeColumns().map(pluginColumn => {
                 const ReactComponent = electrifiedApp._createResourceTreeCellComponent(pluginColumn);
 
+                const columnId = `${plugin.name}-${pluginColumn.key}`;
                 return {
-                    text: pluginColumn.text,
-                    stateId: `${plugin.name}-${pluginColumn.key}`,
+                    stateId: columnId,
                     renderer: function (val, meta, rec, rowIndex, colIndex, store, view) {
                         const meTree = view.up('treepanel');
                         const electrifiedApp = window.electrifiedApp;
@@ -137,7 +137,8 @@ Ext.define('PVE.tree.ResourceTree', {
 
                         return `<div id="${rootElementId}">${antiflicker_oldContent || ""}</div>`
                     },
-                    ...pluginColumn
+                    ...pluginColumn,
+                    text: `<div style="display: inline-block; z-index: 101" onmouseenter="if(${pluginColumn.showConfig !== undefined}) resourceTree_onMouseEnterColumnHeader(this, '${plugin.name}', '${pluginColumn.key}')">${pluginColumn.text}</div>`,
                 }
             }
         )).flat(),
@@ -788,3 +789,53 @@ Ext.define('PVE.tree.ResourceTree', {
         }
     }
 });
+
+var resourceTree_header_hover;
+
+/**
+ * Shows the config popup icon that opens the configuration dialog (if the column has such one)
+ * @param headerDiv
+ * @param columnId
+ */
+function resourceTree_onMouseEnterColumnHeader(headerDiv, pluginName, columnKey) {
+    if(resourceTree_header_hover) { // Already showing?
+        return;
+    }
+
+    if(headerDiv.parentNode.className.indexOf("x-menu-item-text") >= 0) { // Shown in the column selector menu?
+        return; // don't show popup there
+    }
+
+    function getAbsolutePosition(el) {
+        const rect = el.getBoundingClientRect();
+        const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
+        const scrollTop  = window.pageYOffset || document.documentElement.scrollTop;
+
+        return {
+            top: rect.top + scrollTop,
+            left: rect.left + scrollLeft
+        };
+    }
+
+    function makeElement(html) {
+        const el = document.createElement("div");
+        el.innerHTML=html;
+        return el.firstElementChild;
+    }
+
+    const pos = getAbsolutePosition(headerDiv);
+
+
+    const hoverLayerHtml = `<div class="" style="position: absolute; left: ${pos.left}px; top: ${pos.top}px; width: ${headerDiv.offsetWidth}px; z-index: 100;">
+        <div style="display: inline-block; background-color: #FFFFFF; position: relative; left: -2px; top: -4px; padding: 2px; opacity: 0.8"><a style="cursor: pointer; text-decoration: none" onclick="electrifiedApp._configureColumn('${pluginName}','${columnKey}')"><i class="fa fa-cog fa-lg" style="color: #666"></i></a></div>
+</div>`;
+    const hoverLayer = makeElement(hoverLayerHtml);
+    document.body.appendChild(hoverLayer);
+
+    resourceTree_header_hover = hoverLayer;
+
+    hoverLayer.addEventListener("mouseleave", () => {
+        document.body.removeChild(resourceTree_header_hover);
+        resourceTree_header_hover = undefined;
+    });
+}

@@ -449,4 +449,41 @@ export type TreeColumn = {
      * </p>
      */
     cellRenderFn: (props: {item: object, rowIndex: number, colIndex: number, rawItemRecord: Record<string, unknown>}) => ReactNode
+
+    /**
+     * Called, when the user clicks on the config gear icon.
+     * <p>Shows the gear icon when set</p>
+     * Example from the "cpu bars" column:
+     * <pre><code>
+     getResourceTreeColumns() {
+         const thisPlugin = this;
+         return [
+             // CPU bars:
+             {
+                text: t`CPU bars`,
+                key: "cpu_bars",
+                showConfig() {
+                    const result = showMuiDialog(t`CPU bar configuration`, {}, (props) => {
+                        const plugin = watched(thisPlugin);
+                        return <React.Fragment>
+                            <DialogContent>
+                                <DialogContentText>
+                                    {t`Show unused cpu background bars for`}:<br/>
+                                    &#160;<input type="checkbox" {...bind(plugin.userConfig.cpuBars.showBackground.datacenter)} /> {t`Datacenter`}
+                                </DialogContentText>
+                            </DialogContent>
+                            <DialogActions>
+                                <Button type="submit" onClick={() => props.resolve(true)} >{t`Close`}</Button>
+                            </DialogActions>
+                        </React.Fragment>
+                    });
+                },
+             },
+         ];
+     }
+     * </code></pre>
+     *
+     * <p>Development: Add this to the init() method to show the dialog on startup: <code>this.app._configureColumn(this.name, "key_of_colummn");</code>
+     */
+    showConfig?: () => void | Promise<void>;
 }

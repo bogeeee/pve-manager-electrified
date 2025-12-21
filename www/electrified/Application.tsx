@@ -174,6 +174,14 @@ export class Application extends AsyncConstructableClass{
         return this.plugins.find(p => p.packageName === name);
     }
 
+    /**
+     *
+     * @param name short name
+     */
+    getPluginByName(name: string): Plugin | undefined {
+        return this.plugins.find(p => p.name === name);
+    }
+
     _registerPlugin(pluginClass: PluginClass, packageName: string) {
         pluginClass = fixPluginClass(pluginClass);
 
@@ -472,6 +480,12 @@ export class Application extends AsyncConstructableClass{
         return returnWithErrorHandling(() => {
             const contextObj = this.datacenter.getNode_existing(info.node).getGuest_existing(info.vmid);
             return this._addElectrifiedMenuItems(contextObj, extJsMenuItems);
+        })
+    }
+
+    _configureColumn(pluginName: string, columnKey: string) {
+        spawnWithErrorHandling(async () => {
+            await this.getPluginByName(pluginName)!.getResourceTreeColumns().find(col => col.key === columnKey)!.showConfig!();
         })
     }
 
