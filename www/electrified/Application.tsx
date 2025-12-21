@@ -170,7 +170,7 @@ export class Application extends AsyncConstructableClass{
      *
      * @param name the full name: pveme-ui-plugin-...
      */
-    getPluginByName(name: string): Plugin | undefined {
+    getPluginByPackageName(name: string): Plugin | undefined {
         return this.plugins.find(p => p.packageName === name);
     }
 

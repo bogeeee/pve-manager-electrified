@@ -134,7 +134,7 @@ export async function showPluginManager() {
                                     }
                                 }
 
-                                const pluginInstance = !isOverridden?app.getPluginByName(plugin.name):undefined;
+                                const pluginInstance = !isOverridden?app.getPluginByPackageName(plugin.name):undefined;
 
                                 // Retrieve icon / info:
                                 let icon: ReactNode;
@@ -213,7 +213,7 @@ export async function showPluginManager() {
                                                 <Button icon="info-sign" title={gettext("Info")}/>
                                             </Popover>
                                             {/* Configure button:*/}
-                                            <Button icon={"cog"} title={gettext("Configure")} disabled={!(pluginInstance && Object.hasOwn(Object.getPrototypeOf(pluginInstance), "showConfigurationDialog"))} onClick={() => spawnAsync(async () => await app.getPluginByName(plugin.name)?.showConfigurationDialog())}/>
+                                            <Button icon={"cog"} title={gettext("Configure")} disabled={!(pluginInstance && Object.hasOwn(Object.getPrototypeOf(pluginInstance), "showConfigurationDialog"))} onClick={() => spawnAsync(async () => await app.getPluginByPackageName(plugin.name)?.showConfigurationDialog())}/>
                                             {/* Action buttons: */}
                                             <Popover content={
                                                 <Menu>
