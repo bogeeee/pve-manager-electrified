@@ -7,6 +7,8 @@ import {retsync2promise} from "proxy-facades/retsync";
 import {getElectrifiedApp} from "./globals";
 import {WatchedProxyFacade} from "proxy-facades";
 import {ReactNode} from "react";
+import {isRendering} from "react-deepwatch"
+import _ from "underscore"
 
 export class Plugin {
     static instance: Plugin;
@@ -292,9 +294,24 @@ export async function initialize_userConfig(plugin: Plugin) {
     Object.defineProperty(plugin, "userConfig", {
         get() {
             const config = getConfigFromLocalStorage();
+
+            if(this[`_userConfig`] !== undefined) {
+                if (_.isEqual(config, this[`_userConfig`])) {
+                    return this[`_userConfig`];
+                }
+
+                if (isRendering()) {
+                    //return this[`_userConfig`]; // Prevent error: cannot modify during rendering . Returns the old object (a bit hacky). TODO: Poll regularly an update this[`_userConfig`]
+                    throw new Error("Userconfig was modified (by another browser tab?). Please reload the page and try again")
+                }
+            }
+
             const proxyFacade = new WatchedProxyFacade();
             proxyFacade.onAfterChange(() => write(config));
-            return proxyFacade.getProxyFor(config);
+            const result = proxyFacade.getProxyFor(config);
+
+            this[`_userConfig`] = result; // **Pin** to this plugin, so this saved in the model and treated as data, so `watched(myPlugin).xxxConfig` gives you a proxy (like the user would expect)
+            return this[`_userConfig`]; // in a second line, cause must trigger access to return the proxy
         },
         set(value: object) {
             write(value);
@@ -387,7 +404,8 @@ export async function initialize_nodeConfig_and_datacenterConfig(plugin: Plugin)
                         file.jsonObject = {};
                     }
 
-                    return file.jsonObject;
+                    this[`_${cfg.key}`] = file.jsonObject; // **Pin** to this plugin, so this saved in the model and treated as data, so `watched(myPlugin).xxxConfig` gives you a proxy (like the user would expect)
+                    return this[`_${cfg.key}`];
                 },
                 set(value: object) {
                     if(cfg.isDatacenterConfig && !app.datacenter.hasQuorum) {
