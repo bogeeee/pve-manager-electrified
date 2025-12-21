@@ -194,6 +194,18 @@ export class Plugin {
         resourceTreeColumns.forEach(t => t.key || throwError("No 'key' was specified in resource tree column."));
         checkForDuplicates(resourceTreeColumns, "key", (key) => throwError(`Duplicate keys in resource tree column: ${key}`));
     }
+
+    get _localStorageConfigKey() {
+        return `plugin_${this.name}_config`
+    }
+
+    get _nodeConfigFilePath() {
+        return `/etc/pve/local/manager/plugins/${this.name}.json`
+    }
+
+    get _datacenterConfigFilePath() {
+        return `/etc/pve/manager/plugins/${this.name}.json`
+    }
 }
 
 export type PluginClass = typeof Plugin;
@@ -238,7 +250,7 @@ export function fixPluginClass(pluginClass: PluginClass): PluginClass {
  */
 export async function initialize_userConfig(plugin: Plugin) {
     const app = getElectrifiedApp();
-    const localStorageKey = `plugin_${plugin.name}_config`
+    const localStorageKey = plugin._localStorageConfigKey;
 
     //@ts-ignore
     const initialConfig:object | undefined = plugin["userConfig"];
@@ -298,8 +310,8 @@ export async function initialize_nodeConfig_and_datacenterConfig(plugin: Plugin)
 
     for (const cfg of [
         /* TODO: {key: "userConfig", file: `/home/${userDir}/.pve-manager/plugins/${plugin.name}.json`}, */
-        {key: "nodeConfig", path: `/etc/pve/local/manager/plugins/${plugin.name}.json`, isDatacenterConfig: false},
-        {key: "datacenterConfig", path: `/etc/pve/manager/plugins/${plugin.name}.json`, isDatacenterConfig: true}]) {
+        {key: "nodeConfig", path: plugin._nodeConfigFilePath, isDatacenterConfig: false},
+        {key: "datacenterConfig", path: plugin._datacenterConfigFilePath, isDatacenterConfig: true}]) {
 
         //@ts-ignore
         const initialConfig:object | undefined = plugin[cfg.key];
