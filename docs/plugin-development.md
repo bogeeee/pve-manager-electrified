@@ -135,7 +135,7 @@ The above example uses JSX syntax.
 - Use the `{...bind(state.myProperty)}` syntax to bind the value of an input element to some value in the state. Or to any property deep inside your watched model. It will be life-updated in both directions.
 - For calling **async** functions in the middle of your component's render code, use `load(async () => { ... your async code... }, {/* LoadOptions (optional) */})`. [Docs](https://github.com/bogeeee/react-deepwatch?tab=readme-ov-file#and-less-loading-code).    
 
-[React Depwatch](https://github.com/bogeeee/react-deepwatch)
+[React Deepwatch](https://github.com/bogeeee/react-deepwatch)
 
 # Retsync
 Some methods are [retsync](https://github.com/bogeeee/proxy-facades/blob/main/retsync.ts). Meaning, it's **sync** code that does operations that normally would require **async**. So you will have to wrap it like in this example (or you'll get an error which tells you exactly to do so):
@@ -201,3 +201,4 @@ Then run:
 npm run publish_to_npm:login
 npm run publish_to_npm:publish
 ````
+Et voila! Users can now find and install your plugin via the plugin manager😌.
