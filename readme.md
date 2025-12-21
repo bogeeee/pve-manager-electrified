@@ -6,8 +6,6 @@ This is a modification of the [Proxmox Virtual Environment](https://www.proxmox.
 The goal is also, to provide a plugin system and give plugin authors the tools to develop such and publish them with very little effort.
 PVE electrified is **independant** of the company Proxmox. 
 
-Update: Heavily working on the plugin system. Expect the first release on November 16.
-
 # Features
 - **CPU usage bars** in the tree. Updated in realtime.[^1]  
   ![](docs/images/Screenshot_cpu_bars.png)  
