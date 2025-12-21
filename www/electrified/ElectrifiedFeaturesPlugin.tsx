@@ -261,10 +261,10 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
                                     continue;
                                 }
 
-                                const prev = layers[i-1];
                                 const layer = layers[i];
-                                if(_.isEqual(prev, {...layer, start:prev.start, end: layer.start})) { // can be squeezed?
-                                    prev.end = layer.end;
+                                const lastLayer = result[result.length -1];
+                                if(_.isEqual(lastLayer, {...layer, start:lastLayer.start, end: layer.start})) { // can be squeezed to lastLayer?
+                                    lastLayer.end = layer.end;
                                 }
                                 else {
                                     result.push(layer)
