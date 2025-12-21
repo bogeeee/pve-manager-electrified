@@ -1,3 +1,9 @@
+pve-manager-electrified (9.1.6) trixie; urgency=medium
+
+  * Bugfix: Old pveproxy still running after fresh install (needs reboot) - improve cleanup.
+
+ -- PVE-electrified crew <crew@pve-electrified.net>  Sun, 21 Dec 2025 00:00:01 +0200
+
 pve-manager-electrified (9.1.4) trixie; urgency=medium
 
   * Electrified: First release of pve-manager fork for PVE9 / debian trixie.

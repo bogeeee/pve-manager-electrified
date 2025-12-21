@@ -16,7 +16,7 @@ import {
     fileExists,
     killProcessThatListensOnPort,
     forwardWebsocketConnections,
-    spawnAsync, ErrorDiagnosis, deleteDir, toError, isStrictSameSiteRequest
+    spawnAsync, ErrorDiagnosis, deleteDir, toError, isStrictSameSiteRequest, sleep
 } from './util/util.js';
 import {ElectrifiedSession} from "./ElectrifiedSession.js";
 import {ClientCallbackSet, restfuncsExpress} from "restfuncs-server";
@@ -663,28 +663,43 @@ class AppServer {
      */
     async cleanUpIfInstallHung() {
         const indicatorFile = "/var/pveme-postinst_restarting-services";
+
+        async function restartServices() {
+            for (const serviceName of ["pvedaemon.service", "pveproxy.service", "spiceproxy.service", "pvestatd.service", "pvebanner.service", "pvescheduler.service", "pve-daily-update.timer"]) {
+                console.log(`Restarting ${serviceName}`);
+                await execa("deb-systemd-invoke", ["restart", serviceName]);
+            }
+        }
+
         if(fs.existsSync(indicatorFile)) {
-            const status = (await execa("dpkg-query", ["-W", "-f=${Status}", "pve-manager-electrified"], {encoding: "utf8"})).stdout;
-            if(status != "install ok installed") {
-                console.log("It seems, the dpkg post-install/configure script of this pve-manager-electrified package did fail while restarting the services (indicated by the file /var/pveme-postinst_restarting-services) . Marking it as complete now.")
+            await restartServices(); // Restart them now already, otherwise the old pveproxy on port 8006 is still running.
 
-                try {
-                    await execa("dpkg", ["--configure", "pve-manager-electrified"], {env: {PVEME_POSTINST_SKIP: "true"}});
-                }
-                catch (e) {
-                    // Retry later
-                    console.log("Seems like the dpkg lock is still held. Retrying in 10 seconds.")
-                    setTimeout(() => spawnAsync(async () => await this.cleanUpIfInstallHung(), false), 10000);
-                    return;
-                }
+            /**
+             * Tries to finish the hung install and cleans up afterwards. Runs in the background
+             */
+            const inner = async () => {
+                if(fs.existsSync(indicatorFile)) {
+                    const status = (await execa("dpkg-query", ["-W", "-f=${Status}", "pve-manager-electrified"], {encoding: "utf8"})).stdout;
+                    if (status != "install ok installed") {
+                        console.log("It seems, the dpkg post-install/configure script of this pve-manager-electrified package did fail while restarting the services (indicated by the file /var/pveme-postinst_restarting-services) . Marking it as complete now.")
 
-                console.log("Done marking dpkg post-install/configure script as complete. Now restarting services:")
-                for(const serviceName of ["pvedaemon.service", "pveproxy.service", "spiceproxy.service", "pvestatd.service", "pvebanner.service", "pvescheduler.service", "pve-daily-update.timer"]) {
-                    console.log(`Restarting ${serviceName}`);
-                    await execa("deb-systemd-invoke", ["restart", serviceName]);
+                        try {
+                            await execa("dpkg", ["--configure", "pve-manager-electrified"], {env: {PVEME_POSTINST_SKIP: "true"}});
+                        } catch (e) {
+                            // Retry later
+                            console.log("Seems like the dpkg lock is still held. Retrying in 10 seconds.")
+                            setTimeout(() => spawnAsync(async () => await inner(), false), 10000);
+                            return;
+                        }
+
+                        console.log("Done marking dpkg post-install/configure script as complete. Now restarting services:")
+                        await restartServices();
+                    }
+                    fs.rmSync(indicatorFile, {force: true});
                 }
             }
-            fs.rmSync(indicatorFile, {force: true});
+
+            await inner();
         }
     }
 
