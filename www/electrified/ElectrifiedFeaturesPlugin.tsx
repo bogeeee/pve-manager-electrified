@@ -1,18 +1,19 @@
 import {Plugin} from "./Plugin"
 import React, {CSSProperties, ReactNode} from "react";
-import {watchedComponent, watched, useWatchedState} from "react-deepwatch"
+import {watchedComponent, watched, useWatchedState, bind} from "react-deepwatch"
 import {Button, ButtonGroup, Checkbox,  Classes,  HTMLSelect, Icon, Intent, InputGroup, Label, Menu, MenuItem, Popover, Tooltip} from "@blueprintjs/core";
 import "@blueprintjs/core/lib/css/blueprint.css";
 import "@blueprintjs/icons/lib/css/blueprint-icons.css";
-import {t} from "./globals";
+import {getElectrifiedApp, t} from "./globals";
 import "./styles.css"
 import {Guest} from "./model/Guest";
 import {Node} from "./model/Node";
 import {string} from "prop-types";
-import {newDefaultMap, throwError} from "./util/util";
+import {newDefaultMap, showMuiDialog, throwError} from "./util/util";
 import _ from "underscore";
 import {Pool} from "./model/Pool";
 import {ElectrifiedJsonConfig} from "pveme-nodejsserver/Common";
+import {DialogActions, DialogContent, DialogContentText} from "@mui/material";
 
 /**
  * Offers nice features.
@@ -37,6 +38,17 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
      * Because this field may be updated to a new object instance (on external config change), make sure to to not **hold* references to sub-objects over a long time. I.e. <WRONG>const myLongTermConst = this.userConfig.treeColumnConfigs;</WRONG>
      */
     userConfig = {
+        cpuBars: {
+            /**
+             * Shows the total / grayed out background bars
+             */
+            showBackground: {
+                datacenter: true,
+                pool: true,
+                node: true,
+                guest: true,
+            }
+        }
     }
 
     /**
@@ -47,7 +59,7 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
      * Because this field may be updated to a new object instance (on external config change), make sure to to not **hold* references to sub-objects over a long time. I.e. <WRONG>const myLongTermConst = this.nodeConfig.treeColumnConfigs;</WRONG>
      */
     nodeConfig: ElectrifiedJsonConfig = {
-        plugins: []
+        plugins: [],
     }
 
     /**
@@ -73,11 +85,12 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
     }
 
     async onUiReady() {
-
     }
 
 
     getResourceTreeColumns() {
+        const thisPlugin = this;
+
         const getOpacity = (electrifiedStats?: Node["electrifiedStats"] | Guest["electrifiedStats"]) => {
             if(!electrifiedStats?.currentCpuUsage) {
                 return 0;
@@ -98,13 +111,13 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
                 text: t`CPU bars`,
                 key: "cpu_bars",
                 cellRenderFn: (props: { item: object, rowIndex: number, colIndex: number, rawItemRecord: Record<string, unknown> }) => {
-                    function getSummedUpBars(nodes2guests: Map<Node, Set<Guest>>) {
+                    function getSummedUpBars(nodes2guests: Map<Node, Set<Guest>>, showUnusedBackground: boolean) {
                         const layers: Layer[] = [];
                         let nodes = [...nodes2guests.keys()];
                         let allGuests = [...nodes2guests.keys()].map(k => [...nodes2guests.get(k)!.values()]).flat();
                         //nodes = [...nodes, ...nodes]; allGuests = [...allGuests, ...allGuests]; // Debug: double entries
 
-                        {
+                        if(showUnusedBackground){
                             // Stack up unused cores / background:
                             let current = 0;
                             for(const node of nodes) {
@@ -173,7 +186,7 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
                             info.guestCores+=guest.maxcpu;
                         }
 
-                        {
+                        if(thisPlugin.userConfig.cpuBars.showBackground.pool){
                             // Stack up unused cores / background:
                             let current = 0;
                             for(const node of nodeInfo.keys()) {
@@ -220,29 +233,30 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
                     const item = props.item;
                     if (item instanceof this.app.classes.model.Guest) {
                         if(item.electrifiedStats?.currentCpuUsage) {
-                            const layers: Layer[] = [
-                                // Unused / background:
-                                {
+                            const layers: Layer[] = [];
+                            // Unused / background:
+                            if(thisPlugin.userConfig.cpuBars.showBackground.guest) {
+                                layers.push({
                                     start: 0,
                                     end: item.maxcpu,
                                     cssClass: "cpu-bar-unused",
-                                },
-                                // Cpu:
-                                {
-                                    start: 0,
-                                    end: item.electrifiedStats.currentCpuUsage.value,
-                                    cssClass: "cpu-bar-cpu",
-                                }
-                            ]
+                                });
+                            }
+                            // Cpu:
+                            layers.push({
+                                start: 0,
+                                end: item.electrifiedStats.currentCpuUsage.value,
+                                cssClass: "cpu-bar-cpu",
+                            });
                             return <div style={{opacity: getOpacity(item.electrifiedStats)}} className="cpu-bars-container">{getBars(layers)}</div>
                         }
                     } else if(item instanceof this.app.classes.model.Node) {
                         const node = item;
-                        return getSummedUpBars(new Map([[node, new Set(node.guests)]]))
+                        return getSummedUpBars(new Map([[node, new Set(node.guests)]]), thisPlugin.userConfig.cpuBars.showBackground.node)
                     } else if(item instanceof this.app.classes.model.Datacenter) {
                         const node2guests = new Map(item.nodes.map(node => [node, new Set(node.guests)]));
                         //const node2guests = new Map([[watched(this.app.currentNode), new Set(watched(this.app.currentNode).guests)]]); // debug: only use current node
-                        return getSummedUpBars(node2guests)
+                        return getSummedUpBars(node2guests, thisPlugin.userConfig.cpuBars.showBackground.datacenter)
                     }
                     else if (item instanceof this.app.classes.model.Pool) {
                         return getSummedUpBarsForPool(item);
@@ -305,6 +319,25 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
 
                         return result;
                     }
+                },
+                showConfig() {
+                    const result = showMuiDialog(t`CPU bar configuration`, {}, (props) => {
+                        const plugin = watched(thisPlugin);
+                        return <React.Fragment>
+                            <DialogContent>
+                                <DialogContentText>
+                                    {t`Show unused cpu background bars for`}:<br/>
+                                    {[{key: "datacenter", text: t`Datacenter`}, {key: "pool", text: t`Pools`}, {key: "node", text: t`Nodes`}, {key: "guest", text: t`Guests`}].map(item =>
+                                        <div>&#160;<input type="checkbox" {...bind((plugin.userConfig.cpuBars.showBackground as any)[item.key])} /> {item.text}</div>
+                                    )}
+
+                                </DialogContentText>
+                            </DialogContent>
+                            <DialogActions>
+                                <Button type="submit" onClick={() => props.resolve(true)} >{t`Close`}</Button>
+                            </DialogActions>
+                        </React.Fragment>
+                    });
                 },
             },
             // CPU:
