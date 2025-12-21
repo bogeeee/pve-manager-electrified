@@ -644,12 +644,14 @@ export async function showBlueprintDialog<T>(dialogProps: Partial<BlueprintDialo
  * @param dialogProps
  * @param ContentComponent
  */
-export async function showMuiDialog<T>(title: string | React.ReactElement, dialogProps: Partial<DialogProps>, ContentComponent: FunctionComponent<{resolve: (result: T) => void, close: () => void}>, paperSx?: CSSProperties) {
+export async function showMuiDialog<T>(title: string | React.ReactElement, dialogProps: Partial<DialogProps>, contentComponentFn: FunctionComponent<{resolve: (result: T) => void, close: () => void}>, paperSx?: CSSProperties) {
     return new Promise<T|undefined>((resolve) => {
         // We need some <div/> to render into
         const targetDiv = document.createElement("div");
         targetDiv.className = "ContainerForDialog"; // Tag it just for better debugging
         document.body.append(targetDiv);
+
+        const WatchedContentComponent = watchedComponent(contentComponentFn, {fallback:<div style={{margin: "16px", textAlign: "center"}}>{gettext("Loading...")}</div>});
 
         /**
          * Wrapper component so we can control the open state
@@ -675,10 +677,12 @@ export async function showMuiDialog<T>(title: string | React.ReactElement, dialo
                         className={isPVEDarkTheme()?"bp6-dark":undefined}
                         aria-labelledby="draggable-dialog-title" {...dialogProps}>
                     <DialogTitle style={{cursor: 'move'}} id="draggable-dialog-title">{title}</DialogTitle>
-                    <ContentComponent close={close} resolve={(result) => {
-                        close();
-                        resolve(result);
-                    }}/>
+                    <ErrorBoundary fallbackRender={ErrorState}>
+                        <WatchedContentComponent close={close} resolve={(result) => {
+                            close();
+                            resolve(result);
+                        }}/>
+                    </ErrorBoundary>
                 </Dialog>
             </ThemeProvider>
         }
