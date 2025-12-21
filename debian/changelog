@@ -1,3 +1,10 @@
+pve-manager-electrified (9.1.7) trixie; urgency=medium
+
+  * Bugfix: CPU bars display to few / calculation broken
+
+ -- PVE-electrified crew <crew@pve-electrified.net>  Sun, 21 Dec 2025 00:00:02 +0200
+
+
 pve-manager-electrified (9.1.6) trixie; urgency=medium
 
   * Bugfix: Old pveproxy still running after fresh install (needs reboot) - improve cleanup.
