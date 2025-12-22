@@ -99,7 +99,7 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
      */
     async init() {
         // Set default values when a config from an old version was used:
-        this.userConfig.cpuBars.width |=  4;
+        this.userConfig.cpuBars.width ||=  4;
 
         setInterval(() => this.timeForComponentAnimations = new Date().getTime(), 250);
     }
