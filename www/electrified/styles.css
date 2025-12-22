@@ -21,7 +21,7 @@
 }
 
 .cpu-bar-cpu {
-    background-color: #000;
+    background-color: #666;
 }
 
 @media (prefers-color-scheme: dark) {
