@@ -8,6 +8,7 @@
 
 .cpu-bar {
     width: 4px;
+    min-width: 4px;
     height: 100%;
     transform: translate(0,0);
 }
