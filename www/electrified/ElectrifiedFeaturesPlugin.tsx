@@ -1,7 +1,22 @@
 import {Plugin} from "./Plugin"
 import React, {CSSProperties, ReactNode} from "react";
 import {watchedComponent, watched, useWatchedState, bind} from "react-deepwatch"
-import {Button, ButtonGroup, Checkbox,  Classes,  HTMLSelect, Icon, Intent, InputGroup, Label, Menu, MenuItem, Popover, Tooltip} from "@blueprintjs/core";
+import {
+    Button,
+    ButtonGroup,
+    Checkbox,
+    Classes,
+    HTMLSelect,
+    Icon,
+    Intent,
+    InputGroup,
+    Label,
+    Menu,
+    MenuItem,
+    Popover,
+    Tooltip,
+    Slider
+} from "@blueprintjs/core";
 import "@blueprintjs/core/lib/css/blueprint.css";
 import "@blueprintjs/icons/lib/css/blueprint-icons.css";
 import {getElectrifiedApp, t} from "./globals";
@@ -47,7 +62,9 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
                 pool: true,
                 node: true,
                 guest: true,
-            }
+            },
+
+            width: 4
         }
     }
 
@@ -81,6 +98,9 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
      * @see onUiReady
      */
     async init() {
+        // Set default values when a config from an old version was used:
+        this.userConfig.cpuBars.width |=  4;
+
         setInterval(() => this.timeForComponentAnimations = new Date().getTime(), 250);
     }
 
@@ -307,7 +327,7 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
                         const max = Math.ceil(layers.reduce((max,current) => Math.max(max, current.end),0));
                         let layerKey =0;
                         for(let barIndex = 0;barIndex<max;barIndex++) {
-                            result.push(<div key={barIndex} className="cpu-bar">{layers.map(layer => {
+                            result.push(<div key={barIndex} className="cpu-bar" style={{width: thisPlugin.userConfig.cpuBars.width, minWidth: thisPlugin.userConfig.cpuBars.width}}>{layers.map(layer => {
                                 if(!(layer.start <= barIndex+1 && layer.end > barIndex)) { // layer outside range?
                                     return;
                                 }
@@ -330,6 +350,10 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
                                     {[{key: "datacenter", text: t`Datacenter`}, {key: "pool", text: t`Pools`}, {key: "node", text: t`Nodes`}, {key: "guest", text: t`Guests`}].map(item =>
                                         <div>&#160;<input type="checkbox" {...bind((plugin.userConfig.cpuBars.showBackground as any)[item.key])} /> {item.text}</div>
                                     )}
+
+                                    <br/>{t`Bar width`}:
+                                    <Slider {...bind(plugin.userConfig.cpuBars.width)} min={1} max={8} stepSize={1}/>
+
 
                                 </DialogContentText>
                             </DialogContent>
