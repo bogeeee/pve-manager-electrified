@@ -7,6 +7,8 @@ import {ElectrifiedSession} from "./ElectrifiedSession.js";
 
 /**
  * Saves the last polled cpu usage. Offers methods to smarty collect the cpu usage of all guests
+ *
+ * TODO: There seems to be also good cpu usage info for lxcs under /sys/fs/cgroup/lxc/{id}/cpu.stat. This should be much faster collecting all descendant processes. https://www.reddit.com/r/Proxmox/comments/1przhbg/comment/nvcygm6/?context=1
  */
 export class GuestCpuMeters {
     lastPollTime : Date | undefined;
