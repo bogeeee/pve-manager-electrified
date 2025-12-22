@@ -827,7 +827,7 @@ function resourceTree_onMouseEnterColumnHeader(headerDiv, pluginName, columnKey)
 
 
     const hoverLayerHtml = `<div class="" style="position: absolute; left: ${pos.left}px; top: ${pos.top}px; width: ${headerDiv.offsetWidth}px; z-index: 100;">
-        <div style="display: inline-block; background-color: #FFFFFF; position: relative; left: -2px; top: -4px; padding: 2px; opacity: 0.8"><a style="cursor: pointer; text-decoration: none" onclick="electrifiedApp._configureColumn('${pluginName}','${columnKey}')"><i class="fa fa-cog fa-lg" style="color: #666"></i></a></div>
+        <div style="display: inline-block; background-color: ${electrifiedApp.isDarkTheme?"#000":"#FFF"}; position: relative; left: -2px; top: -4px; padding: 2px; opacity: ${electrifiedApp.isDarkTheme?"1":"0.8"}"><a style="cursor: pointer; text-decoration: none" onclick="electrifiedApp._configureColumn('${pluginName}','${columnKey}')"><i class="fa fa-cog fa-lg" style="color: ${electrifiedApp.isDarkTheme?"#BBB":"#666"}"></i></a></div>
 </div>`;
     const hoverLayer = makeElement(hoverLayerHtml);
     document.body.appendChild(hoverLayer);
