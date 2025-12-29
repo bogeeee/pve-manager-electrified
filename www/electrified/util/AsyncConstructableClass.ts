@@ -1,4 +1,15 @@
+import {detached, newDefaultWeakMap} from "./util";
+
+let idGenerator = 0;
+
+const debug_instanceIds = newDefaultWeakMap(o => ++idGenerator);
+
 export class AsyncConstructableClass {
+    constructor() {
+        this.debug_instanceId; // trigger lazy initialization
+    }
+
+
     protected async constructAsync(): Promise<void> {
 
     }
@@ -12,5 +23,9 @@ export class AsyncConstructableClass {
 
         await result.constructAsync();
         return result;
+    }
+
+    get debug_instanceId() {
+        return debug_instanceIds.get(this);
     }
 }
