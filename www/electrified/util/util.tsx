@@ -1101,3 +1101,25 @@ export function checkForDuplicates<T>(array: T[], prop?: keyof T | ((element: T)
         values2elements.set(value, {index: i, element});
     }
 }
+const detachedValues = newDefaultWeakMap((key:object) => new Map<string, unknown>())
+
+/**
+ * Hides the property from frameworks (i.e. proxy-facades). The property is stored outside the object.
+ * @param target
+ * @param propName
+ */
+export function detached(target: object, propName: string) {
+    // Store initial value:
+    //@ts-ignore
+    const initialValue: unknown = target[propName];
+    detachedValues.get(target).set(propName, initialValue);
+
+    Object.defineProperty(target, propName, {
+        get() {
+            return detachedValues.get(target).get(propName)
+        },
+        set(value: unknown) {
+            detachedValues.get(target).set(propName, value);
+        },
+    });
+}
