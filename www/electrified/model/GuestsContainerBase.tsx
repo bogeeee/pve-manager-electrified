@@ -73,9 +73,9 @@ export abstract class GuestsContainerBase extends ModelBase{
                         const node = this as any as Node;
                         // Create new guest object:
                         if (type === "lxc") {
-                            guest = await Lxc.create({id, node});
+                            guest = await Lxc.create({_id: id, _node: node});
                         } else if (type === "qemu") {
-                            guest = await Qemu.create({id, node});
+                            guest = await Qemu.create({_id: id, _node: node});
                         } else {
                             throw new Error("Unhandled type")
                         }
@@ -88,7 +88,7 @@ export abstract class GuestsContainerBase extends ModelBase{
                     this._guests.set(id, guest);
                 }
 
-                guest._updateFields(dataRecord);
+                guest._updateFieldsFromResourceStore(dataRecord);
             }
         }
 
