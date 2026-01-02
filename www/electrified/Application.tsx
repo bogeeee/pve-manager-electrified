@@ -37,6 +37,9 @@ import {Icon, Tooltip} from "@blueprintjs/core";
 import {Pool} from "./model/Pool";
 import {Ext} from "./classicGlobalObjects";
 import {ReactComponent} from "./util/ExtJsReactComponent";
+import {Disk} from "./model/hardware/Disk";
+import {Hardware} from "./model/hardware/Hardware";
+import {NetworkInterface} from "./model/hardware/NetworkInterface";
 
 let app: Application | undefined = undefined;
 
@@ -119,7 +122,8 @@ export class Application extends AsyncConstructableClass{
          * Category
          */
         model: {
-            Datacenter, Node, Pool, Guest, Qemu, Lxc
+            Datacenter, Node, Pool, Guest, Qemu, Lxc,
+            hardware: Hardware, Disk, NetworkInterface,
         },
         Plugin
     }

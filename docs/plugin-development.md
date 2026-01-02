@@ -20,11 +20,14 @@ It should show a "**Plugin source directory**" with your project.
 When `package.json` is changed, it will automatically rebuild the web and install all new dependencies👍.   
 Now, explore [Plugin.jsx](https://github.com/bogeeee/pve-manager-electrified/blob/main/ui-plugin-example/Plugin.jsx) and happy coding!
 
-# API
+# Electrified API
 
 The api is documented **in jsdoc only**. Use your IDE's code completion / intellisense. You can also explore it via [the stackblitz IDE in the browser](https://stackblitz.com/fork/github/bogeeee/pve-manager-electrified/tree/main/ui-plugin-example?title=Electrified%2plugin&file=Plugin.jsx). 
 
-**The API is still work-in-progress:** A model for the hardware under a guest and more hooks will come soon.
+**The electrified API (object model) is not complete:**. What's mostly complete is the Datacenter/Node/Pool/Guest/Hardware classes. **Read** values are up 2 date (which is the most important) whilst 
+**writing**/changing fields is often not implemented, so you have to find a way either through classic api `Node#api2fetch` or directly change files. Config file changes should then be reflected in the model immediately (they are watched). For other changes or in doubt,
+call `await this.app.datacenter.ensureUp2Date()` to sync.  
+If there's some part of the API missing for your needs, create a [github issue](https://github.com/bogeeee/pve-manager-electrified/issues) or mail me (see mail address in the changelog of the debian package).
 
 Here are some picked api methods, to give you an orientation:
 
@@ -38,7 +41,8 @@ Here are some picked api methods, to give you an orientation:
 | `File#onChange` | You can also **watch** files and dirs for changes | |
 | `Appliction.util...` | Util functions
 | `Application.classes...` | Useful for `instanceof` checking | 
-| `Application.classes.model...` | Useful for `instanceof` checking | `if(guest instanceof this.app.classes.model.Qemu) { ...do some qemu specific stuff... }` | 
+| `Application.classes.model...` | Useful for `instanceof` checking | `if(guest instanceof this.app.classes.model.Qemu) { ...do some qemu specific stuff... }` |
+| `Application.classes.model.hardware...` | Useful for `instanceof` checking | |
 | **UI** |
 | `Appliction.util.ui...` | UI util functions | |
 | `Appliction.util.ui.showBlueprintDialog` | Shows a popup dialog where you can specify the content | See [Quick guide to creating dialogs with react](#quick-guide-to-creating-dialogs-with-react) |

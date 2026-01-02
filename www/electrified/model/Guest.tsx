@@ -44,6 +44,8 @@ export abstract class Guest extends ModelBase {
 
     // *** Hardware ***
 
+    // There are also non-listed fields which come from the config file
+
     /**
      * Array can have gaps, i.e. when the config file says: "disk0: ... , disk2: ..."
      */
@@ -237,7 +239,7 @@ export abstract class Guest extends ModelBase {
 
         this._rawConfigRecord = configEntries;
 
-        const hardwareKeys2Classes: {[key: string]: typeof Hardware} = {net: NetworkInterface}
+        const hardwareKeys2Classes: {[key: string]: typeof Hardware} = {net: NetworkInterface, disk: Disk}
 
         for(const key of configEntries.keys()) {
             let value: string | string[] | number = configEntries.get(key)!;
@@ -248,8 +250,6 @@ export abstract class Guest extends ModelBase {
                     value = Number(value);
                 }
             }
-
-            // TODO: apply more fields / known values (mind integer/boolean etc)
 
             if(Array.isArray(value)) { // Multiple?
                 // Treat as hardware:
