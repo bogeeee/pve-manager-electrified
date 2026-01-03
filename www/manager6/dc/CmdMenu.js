@@ -84,6 +84,8 @@ Ext.define('PVE.dc.CmdMenu', {
             }
         }
 
+        me.items = window.electrifiedApp._addDatacenterElectrifiedMenuItems(me.items);
+
         me.callParent();
 
         let caps = Ext.state.Manager.get('GuiCap');

@@ -10,6 +10,7 @@ import {WatchedProxyFacade} from "proxy-facades";
 import {ReactNode} from "react";
 import {isRendering} from "react-deepwatch"
 import _ from "underscore"
+import {Datacenter} from "./model/Datacenter";
 
 export class Plugin {
     static instance: Plugin;
@@ -67,6 +68,27 @@ export class Plugin {
      */
     get packageName(): string {
         return (this.constructor as any).packageName;
+    }
+
+    /**
+     * Adds context menu items.
+     * <p>Example:</p>
+     * <pre><code>
+     getDatacenterMenuItems(datacenter) {
+            return [
+                {
+                    text: t`Show number of nodes`,
+                    iconCls: 'fa fa-fw fa-circle-thin',
+                    handler: async () => {
+                        await this.app.util.ui.messageBox(t`Title`, t`node count: ${datacenter.nodes.length}`);
+                    },
+                },
+            ]
+        }
+     * </code></pre>
+     */
+    getDatacenterMenuItems(datacenter: Datacenter): ContextMenuItem[] {
+        return [];
     }
 
     /**
@@ -230,14 +252,17 @@ export class Plugin {
             }
         }
 
+        if(contextObj instanceof Datacenter) {
+            return this.getDatacenterMenuItems(this.app.datacenter).map(i => toExtMenuItem(i));
+        }
+        if(contextObj instanceof Node) {
+            return this.getNodeMenuItems(contextObj).map(i => toExtMenuItem(i));
+        }
         if(contextObj instanceof Qemu) {
             return [...this.getGuestMenuItems(contextObj), ...this.getQemuMenuItems(contextObj).map(i => toExtMenuItem(i))];
         }
         if(contextObj instanceof Lxc) {
             return [...this.getGuestMenuItems(contextObj), ...this.getLxcMenuItems(contextObj).map(i => toExtMenuItem(i))];
-        }
-        if(contextObj instanceof Node) {
-            return this.getNodeMenuItems(contextObj).map(i => toExtMenuItem(i));
         }
         return []; // not handled
     }

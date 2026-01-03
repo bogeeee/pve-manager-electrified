@@ -480,6 +480,13 @@ export class Application extends AsyncConstructableClass{
         return [...extJsMenuItems, ...this.plugins.map(p => p._getMenuItems(contextObj)).flat()];
     }
 
+    _addDatacenterElectrifiedMenuItems(extJsMenuItems: any[] ) {
+        return returnWithErrorHandling(() => {
+            const contextObj = this.datacenter;
+            return this._addElectrifiedMenuItems(contextObj, extJsMenuItems);
+        })
+    }
+
     _addNodeElectrifiedMenuItems(nodeName: string,extJsMenuItems: any[] ) {
         return returnWithErrorHandling(() => {
             const contextObj = this.datacenter.getNode_existing(nodeName);
