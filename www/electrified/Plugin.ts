@@ -87,7 +87,7 @@ export class Plugin {
         }
      * </code></pre>
      */
-    getDatacenterMenuItems(datacenter: Datacenter): ContextMenuItem[] {
+    getDatacenterMenuItems(datacenter: Datacenter): (ContextMenuItem | "menuseparator")[] {
         return [];
     }
 
@@ -109,7 +109,7 @@ export class Plugin {
      * </code></pre>
      * @param node
      */
-    getNodeMenuItems(node: Node): ContextMenuItem[] {
+    getNodeMenuItems(node: Node): (ContextMenuItem | "menuseparator")[] {
         return [];
     }
 
@@ -133,7 +133,7 @@ export class Plugin {
      * @see getQemuMenuItems
      * @see getLxcMenuItems
      */
-    getGuestMenuItems(guest: Guest): ContextMenuItem[]{
+    getGuestMenuItems(guest: Guest): (ContextMenuItem | "menuseparator")[]{
         return[];
     }
 
@@ -156,7 +156,7 @@ export class Plugin {
      * </code></pre>
      * @see getGuestMenuItems
      */
-    getQemuMenuItems(qemu: Qemu): ContextMenuItem[]{
+    getQemuMenuItems(qemu: Qemu): (ContextMenuItem | "menuseparator")[]{
         return[];
     }
 
@@ -179,7 +179,7 @@ export class Plugin {
      * </code></pre>
      * @see getGuestMenuItems
      */
-    getLxcMenuItems(lxc: Lxc): ContextMenuItem[]{
+    getLxcMenuItems(lxc: Lxc): (ContextMenuItem | "menuseparator")[]{
         return[];
     }
 
@@ -242,7 +242,10 @@ export class Plugin {
      * @param contextObj the object where the context menu is for
      */
     _getMenuItems(contextObj: object): object[] {
-        function toExtMenuItem(item: ContextMenuItem) {
+        function toExtMenuItem(item: ContextMenuItem | "menuseparator") {
+            if(item === "menuseparator") {
+                return {xtype: "menuseparator"};
+            }
             return {
                 ...item,
                 // Wrap with error handler:
@@ -259,10 +262,10 @@ export class Plugin {
             return this.getNodeMenuItems(contextObj).map(i => toExtMenuItem(i));
         }
         if(contextObj instanceof Qemu) {
-            return [...this.getGuestMenuItems(contextObj), ...this.getQemuMenuItems(contextObj).map(i => toExtMenuItem(i))];
+            return [...this.getGuestMenuItems(contextObj).map(i => toExtMenuItem(i)), ...this.getQemuMenuItems(contextObj).map(i => toExtMenuItem(i))];
         }
         if(contextObj instanceof Lxc) {
-            return [...this.getGuestMenuItems(contextObj), ...this.getLxcMenuItems(contextObj).map(i => toExtMenuItem(i))];
+            return [...this.getGuestMenuItems(contextObj).map(i => toExtMenuItem(i)), ...this.getLxcMenuItems(contextObj).map(i => toExtMenuItem(i))];
         }
         return []; // not handled
     }
