@@ -130,6 +130,9 @@ Ext.define('PVE.node.CmdMenu', {
         }
 
         me.title = gettext('Node') + " '" + me.nodename + "'";
+
+        me.items = window.electrifiedApp._addNodeElectrifiedMenuItems(me.nodename, me.items);
+
         me.callParent();
 
         let caps = Ext.state.Manager.get('GuiCap');

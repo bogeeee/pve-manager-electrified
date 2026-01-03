@@ -2,7 +2,8 @@ import type {Application} from "./Application";
 import {Guest} from "./model/Guest";
 import {Qemu} from "./model/Qemu";
 import {Lxc} from "./model/Lxc";
-import {checkForDuplicates, Clazz, throwError} from "./util/util";
+import {Node} from "./model/Node"
+import {checkForDuplicates, Clazz, spawnWithErrorHandling, throwError} from "./util/util";
 import {retsync2promise} from "proxy-facades/retsync";
 import {getElectrifiedApp} from "./globals";
 import {WatchedProxyFacade} from "proxy-facades";
@@ -68,15 +69,95 @@ export class Plugin {
         return (this.constructor as any).packageName;
     }
 
-    getGuestMenuItems(guest: Guest): {}[]{
+    /**
+     * Adds context menu items.
+     * <p>Example:</p>
+     * <pre><code>
+        getNodeMenuItems(node) {
+            return [
+                {
+                    text: t`Show this node's name`,
+                    iconCls: 'fa fa-fw fa-circle-thin',
+                    handler: async () => {
+                        await this.app.util.ui.messageBox(t`Title`, t`The node is called: ${node.name}`);
+                    },
+                },
+            ]
+        }
+     * </code></pre>
+     * @param node
+     */
+    getNodeMenuItems(node: Node): ContextMenuItem[] {
+        return [];
+    }
+
+    /**
+     * Adds context menu items.
+     * <p>Example:</p>
+     * <pre><code>
+     getGuestMenuItems(guest) {
+            return [
+                {
+                    text: t`Show this guest's id`,
+                    iconCls: 'fa fa-fw fa-circle-thin',
+                    handler: async () => {
+                        await this.app.util.ui.messageBox(t`Title`, t`The guest's id is: ${guest.id}`);
+                    },
+                    //... You can provide more fields than typed here, see {@link https://docs.sencha.com/extjs/6.7.0/modern/Ext.menu.Item.html Ext.menu.Item}
+                },
+            ]
+        }
+     * </code></pre>
+     * @see getQemuMenuItems
+     * @see getLxcMenuItems
+     */
+    getGuestMenuItems(guest: Guest): ContextMenuItem[]{
         return[];
     }
 
-    getQemuMenuItems(qemu: Qemu): {}[]{
+    /**
+     * Adds context menu items.
+     * <p>Example:</p>
+     * <pre><code>
+     getQemuMenuItems(qemu) {
+            return [
+                {
+                    text: t`Show this guest's id`,
+                    iconCls: 'fa fa-fw fa-circle-thin',
+                    handler: async () => {
+                        await this.app.util.ui.messageBox(t`Title`, t`The guest's id is: ${qemu.id}`);
+                    },
+                    //... You can provide more fields than typed here, see {@link https://docs.sencha.com/extjs/6.7.0/modern/Ext.menu.Item.html Ext.menu.Item}
+                },
+            ]
+        }
+     * </code></pre>
+     * @see getGuestMenuItems
+     */
+    getQemuMenuItems(qemu: Qemu): ContextMenuItem[]{
         return[];
     }
 
-    getLxcMenuItems(lxc: Lxc): {}[]{
+    /**
+     * Adds context menu items.
+     * <p>Example:</p>
+     * <pre><code>
+     getLxcMenuItems(lxc) {
+            return [
+                {
+                    text: t`Show this guest's id`,
+                    iconCls: 'fa fa-fw fa-circle-thin',
+                    handler: async () => {
+                        await this.app.util.ui.messageBox(t`Title`, t`The guest's id is: ${lxc.id}`);
+                    },
+                    //... You can provide more fields than typed here, see {@link https://docs.sencha.com/extjs/6.7.0/modern/Ext.menu.Item.html Ext.menu.Item}
+                },
+            ]
+        }
+     * </code></pre>
+     * @see getGuestMenuItems
+     */
+    getLxcMenuItems(lxc: Lxc): ContextMenuItem[]{
         return[];
     }
 
@@ -138,12 +219,25 @@ export class Plugin {
      *
      * @param contextObj the object where the context menu is for
      */
-    _getMenuItems(contextObj: object) {
+    _getMenuItems(contextObj: object): object[] {
+        function toExtMenuItem(item: ContextMenuItem) {
+            return {
+                ...item,
+                // Wrap with error handler:
+                handler: () => {
+                    spawnWithErrorHandling(item.handler);
+                }
+            }
+        }
+
         if(contextObj instanceof Qemu) {
-            return [...this.getGuestMenuItems(contextObj), ...this.getQemuMenuItems(contextObj)];
+            return [...this.getGuestMenuItems(contextObj), ...this.getQemuMenuItems(contextObj).map(i => toExtMenuItem(i))];
         }
         if(contextObj instanceof Lxc) {
-            return [...this.getGuestMenuItems(contextObj), ...this.getLxcMenuItems(contextObj)];
+            return [...this.getGuestMenuItems(contextObj), ...this.getLxcMenuItems(contextObj).map(i => toExtMenuItem(i))];
+        }
+        if(contextObj instanceof Node) {
+            return this.getNodeMenuItems(contextObj).map(i => toExtMenuItem(i));
         }
         return []; // not handled
     }
@@ -487,3 +581,20 @@ export type TreeColumn = {
      */
     showConfig?: () => void | Promise<void>;
 }
+
+/**
+ * ... You can provide more fields than typed here, see {@link https://docs.sencha.com/extjs/6.7.0/modern/Ext.menu.Item.html Ext.menu.Item}
+ */
+type ContextMenuItem = Record<string, unknown> & {
+    text: string,
+    /**
+     * Example: 'fa fa-fw fa-send-o'.
+     * See {@link https://fontawesome.com/v4/icons/ font awesome icons}
+     */
+    iconCls?: string,
+
+    /**
+     * Called when clicked. It is wrapped in an error handler.
+     */
+    handler: () => Promise<void>,
+};
