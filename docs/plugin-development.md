@@ -151,7 +151,7 @@ Some methods are [retsync](https://github.com/bogeeee/proxy-facades/blob/main/re
 You can use retsync functions in watchedcomponents, like in the [example dialog](#example-dialog), without wrapping them👍.
 
 # Modding classic pve code
-In case you don't find a plugin hook for the feature, you want to code on, create an [issue](https://github.com/bogeeee/pve-manager-electrified/issues) or otherwise, if you're impatient, dig your self into the clasic code:
+In case you don't find a plugin hook for the feature, you want to code on, create an [issue](https://github.com/bogeeee/pve-manager-electrified/issues) or otherwise, if you're impatient, dig your self into the classic code:
 
 ### Directly editing the classic sources
 _During development, it might be handy to directly edit the sources, to find the spot that you want to patch or hook into._  
