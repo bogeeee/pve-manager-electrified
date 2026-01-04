@@ -27,7 +27,7 @@ The api is documented **in jsdoc only**. Use your IDE's code completion / intell
 **The electrified API (object model) is not complete:**. What's mostly complete is the Datacenter/Node/Pool/Guest/Hardware classes. **Read** values are up 2 date (which is the most important) whilst 
 **writing**/changing fields is often not implemented, so you have to find a way either through classic api `Node#api2fetch` or directly change files. Config file changes should then be reflected in the model immediately (they are watched). For other changes or in doubt,
 call `await this.app.datacenter.ensureUp2Date()` to sync.  
-If there's some part of the API missing for your needs, create a [github issue](https://github.com/bogeeee/pve-manager-electrified/issues) or mail me (see mail address in the changelog of the debian package).
+If there's some part of the API missing for your needs, create a [github issue](https://github.com/bogeeee/pve-manager-electrified/issues) or [contact me by mail](mailto:bogeee@bogitech.de).
 
 Here are some picked api methods, to give you an orientation:
 
