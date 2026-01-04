@@ -397,6 +397,8 @@ Ext.define('PVE.lxc.Config', {
             });
         }
 
+        window.electrifiedApp._addElectrifiedLxcConfigTabs(vmid, me.items, caps);
+
         me.callParent();
 
         var prevStatus = 'unknown';

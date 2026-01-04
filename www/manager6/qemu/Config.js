@@ -450,6 +450,8 @@ Ext.define('PVE.qemu.Config', {
             });
         }
 
+        window.electrifiedApp._addElectrifiedQemuConfigTabs(vmid, me.items, caps);
+
         me.callParent();
 
         var prevQMPStatus = 'unknown';

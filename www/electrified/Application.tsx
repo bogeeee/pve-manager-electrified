@@ -529,8 +529,20 @@ export class Application extends AsyncConstructableClass{
         })
     }
 
+    _addElectrifiedDatacenterConfigTabs(extJsItems: any[], caps: UserCapabilities) {
+        return this._addElectrifiedConfigTabs(extJsItems, plugin => plugin.getDatacenterConfigTabs(caps), () => this.datacenter)
+    }
+
     _addElectrifiedNodeConfigTabs(nodeName: string, extJsItems: any[], caps: UserCapabilities) {
         return this._addElectrifiedConfigTabs(extJsItems, plugin => plugin.getNodeConfigTabs(caps), () => this.datacenter.getNode_existing(nodeName))
+    }
+
+    _addElectrifiedQemuConfigTabs(id: number, extJsItems: any[], caps: UserCapabilities) {
+        return this._addElectrifiedConfigTabs(extJsItems, plugin => [...plugin.getGuestConfigTabs(caps), ...plugin.getQemuConfigTabs(caps)], () => this.datacenter.getGuest(id) as Qemu)
+    }
+
+    _addElectrifiedLxcConfigTabs(id: number, extJsItems: any[], caps: UserCapabilities) {
+        return this._addElectrifiedConfigTabs(extJsItems, plugin => [...plugin.getGuestConfigTabs(caps), ...plugin.getLxcConfigTabs(caps)], () => this.datacenter.getGuest(id) as Lxc)
     }
 
     _addElectrifiedConfigTabs<T>(extJsItems: any[], getPluginTabs: (plugin: Plugin) => ConfigTab<T>[], getItem: () => T,) {

@@ -184,6 +184,18 @@ export class Plugin {
     }
 
     /**
+     * Adds tabs to the datacenter (config-) panel (middle of the main screen)
+     *
+     * <p>
+     *     For an example, see {@link getNodeConfigTabs}
+     * </p>
+     * @param caps Permissions. They might be only cached. Note that this method is called when not yet fully initialized / logged on
+     */
+    getDatacenterConfigTabs(caps: UserCapabilities): ConfigTab<Datacenter>[] {
+        return [];
+    }
+
+    /**
      * Adds tabs to the node (config-) panel (middle of the main screen)
      *
      * <p>
@@ -208,6 +220,42 @@ export class Plugin {
      * @param caps Permissions. They might be only cached. Note that this method is called when not yet fully initialized / logged on
      */
     getNodeConfigTabs(caps: UserCapabilities): ConfigTab<Node>[] {
+        return [];
+    }
+
+    /**
+     * Adds tabs to the guest (config-) panel (middle of the main screen)
+     *
+     * <p>
+     *     For an example, see {@link getNodeConfigTabs}
+     * </p>
+     * @param caps Permissions. They might be only cached. Note that this method is called when not yet fully initialized / logged on
+     */
+    getGuestConfigTabs(caps: UserCapabilities): ConfigTab<Guest>[] {
+        return [];
+    }
+
+    /**
+     * Adds tabs to the qemu (config-) panel (middle of the main screen)
+     *
+     * <p>
+     *     For an example, see {@link getNodeConfigTabs}
+     * </p>
+     * @param caps Permissions. They might be only cached. Note that this method is called when not yet fully initialized / logged on
+     */
+    getQemuConfigTabs(caps: UserCapabilities): ConfigTab<Qemu>[] {
+        return [];
+    }
+
+    /**
+     * Adds tabs to the lxc (config-) panel (middle of the main screen)
+     *
+     * <p>
+     *     For an example, see {@link getNodeConfigTabs}
+     * </p>
+     * @param caps Permissions. They might be only cached. Note that this method is called when not yet fully initialized / logged on
+     */
+    getLxcConfigTabs(caps: UserCapabilities): ConfigTab<Lxc>[] {
         return [];
     }
 

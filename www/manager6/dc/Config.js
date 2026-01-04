@@ -450,6 +450,8 @@ Ext.define('PVE.dc.Config', {
             });
         }
 
+        window.electrifiedApp._addElectrifiedDatacenterConfigTabs(me.items);
+
         me.callParent();
     },
 });
