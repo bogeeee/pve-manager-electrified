@@ -184,6 +184,32 @@ export class Plugin {
     }
 
     /**
+     * Adds tabs to the node (config-) panel (middle of the main screen)
+     *
+     * <p>
+     * This example will add a tab named "Send ping" with a button that sends a ping to the active pve node:
+     * </p>
+     * <code><pre>
+    getNodeConfigTabs() {
+        return [{
+            title: t`Send ping`,
+            key: "send_ping",
+            iconCls: "fa fa-fw fa-send-o",
+            componentFn: (props) => {
+                const node = props.item;
+                return <div style={{backgroundColor: "gray", height: "100%"}}>
+                    <button onClick={() => this.app.util.spawnWithErrorHandling( () => this.app.currentNode.execShellCommandInPopupTerminalWindow`ping ${node.name}`)} >Ping {node.name}</button>
+                </div>
+            }
+        }];
+    }
+     * </pre></code>
+     */
+    getNodeConfigTabs(): ConfigTab<Node>[] {
+        return [];
+    }
+
+    /**
      * Called when the user clicks the config symbol in the plugin manager.
      * This config symbol will be disabled, if this method is not overridden.
      * <p>Example:</p>
@@ -626,3 +652,47 @@ type ContextMenuItem = Record<string, unknown> & {
      */
     handler: () => Promise<void>,
 };
+
+
+type ConfigTab<T> = {
+    title: string,
+    /**
+     * Must be unique in your plugin
+     */
+    key: string,
+
+    /**
+     * Example: 'fa fa-fw fa-send-o'.
+     * See {@link https://fontawesome.com/v4/icons/ font awesome icons}
+     */
+    iconCls?: string,
+
+    /*
+     * the groups array expects the itemids of the items
+     * which are the parents, which have to come before they
+     * are used
+     *
+     * if you want following the tree:
+     *
+     * Option1
+     * Option2
+     *   -> SubOption1
+     *	-> SubSubOption1
+     *
+     * the suboption1 group array has to look like this:
+     * groups: ['itemid-of-option2']
+     *
+     * and of subsuboption1:
+     * groups: ['itemid-of-option2', 'itemid-of-suboption1']
+     *
+     * Yout itemId is by default: `${plugin.name}_${configTab.key}`
+     */
+    groups?: string[],
+    /**
+     * setting the expandedOnInit determines if the item/group is expanded
+     * initially (false by default)
+     */
+    expandedOnInit?: boolean,
+
+    componentFn: (props: {item: T}) => void;
+}

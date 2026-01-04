@@ -4,12 +4,25 @@ import React from "react";
 
 import {
     better_fetch,
-    Clazz, errorToString, fixErrorStack,
+    Clazz,
+    errorToString,
+    fixErrorStack,
     isPVEDarkTheme,
-    returnWithErrorHandling, showBlueprintDialog, showErrorDialog,
+    returnWithErrorHandling,
+    showBlueprintDialog,
+    showErrorDialog,
     showResultText,
-    spawnAsync, TestComponent, throwError, topLevel_withErrorLogging,
-    spawnWithErrorHandling, showMuiDialog, withLoadingDialog, InfoTooltip, messageBox, getCookieByName
+    spawnAsync,
+    TestComponent,
+    throwError,
+    topLevel_withErrorLogging,
+    spawnWithErrorHandling,
+    showMuiDialog,
+    withLoadingDialog,
+    InfoTooltip,
+    messageBox,
+    getCookieByName,
+    checkForDuplicates, muiTheme, ErrorState
 } from "./util/util";
 import {generated_pluginList as pluginList} from "../_generated_pluginList";
 import {
@@ -31,19 +44,23 @@ import {ElectrifiedJsonConfig} from "pveme-nodejsserver/Common";
 import {retsync2promise} from "proxy-facades/retsync";
 import {createElement} from "react";
 import {ElectrifiedFeaturesPlugin} from "./ElectrifiedFeaturesPlugin";
-import {watchedComponent} from "react-deepwatch";
+import {load, watchedComponent} from "react-deepwatch";
 import {ErrorBoundary} from "react-error-boundary";
 import {Icon, Tooltip} from "@blueprintjs/core";
 import {Pool} from "./model/Pool";
 import {Ext} from "./classicGlobalObjects";
-import {ReactComponent} from "./util/ExtJsReactComponent";
+import {ExtJs2ReactComponent, ExtJsPanel2React} from "./util/ExtJsReactComponent";
 import {Disk} from "./model/hardware/Disk";
 import {Hardware} from "./model/hardware/Hardware";
 import {NetworkInterface} from "./model/hardware/NetworkInterface";
+import {ThemeProvider} from "@mui/material";
+import {ExternalPromise} from "restfuncs-common";
 
 let app: Application | undefined = undefined;
 
 export class Application extends AsyncConstructableClass{
+
+    protected static _ExtComponents: Record<string, any> = {};
 
     protected _datacenter?: Datacenter
 
@@ -135,7 +152,8 @@ export class Application extends AsyncConstructableClass{
             showMuiDialog,
             showErrorDialog,
             withLoadingDialog,
-            ReactComponent,
+            ExtJs2ReactComponent,
+            ExtJsPanel2React,
             isPVEDarkTheme,
             InfoTooltip,
             confirm,
@@ -151,6 +169,8 @@ export class Application extends AsyncConstructableClass{
     private _plugins=  new Map<PluginClass, Plugin>();
 
     webBuildState!: Awaited<ReturnType<ElectrifiedSession["getWebBuildState"]>>
+
+    initializedAndLoggedOnPromise = new ExternalPromise<void>()
 
     /**
      * The live model of things in the datacenter live means, as soon, as the state on the server changes, i.e. a corresponding config file changes, it will be file-watched and pushed to here immediately.
@@ -273,55 +293,62 @@ export class Application extends AsyncConstructableClass{
      * Called after login or on start, with valid login ticket
      */
     async _initWhenLoggedOn() {
+        try {
 
-        // Wait till the first data is available in this.resourcestore:
-        if(this._resourceStore.getNodes().length === 0) {
-            await new Promise((resolve, reject) => {
-                this._resourceStore.on("datachanged", resolve);
-            })
-        }
+            // Wait till the first data is available in this.resourcestore:
+            if (this._resourceStore.getNodes().length === 0) {
+                await new Promise((resolve, reject) => {
+                    this._resourceStore.on("datachanged", resolve);
+                })
+            }
 
-        await this.currentNode._initWhenLoggedOn();
+            await this.currentNode._initWhenLoggedOn();
 
 
-        this._datacenter = await Datacenter.create();
+            this._datacenter = await Datacenter.create();
 
-        if(this.userIsAdmin) {
-            await retsync2promise(() => this.nodeConfig); // Fetch this once, so the next access can be without retsync
-        }
+            if (this.userIsAdmin) {
+                await retsync2promise(() => this.nodeConfig); // Fetch this once, so the next access can be without retsync
+            }
 
-        // Init plugins:
-        for(const plugin of this.plugins) {
-            try {
-                await initialize_userConfig(plugin);
-                await initialize_nodeConfig_and_datacenterConfig(plugin);
+            // Init plugins:
+            for (const plugin of this.plugins) {
+                try {
+                    await initialize_userConfig(plugin);
+                    await initialize_nodeConfig_and_datacenterConfig(plugin);
 
-                if(plugin.needsAdminPermissions && !this.userIsAdmin) { // Plugin makes no sense without enough permissions?
+                    if (plugin.needsAdminPermissions && !this.userIsAdmin) { // Plugin makes no sense without enough permissions?
+                        this._unregisterPlugin(plugin);
+                        continue;
+                    }
+
+                    await plugin.init();
+                    await plugin._validate();
+                } catch (e) {
                     this._unregisterPlugin(plugin);
-                    continue;
+                    await showErrorDialog(new Error(`Error initializing plugin ${plugin.name}. See cause.`, {cause: e})); // Show a dialog instead of crashing the whole app which prevents the user from reconfiguring plugins
                 }
-
-                await plugin.init();
-                await plugin._validate();
             }
-            catch (e) {
-                this._unregisterPlugin(plugin);
-                await showErrorDialog(new Error(`Error initializing plugin ${plugin.name}. See cause.`, {cause: e})); // Show a dialog instead of crashing the whole app which prevents the user from reconfiguring plugins
+
+            // Show server warnings:
+            for (const warning of await this.currentNode.electrifiedApi.getServerWarnings()) {
+                await messageBox(t`Warning`, warning.message, "warning-sign");
             }
+
+            // Warn, when theme explicitly set
+            if (getCookieByName("PVEThemeCookie") === "proxmox-dark") {
+                await messageBox(t`Dark theme set`, t`You've set the dark them explicitly. Some electrified features won't be displayed properly. Please set it to auto and set up your browser/os to prefer dark mode.`, "warning-sign");
+            }
+
+
+            this.plugins.forEach(p => p.onUiReady()); // TODO: Remove this line here and call it from the right place
+
+            this.initializedAndLoggedOnPromise.resolve(undefined);
         }
-
-        // Show server warnings:
-        for(const warning of await this.currentNode.electrifiedApi.getServerWarnings()) {
-            await messageBox(t`Warning`, warning.message, "warning-sign");
+        catch (e) {
+            this.initializedAndLoggedOnPromise.reject(e);
+            throw e;
         }
-
-        // Warn, when theme explicitly set
-        if(getCookieByName( "PVEThemeCookie") === "proxmox-dark") {
-            await messageBox(t`Dark theme set`, t`You've set the dark them explicitly. Some electrified features won't be displayed properly. Please set it to auto and set up your browser/os to prefer dark mode.`, "warning-sign");
-        }
-
-
-        this.plugins.forEach(p => p.onUiReady()); // TODO: Remove this line here and call it from the right place
     }
 
     /**
@@ -499,6 +526,44 @@ export class Application extends AsyncConstructableClass{
             const contextObj = this.datacenter.getNode_existing(info.node).getGuest_existing(info.vmid);
             return this._addElectrifiedMenuItems(contextObj, extJsMenuItems);
         })
+    }
+
+    _addElectrifiedNodeConfigTabs(nodeName: string, extJsItems: any[]) {
+        returnWithErrorHandling(() => {
+            this.plugins.forEach(plugin => {
+                const nodeConfigTabs = plugin.getNodeConfigTabs();
+                checkForDuplicates(nodeConfigTabs, "key");
+                nodeConfigTabs.forEach(configTab => {
+
+                    const itemId = `${plugin.name}_${configTab.key}`;
+                    const xtype = `nodeConfigTab_${itemId}`;
+
+                    // Define ExtJs component:
+                    if(!Application._ExtComponents[xtype]) { // Not yet defined ?
+                        Application._ExtComponents[xtype] = Ext.define(`electrifiedApp._ExtComponents.${xtype}`, {
+                            xtype,
+                            extend: ExtJsPanel2React,
+                        });
+                    }
+
+                    const WatchedContentComponentFn = watchedComponent(configTab.componentFn, {fallback:<div style={{margin: "16px", textAlign: "center"}}>{t`Loading...`}</div>});
+
+                    extJsItems.push({
+                        itemId,
+                        ...configTab,
+                        xtype,
+                        componentFn: watchedComponent((props: any) => {
+                            load( () => this.initializedAndLoggedOnPromise);
+                            return <div className={isPVEDarkTheme()?"bp6-dark":undefined} style={{width: "100%", height: "100%"}}><ThemeProvider theme={muiTheme}>
+                                <ErrorBoundary fallbackRender={ErrorState}>
+                                    <WatchedContentComponentFn item={this.datacenter.getNode_existing(nodeName)}/>
+                                </ErrorBoundary>
+                            </ThemeProvider></div>
+                        }),
+                    });
+                })
+            });
+        });
     }
 
     _configureColumn(pluginName: string, columnKey: string) {

@@ -533,7 +533,7 @@ export function newDefaultWeakMap<K,V>(createDefaultValueFn: (key: K) => V): Def
 }
 
 //@ts-ignore
-const muiTheme = createTheme({
+export const muiTheme = createTheme({
     palette: {
         mode: isPVEDarkTheme()?"dark":"light",
     },

@@ -194,7 +194,7 @@ You can't call the overridden level its self, because that method was destroyed 
 [Ext JS 6 documentation](https://docs.sencha.com/extjs/6.7.0/modern/Ext.html)
 
 # Bridging to React
-See JsDoc of `app.util.ui.ReactComponent` to insert react components into Ext JS components.
+See JsDoc of `app.util.ui.ExtJs2ReactComponent` to insert react components into Ext JS components.
 
 # Publish your plugin
 Plugins are delivered as npm packages. The name must start with `pveme-ui-plugin-`.

@@ -457,6 +457,10 @@ Ext.define('PVE.node.Config', {
             },
         );
 
+
+        window.electrifiedApp._addElectrifiedNodeConfigTabs(nodename, me.items);
+
+
         me.callParent();
 
         me.mon(me.statusStore, 'load', function (store, records, success) {

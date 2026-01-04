@@ -10,8 +10,8 @@ Ext.namespace("electrified.util");
  * Usage:
  *
  * <pre><code>
- * Ext.create(app.util.ui.ReactComponent,{
- *   	                		componentClass: MyReactComponent
+ * Ext.create(app.util.ui.ExtJs2ReactComponent,{
+ *   	                		componentFn: MyReactComponent
  *   	                		props: {...reactProps},
  *   	                		...extJsProps
  *   	                	});
@@ -21,14 +21,15 @@ Ext.namespace("electrified.util");
  * TODO: Allow to pass a component **function**, wrap in watchedcomponent, suspense, error-handler, theme providers.
  * </p>
  */
-export const ReactComponent = Ext.define("electrified.util.ReactComponent", {
+export const ExtJs2ReactComponent = Ext.define("electrified.util.ReactComponent", {
     extend: "Ext.Component",
     html: "reactcomponent", // must have some html
+    reactRoot: null,
     config: {
         /**
-         * Class / constructor function of the react component to render
+         * Class / function of the react component to render
          */
-        componentClass: null,
+        componentFn: null,
 
         /**
          * Properties to pass to the component
@@ -36,9 +37,14 @@ export const ReactComponent = Ext.define("electrified.util.ReactComponent", {
         props: {}
     },
     listeners: {
-        afterrender: function(me: any, eOpts: any) {
-            createRoot(me.getEl().dom).render(React.createElement(me.componentClass, me.props ), );
+        afterrender(me: any, eOpts: any) {
+            this.reactRoot = createRoot(me.getEl().dom);
+            this.reactRoot.render(React.createElement(me.componentFn, me.props ), );
+        },
+        removed(sender: any, container: any, index: any, eOpts: any) {
+            this.reactRoot?.unmount();
         }
+
 
     }
 });
@@ -47,7 +53,7 @@ export const ReactComponent = Ext.define("electrified.util.ReactComponent", {
 /**
  * A panel that holds a reactjs component
  */
-export const ReactPanel = Ext.define("electrified.util.ReactPanel", {
+export const ExtJsPanel2React = Ext.define("electrified.util.ReactPanel", {
     extend: "Ext.panel.Panel",
     layout: {
         type: "border"
@@ -57,7 +63,7 @@ export const ReactPanel = Ext.define("electrified.util.ReactPanel", {
         /**
          * Class / constructor function of the react component to render
          */
-        componentClass: null,
+        componentFn: null,
 
         /**
          * Properties to pass to the component
@@ -67,8 +73,8 @@ export const ReactPanel = Ext.define("electrified.util.ReactPanel", {
 
     constructor: function(config: any) {
         // validity check:
-        if(config.componentClass == null) {
-            throw "componentClass not set";
+        if(!config.componentFn && !this.componentFn) {
+            throw "componentFn not set";
         }
 
         config.items= [
@@ -91,8 +97,8 @@ export const ReactPanel = Ext.define("electrified.util.ReactPanel", {
                         flex: 1,
                         collapsible: false,
                         border: false,
-                        items: [Ext.create(ReactComponent,{
-                            componentClass: config.componentClass,
+                        items: [Ext.create(ExtJs2ReactComponent,{
+                            componentFn: config.componentFn || this.componentFn,
                             props: config.props,
                             autoScroll: true, // Show scrollbars if the content overflows. This does not work in a panel, this is why we use a component
                         })]
@@ -103,7 +109,7 @@ export const ReactPanel = Ext.define("electrified.util.ReactPanel", {
 
 
 
-        callParent(ReactPanel, this, "constructor", [config]);
+        callParent(ExtJsPanel2React, this, "constructor", [config]);
     }
 
 });
