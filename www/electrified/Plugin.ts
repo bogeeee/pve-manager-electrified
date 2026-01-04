@@ -654,7 +654,7 @@ type ContextMenuItem = Record<string, unknown> & {
 };
 
 
-type ConfigTab<T> = {
+export type ConfigTab<T> = {
     title: string,
     /**
      * Must be unique in your plugin

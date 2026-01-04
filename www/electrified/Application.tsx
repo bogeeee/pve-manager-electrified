@@ -26,6 +26,7 @@ import {
 } from "./util/util";
 import {generated_pluginList as pluginList} from "../_generated_pluginList";
 import {
+    ConfigTab,
     fixPluginClass,
     initialize_nodeConfig_and_datacenterConfig,
     initialize_userConfig,
@@ -529,9 +530,13 @@ export class Application extends AsyncConstructableClass{
     }
 
     _addElectrifiedNodeConfigTabs(nodeName: string, extJsItems: any[]) {
+        return this._addElectrifiedConfigTabs(extJsItems, plugin => plugin.getNodeConfigTabs(), () => this.datacenter.getNode_existing(nodeName))
+    }
+
+    _addElectrifiedConfigTabs<T>(extJsItems: any[], getPluginTabs: (plugin: Plugin) => ConfigTab<T>[], getItem: () => T,) {
         returnWithErrorHandling(() => {
             this.plugins.forEach(plugin => {
-                const nodeConfigTabs = plugin.getNodeConfigTabs();
+                const nodeConfigTabs = getPluginTabs(plugin);
                 checkForDuplicates(nodeConfigTabs, "key");
                 nodeConfigTabs.forEach(configTab => {
 
@@ -556,7 +561,7 @@ export class Application extends AsyncConstructableClass{
                             load( () => this.initializedAndLoggedOnPromise);
                             return <div className={isPVEDarkTheme()?"bp6-dark":undefined} style={{width: "100%", height: "100%"}}><ThemeProvider theme={muiTheme}>
                                 <ErrorBoundary fallbackRender={ErrorState}>
-                                    <WatchedContentComponentFn item={this.datacenter.getNode_existing(nodeName)}/>
+                                    <WatchedContentComponentFn item={getItem()}/>
                                 </ErrorBoundary>
                             </ThemeProvider></div>
                         }),
