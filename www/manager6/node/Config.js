@@ -458,7 +458,7 @@ Ext.define('PVE.node.Config', {
         );
 
 
-        window.electrifiedApp._addElectrifiedNodeConfigTabs(nodename, me.items);
+        window.electrifiedApp._addElectrifiedNodeConfigTabs(nodename, me.items, caps);
 
 
         me.callParent();

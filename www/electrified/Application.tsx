@@ -529,8 +529,8 @@ export class Application extends AsyncConstructableClass{
         })
     }
 
-    _addElectrifiedNodeConfigTabs(nodeName: string, extJsItems: any[]) {
-        return this._addElectrifiedConfigTabs(extJsItems, plugin => plugin.getNodeConfigTabs(), () => this.datacenter.getNode_existing(nodeName))
+    _addElectrifiedNodeConfigTabs(nodeName: string, extJsItems: any[], caps: UserCapabilities) {
+        return this._addElectrifiedConfigTabs(extJsItems, plugin => plugin.getNodeConfigTabs(caps), () => this.datacenter.getNode_existing(nodeName))
     }
 
     _addElectrifiedConfigTabs<T>(extJsItems: any[], getPluginTabs: (plugin: Plugin) => ConfigTab<T>[], getItem: () => T,) {
@@ -640,7 +640,7 @@ spawnWithErrorHandling(async () => {
 })
 
 
-type UserCapabilities = {
+export type UserCapabilities = {
     "mapping": {
         "Mapping.Audit"?: (0|1),
         "Permissions.Modify"?: (0|1),

@@ -1,4 +1,4 @@
-import type {Application} from "./Application";
+import type {Application, UserCapabilities} from "./Application";
 import {Guest} from "./model/Guest";
 import {Qemu} from "./model/Qemu";
 import {Lxc} from "./model/Lxc";
@@ -190,7 +190,7 @@ export class Plugin {
      * This example will add a tab named "Send ping" with a button that sends a ping to the active pve node:
      * </p>
      * <code><pre>
-    getNodeConfigTabs() {
+    getNodeConfigTabs(caps) {
         return [{
             title: t`Send ping`,
             key: "send_ping",
@@ -204,8 +204,10 @@ export class Plugin {
         }];
     }
      * </pre></code>
+     *
+     * @param caps Permissions. They might be only cached. Note that this method is called when not yet fully initialized / logged on
      */
-    getNodeConfigTabs(): ConfigTab<Node>[] {
+    getNodeConfigTabs(caps: UserCapabilities): ConfigTab<Node>[] {
         return [];
     }
 
