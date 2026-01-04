@@ -3,7 +3,6 @@
 # PVE electrified
 
 This is a modification of the [Proxmox Virtual Environment](https://www.proxmox.com/en/products/proxmox-virtual-environment/overview) **user interface**, that brings some nice features, mainly for homelab'ers.
-The goal is also, to provide a plugin system and give plugin authors the tools to develop such and publish them with very little effort.
 PVE electrified is **independant** of the company Proxmox. 
 
 # Features
@@ -15,8 +14,9 @@ PVE electrified is **independant** of the company Proxmox.
 - PLANNED: Show real thin **disk usage** in the tree.
 - PLANNED: **Instant cloning** of guests from zfs snapshots.
 - PLANNED: **Docker support**.
-- PLANNED: **Assistants for several small optimizations for home-lab usage:** Gpu passthrough; Dynamic ip; Prevent ssd wear-down; Install microcode update packages; Fix zfs memory settings; Fix disk stalling; Warn on simultaneous USB device use; Show password prompts for encrypted disks; 
+- PLANNED: **Assistants for several small optimizations for home-lab usage:** Gpu passthrough; Dynamic ip; Prevent ssd wear-down; Install microcode update packages; Fix zfs memory settings; Fix disk stalling; Warn on simultaneous USB device use; Show password prompts for encrypted disks;
 
+_Features are developed for **home-lab users first**. That's the most reasonable to focus on as a free-time open source developer. If you need features refined for enterprise grade (i.e. working with non-admin permissions), you still have the option [to pay me working on them](mailto:bogeee@bogitech.de)._
 
 ## Install
 Requires PVE 9.x or later.
@@ -46,7 +46,7 @@ These are the differences to the original pve-manager package from Proxmox: Thes
 - Frontend:
   Each time, when started, the nodejs webserver uses **vite**, to bundle the web files. This way, we can have the most modern web
   techniques like React, Typescript, npm dependency management and fast reloading during development (during dev, it starts a vite devserver). The old original
-  .js files are also served. But instead of all in a non-debugging-friendly bigfile, they are listed as individually (Vite can still bundle them internally but then we have proper source mapping).
+  .js files are also served. But instead of all in a non-debugging-friendly bigfile, they are listed as individual (Vite can still bundle them internally but then we have proper source mapping).
   React components are used in the mix with the old ExtJS 6 components.  
   Vite can also run in **dev server** mode. Then it watches the files and gives you fast reloading. Under `/webBuild`, There's control panel, where you can switch modes.
 
@@ -59,4 +59,5 @@ See [here](https://github.com/bogeeee/pve-manager-electrified/blob/main/docs/plu
 # Source code / license
 
 [Source code on Github](https://github.com/bogeeee/pve-manager-electrified)  
-[License](https://github.com/bogeeee/pve-manager-electrified/blob/main/debian/copyright). It meets GNU Affero General Public License, GPL and MIT. So it's luckily allowed to modify and republish the Proxmox's packages👍.
+[License](https://github.com/bogeeee/pve-manager-electrified/blob/main/debian/copyright). It meets GNU Affero General Public License, GPL and MIT. So it's luckily allowed to modify and republish the Proxmox's packages👍.  
+[contact me](mailto:bogeee@bogitech.de)
