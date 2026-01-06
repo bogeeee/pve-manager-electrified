@@ -212,6 +212,7 @@ export abstract class Guest extends ModelBase {
             await guest._applyConfigValues(section);
 
             snapshotRoot.snapshots.set(sectionName, guest); //Register
+            guest.snapshotRoot = snapshotRoot;
         }
 
         // Set guest.parentSnapshot for all entries:
