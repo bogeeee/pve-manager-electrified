@@ -222,6 +222,10 @@ export class Node extends GuestsContainerBase {
         return `Node: ${this.name}`;
     }
 
+    toJSON() {
+        return `{"name": ${JSON.stringify(this.name)} }` // Prevent it from diving int electrifiedApi
+    }
+
     get type(): "node" {
         return "node";
     }

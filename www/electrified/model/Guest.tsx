@@ -293,11 +293,15 @@ export abstract class Guest extends ModelBase {
        if(!this.isSnapshot()) {
            return this;
        }
-       return this.childSnapshots.find(s => s.liveGuest) || throwError("Illegal state: no life guest found");
+       return this.childSnapshots.find(s => s.liveGuest) || throwError("Illegal state: no life guest found. Note that this error can occur after taking a snapshot, after which the config config file is **temporarily** in an illegal state (proxmox does not write the changes atomically).");
     }
 
     get id() {
         return this.liveGuest._id!;
+    }
+
+    get key() {
+        return `${this._id}@${this.snapshotName}`
     }
 
     get node() {
@@ -333,6 +337,17 @@ export abstract class Guest extends ModelBase {
         this.rawDataRecord = preserve(this.rawDataRecord, fields, {destroyObsolete: false});
 
         this._fireUpdate();
+    }
+
+    checkValid() {
+        for(const k of Object.keys(this)) {
+            const val = this[k];
+            if(val !== null && val instanceof Hardware) {
+                if(val.parent !== this) {
+                    throw new Error("Illegal parent");
+                }
+            }
+        }
     }
 }
 
