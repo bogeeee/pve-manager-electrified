@@ -227,6 +227,8 @@ Ext.define('PVE.qemu.CmdMenu', {
             },
         ];
 
+        this.items = window.electrifiedApp._addGuestElectrifiedMenuItems(info, this.items);
+
 	me.callParent();
 
         if (caps.vms['VM.Snapshot']) {
