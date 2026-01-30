@@ -1,3 +1,10 @@
+pve-manager-electrified (9.4.0) trixie; urgency=medium
+
+  * Improved API for plugin developers
+
+ -- PVE-electrified crew <crew@pve-electrified.net>  Sun, 04 Jan 2026 00:00:04 +0200
+
+
 pve-manager-electrified (9.3.0) trixie; urgency=medium
 
   * CPU bars: Fix styles, more config options
