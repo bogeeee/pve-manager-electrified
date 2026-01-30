@@ -1,3 +1,9 @@
+# Preface
+_I was asked by people, why such a security readme exists in an open source project, cause these usually don't occur in other projects.
+The reason is: I have a general security-sensitive background, like i.e. see my older open source project [Restfuncs](https://github.com/bogeeee/restfuncs?tab=readme-ov-file#intro--features),
+so, while coding, I constantly have in mind to not leave any open holes or issues or "security debt" and these are addressed immediately  from the first release on.
+Any architectural changes that **might** leave a "why" here come into this file. So you can make your self a picture about it. And also to document that i've made myself thoughts about it, to show that this project has some quality._
+
 # Security
 
 PVE electrified's main goal is to allow faster coding of new features. That's why it uses a different architecture for serving the web, based on Node.js and NPM.
@@ -8,6 +14,8 @@ So here are the things listed, that are different to the original proxmox's pve-
 
 - `apt install pve-manager-electrified` adds ~470 additional debian packages for Node.js and npm
 - For the nodejsserver code, after install, there are ~300 Node.js packages installed. You can find them under `/usr/share/pve-manager-nodejsserver/node_modules`
+  - 254 of them come by [express](https://expressjs.com/), which is the most used web server in the Node.js world and backs millions of productive websites. 
+  - 30 of them come by the very broadly used packages: axios, vite, execa. 
 - For the client/web, there are ~100 packages installed + again those from nodejsserver. You can find them under: `/usr/share/pve-manager/node_modules`
   - The following packages have pinned versions, because exploit ability is considered lower than a future supply chain attack:
     - **react-draggable + it's dependencies** See commit c65e7a7c.

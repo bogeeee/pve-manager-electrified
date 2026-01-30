@@ -61,3 +61,7 @@ See [here](https://github.com/bogeeee/pve-manager-electrified/blob/main/docs/plu
 [Source code on Github](https://github.com/bogeeee/pve-manager-electrified)  
 [License](https://github.com/bogeeee/pve-manager-electrified/blob/main/debian/copyright). It meets GNU Affero General Public License, GPL and MIT. So it's luckily allowed to modify and republish the Proxmox's packages👍.  
 [contact me](mailto:bogeee@bogitech.de)
+
+# 100% handcrafted
+Electrified code is 100% handcrafted with passion ❤, by an experienced software developer.
+Contact me, if you need  features or if you have freelancer work to give out (in the EU, german / english speaking).
