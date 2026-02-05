@@ -35,10 +35,10 @@ _As an open source author, i'm feeling very responsible for security in my own c
 
 # Web code
 
-Compared to classic proxmox, the processing is shifted much more towards the client (browser). 
-Pve-electrified- or plugin client code can request the server directly to run shell commands, if the client is authorized with `Sys.console` permission. _So, you must have this permission for a lot of the new features. This is a bit the downside here, feature wise_.
-The `pvenodejsserver` services runs as root therefore (opposed to the original `pveproxxy` which runs as `www-data` with limited permissions and controls the `pvedaemon` with root permissions).
-This different paradigm doesn't weaken security per se, because it's the same semantics: If someone pwns the browser or the front-facing service, we're screwed in both cases (classic/electrified).
+Compared to classic proxmox, the processing is shifted much more towards the client (browser).
+- Provided that the client is authorized with `Sys.console` permission, Pve-electrified- or plugin client code can request the server directly to run shell commands. This was previously only possible for a small subset of shell commands. _So, you must be logged in as admin to use a lot of the new features_.
+- There's no longer the `pveproxy` with `www-data` lowered-permissions as the **front-most** service whose purpose only was SSL termination and 1:1 http forwarding to the other services that require `root` permission. 
+Instead, this is now all directly done in the `pvenodejsserver` with `root` permissions. So, for security, this means: Under the theoretical ssl lib attack surface (i.e. of a non updated system), a **general** attack could harm the system, while previously this would be only possible by a **tailored** attack that is aware how the other pve service's APIs work)
 
 # Permissions / logon state
 The logon state and user's permissions will be cached in the **pve-electrified-**(pvenodejsserver)'s browser session, additionally to the **original** pveproxy on 8005's browser session, holding it. This allows us fast websocket calls for the small price that **logouts** might get propagated a few seconds later (10 seconds in prod, 2hours in vite-devserver mode). A manual logout in the ui also clears the permission cache. 
