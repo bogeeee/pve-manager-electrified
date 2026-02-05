@@ -3,7 +3,7 @@
 # PVE electrified
 
 This is a modification of the [Proxmox Virtual Environment](https://www.proxmox.com/en/products/proxmox-virtual-environment/overview) **user interface**, that brings some nice features, mainly for homelab'ers.
-PVE electrified is **independant** of the company Proxmox. 
+PVE electrified is **independant** of the company Proxmox. Also, it adds a plugin system and lifts PVE to a very developer friendly architecture, because in the past it was so hard for developers to enhance the PVE UI that almost no community mods existed.
 
 # Features
 - **CPU usage bars** in the tree. Updated in realtime.[^1]  
