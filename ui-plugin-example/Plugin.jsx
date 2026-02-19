@@ -98,3 +98,5 @@ export function t(englishTextTokens /* :TemplateStringsArray */, ...values /* :a
 export var Ext = window.Ext;
 //@ts-ignore
 export var PVE = window.PVE;
+//@ts-ignore
+export var Proxmox = window.Proxmox;

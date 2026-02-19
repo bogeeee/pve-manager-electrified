@@ -49,6 +49,8 @@ Here are some picked api methods, to give you an orientation:
 | `Application.util.spawnWithErrorHandling` | Use in event handlers, to properly display errors when something goes wrong | ```` <button onclick={ () => this.app.util.spawnWithErrorHandling( async() => {...my code...} ) }/>````|
 | t | Translates text into the current ui language | ```` t`You have ${unreadMsgs.length} unread messages` ```` | 
 
+Also, in the Plugin.jsx, you have symbols for classic PVE's classes/functions:  `EXT`, `PVE`, `PVE.Utils`, `Proxmox`, `Proxmox.Utils`. The ExtJS docs, or code completion in the browser console may help you find stuff.
+
 # Quick guide to creating dialogs with react
 
 Here's a quick and practical guide, because we want to spare you reading all the [100s pages of very chatty React documentation](https://18.react.dev/).
