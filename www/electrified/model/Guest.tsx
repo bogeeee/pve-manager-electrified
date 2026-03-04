@@ -152,53 +152,7 @@ export abstract class Guest extends ModelBase {
     static async _fromConfig(configFile: File, guestClazz: typeof Guest): Promise<Guest> {
         const cfgContent = await retsync2promise(() => configFile.content);
 
-        /**
-         * @returns config sections with keys->values. The main/non-snapshot section is under: undefined
-         */
-        function parseConfigToSections2Record() {
-            const result = newDefaultMap((s: string | undefined) => new Map<string, string | string[]>() );
-
-            let section = result.get(undefined);
-            for(let line of cfgContent.split("\n")) {
-                line = line.trim();
-                const sectionMatch = line.match(/^\[(.*)]$/);
-                if(sectionMatch) {
-                    !result.has(sectionMatch[1]) || throwError(`duplicate ${line} in config file ${configFile.path}`)
-                    section = result.get(sectionMatch[1]);
-                    continue;
-                }
-                if(line.match(/^\s*$/)) { // Empty line ?
-                    continue;
-                }
-                if(line.match(/^\s*#.*/)) { // Comment ?
-                    continue;
-                }
-
-                const entryMatch = line.match(/^(\w+?)([0-9]*)\s*:(.*)$/);
-                if(!entryMatch) {
-                    throw new Error(`Invalid line in config file ${configFile.path}:\n${line}`);
-                }
-                let [l, key, numericIndex, value] = entryMatch;
-                value = value.trim();
-
-                let existingValue = section.get(key);
-                if(existingValue && (numericIndex != "") != Array.isArray(existingValue) ) throw new Error("Invalid line / mixing numeric with non-numeric keys: " + line); // Validity check
-
-                if(numericIndex) {
-                    existingValue ||= [];
-                    section.set(key, existingValue);
-                    (existingValue as string[])[Number(numericIndex)] = value;
-                }
-                else { // Single value
-                    !existingValue || throwError(`Duplicate key: ${key} in config file ${configFile.path}`);
-                    section.set(key, value);
-                }
-            }
-            return result;
-        }
-
-
-        const section2record = parseConfigToSections2Record();
+        const section2record = Guest._configString_to_sections2Record(cfgContent, configFile.path);
 
         // Create guest instances and add them to snapshotRoot:
         const snapshotRoot = new SnapshotRoot();
@@ -280,6 +234,62 @@ export abstract class Guest extends ModelBase {
         guestFromConfig._id = this.id;
         const preserved = preserve(this, guestFromConfig)
         preserved === this || throwError("Illegal state");
+    }
+
+    /**
+     * Parses the config file contents
+     * @param cfgContent Content of the config file like in /etc/pve/qemu-server/xxx.conf
+     * @returns config sections with keys->values. The main/non-snapshot section is under: undefined
+     */
+    static _configString_to_sections2Record(cfgContent: string, diagnosis_configFilePath: string) {
+        const result = newDefaultMap((s: string | undefined) => new Map<string, string | string[]>() );
+
+        let section = result.get(undefined);
+        for(let line of cfgContent.split("\n")) {
+            line = line.trim();
+            const sectionMatch = line.match(/^\[(.*)]$/);
+            if(sectionMatch) {
+                !result.has(sectionMatch[1]) || throwError(`duplicate ${line} in config file ${diagnosis_configFilePath}`)
+                section = result.get(sectionMatch[1]);
+                continue;
+            }
+            if(line.match(/^\s*$/)) { // Empty line ?
+                continue;
+            }
+            if(line.match(/^\s*#.*/)) { // Comment ?
+                continue;
+            }
+
+            const entryMatch = line.match(/^(\w+?)([0-9]*)\s*:(.*)$/);
+            if(!entryMatch) {
+                throw new Error(`Invalid line in config file ${diagnosis_configFilePath}:\n${line}`);
+            }
+            let [l, key, numericIndex, value] = entryMatch;
+            value = value.trim();
+
+            let existingValue = section.get(key);
+            if(existingValue && (numericIndex != "") != Array.isArray(existingValue) ) throw new Error("Invalid line / mixing numeric with non-numeric keys: " + line); // Validity check
+
+            if(numericIndex) {
+                existingValue ||= [];
+                section.set(key, existingValue);
+                (existingValue as string[])[Number(numericIndex)] = value;
+            }
+            else { // Single value
+                !existingValue || throwError(`Duplicate key: ${key} in config file ${diagnosis_configFilePath}`);
+                section.set(key, value);
+            }
+        }
+        return result;
+    }
+
+    /**
+     * Reverse of {@see _configString_to_sections2Record}
+     * @param sections2Record
+     */
+    static _sections2Record_to_configString(sections2Record: ReturnType<typeof Guest._configString_to_sections2Record>) {
+
+        return "TODO"
     }
 
     isSnapshot() {
