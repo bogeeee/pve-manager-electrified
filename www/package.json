@@ -17,6 +17,7 @@
     "restfuncs-common": "^3.2.3",
     "clone": "2.1.2",
     "@types/clone": "^2.1.4",
+    "@brillout/json-serializer": "=0.5.18",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "@types/react": "^18.3.11",

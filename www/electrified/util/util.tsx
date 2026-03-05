@@ -1123,3 +1123,12 @@ export function detached(target: object, propName: string) {
         },
     });
 }
+
+/**
+ * Quick implementation / slow at runtime
+ * @param a
+ * @param b
+ */
+export function isDeepEqual<T>(a: T, b:T) {
+    return brilloutJsonStringify(a) === brilloutJsonStringify(b);
+}

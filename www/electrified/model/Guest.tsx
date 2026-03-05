@@ -3,7 +3,7 @@ import {getElectrifiedApp, MeteredValue} from "../globals";
 import {ModelBase} from "./ModelBase";
 import {preserve} from "react-deepwatch";
 import type {Node} from "./Node"
-import {spawnAsync, throwError} from "../util/util";
+import {isDeepEqual, spawnAsync, throwError} from "../util/util";
 import {Disk} from "./hardware/Disk";
 import {File} from "./File";
 import {newDefaultMap} from "../util/util";
@@ -154,6 +154,11 @@ export abstract class Guest extends ModelBase {
 
         const section2record = Guest._configString_to_sections2Record(cfgContent, configFile.path);
 
+        // Safety check if parser functions are consistent:
+        if(!isDeepEqual(section2record, Guest._configString_to_sections2Record(Guest._sections2Record_to_configString(section2record), configFile.path))) { // Note: convert to map, cause _.isEqual does not compare map subclasses
+            throw new Error("Config parsing/serializing functions do not deliver consistent result for " + configFile.path + ". Reserialized output:\n" + Guest._sections2Record_to_configString(section2record));
+        }
+
         // Create guest instances and add them to snapshotRoot:
         const snapshotRoot = new SnapshotRoot();
         for(const sectionName of section2record.keys()) {
@@ -284,12 +289,30 @@ export abstract class Guest extends ModelBase {
     }
 
     /**
-     * Reverse of {@see _configString_to_sections2Record}
+     * Reverse of {@see _configString_to_sections2Record}. For writing the config back to the file
      * @param sections2Record
+     * @returns
      */
     static _sections2Record_to_configString(sections2Record: ReturnType<typeof Guest._configString_to_sections2Record>) {
-
-        return "TODO"
+        return [...sections2Record.entries()].map(([sectionName, record]) => {
+            let result = "";
+            result+= `${sectionName?`[${sectionName}]\n`:""}`;  // [section]
+            [...record.entries()].forEach(([key, value]) => {
+                value !== undefined && value !== null || throwError("Value must not be null or undefined"); // Safety check
+                if(typeof value === "string") {
+                    result+=`${key}: ${value}\n`
+                }
+                else if(Array.isArray(value)) {
+                    value.forEach((subValue, index) => {
+                        result+=`${key}${index}: ${subValue}\n`
+                    })
+                }
+                else {
+                    throw new Error("Unhandled value type");
+                }
+            });
+            return result;
+        }).join("\n\n");
     }
 
     isSnapshot() {
