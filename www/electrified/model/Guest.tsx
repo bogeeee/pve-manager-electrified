@@ -102,10 +102,7 @@ export abstract class Guest extends ModelBase {
      * The amount of traffic in bytes that was sent from the guest over the network since it was started
      */
     netout!:number
-    /**
-     * The pool name
-     */
-    pool?:string
+
     /**
      *
      */
@@ -345,13 +342,17 @@ export abstract class Guest extends ModelBase {
         return this.node.getFile(`/etc/pve/nodes/${this.node.name}/${this.type === "lxc"?"lxc":(this.type === "qemu"?"qemu-server":throwError("unsupported type"))}/${this.id}.conf`);
     }
 
+    get pool() {
+        return getElectrifiedApp().datacenter.pools.find(pool => pool.getGuest(this.id));
+    }
+
     abstract get type(): "lxc" | "qemu"
 
     /**
      * @param fields fields from resource store (classic pve)
      */
     _updateFieldsFromResourceStore(fields: any) {
-        const fieldsToCopy: (keyof this)[] = ["name", "cpu","disk","diskread", "diskwrite", "hastate", "lock", "maxcpu", "maxdisk", "maxmem", "mem", "netin", "netout","pool","status", "uptime"];
+        const fieldsToCopy: (keyof this)[] = ["name", "cpu","disk","diskread", "diskwrite", "hastate", "lock", "maxcpu", "maxdisk", "maxmem", "mem", "netin", "netout", "status", "uptime"];
         for(const key of fieldsToCopy) {
             //@ts-ignore
             this[key] = fields[key];
@@ -374,6 +375,7 @@ export abstract class Guest extends ModelBase {
 
     checkValid() {
         for(const k of Object.keys(this)) {
+            //@ts-ignore
             const val = this[k];
             if(val !== null && val instanceof Hardware) {
                 if(val.parent !== this) {
