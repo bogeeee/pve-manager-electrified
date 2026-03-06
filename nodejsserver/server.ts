@@ -149,7 +149,7 @@ class AppServer {
 
             // Redirect /pve2, ... to perl server on port 8005:
             expressApp.use(
-                ['/pve2', "/novnc", "/xtermjs", "/pwt", "/api2", "/favicon.ico", "/qrcode.min.js", "/proxmoxlib.js"],
+                ['/pve2', "/novnc", "/xtermjs", "/pwt", "/api2", "/favicon.ico", "/qrcode.min.js", "/proxmoxlib.js", "/pve-docs"],
                 createProxyMiddleware({
                     target: `https://ip6-localhost:${this.config.origPort}`,
                     prependPath: true,
