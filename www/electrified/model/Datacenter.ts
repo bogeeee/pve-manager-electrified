@@ -6,6 +6,7 @@ import {getElectrifiedApp} from "../globals";
 import {ModelBase} from "./ModelBase";
 import {ExternalPromise} from "restfuncs-common";
 import {Pool} from "./Pool";
+import {Storage} from "./Storage"
 
 
 export class Datacenter extends ModelBase {
@@ -17,6 +18,8 @@ export class Datacenter extends ModelBase {
 
     _nodes!: Map<string, Node>;
     _pools!: Map<string, Pool>;
+    _storages!: Map<string, Storage>;
+    
     /**
      * When not true, we save the listeners that are called when flipped to true
      * @protected
@@ -44,6 +47,7 @@ export class Datacenter extends ModelBase {
 
         this._nodes = new Map<string, Node>();
         this._pools = new Map<string, Pool>();
+        this._storages = new Map<string, Storage>();
 
         this._nodes.set((window as any).Proxmox.NodeName, app.currentNode); // Must re-use this instance  / don't let it auto-crate a new one
 
@@ -108,12 +112,12 @@ export class Datacenter extends ModelBase {
                 }
             })
         }
-        
+
         // Pools
         {
             const poolsSeenInResourceStore = new Set<string>()
-            for (const record of getElectrifiedApp()._resourceStore.getData().getRange().map((r:any) => r.data)) { // Iterate all items from the resource store
-                if(record.type !== "pool") {
+            for (const record of getElectrifiedApp()._resourceStore.getData().getRange().map((r: any) => r.data)) { // Iterate all items from the resource store
+                if (record.type !== "pool") {
                     continue;
                 }
 
@@ -136,6 +140,36 @@ export class Datacenter extends ModelBase {
             [...this._pools.keys()].forEach(name => {
                 if (!poolsSeenInResourceStore.has(name)) {
                     this._pools.delete(name);
+                }
+            })
+        }
+
+        // Storages:
+        {
+            const storagesSeenInResourceStore = new Set<string>()
+            for (const record of getElectrifiedApp()._resourceStore.getData().getRange().map((r: any) => r.data)) { // Iterate all items from the resource store
+                if (record.type !== "storage") {
+                    continue;
+                }
+
+                const name = record.storage as string || throwError("storage not set");
+
+                storagesSeenInResourceStore.add(name);
+
+                // Create if not exists:
+                if (!this._storages.has(name)) {
+                    const storage = new Storage(name);
+                    this._storages.set(name, storage); // Create it
+                }
+
+                // Update storage fields:
+                this.getStorage(name)!._updateFields(record, this);
+            }
+
+            // Delete storages that don't exist anymore:
+            [...this._storages.keys()].forEach(name => {
+                if (!storagesSeenInResourceStore.has(name)) {
+                    this._storages.delete(name);
                 }
             })
         }
@@ -223,6 +257,18 @@ export class Datacenter extends ModelBase {
 
     getPool_existing(name: string) {
         return this._pools.get(name) || throwError(`Pool does not exist: ${name}`);
+    }
+
+    get storages() {
+        return [...this._storages.values()];
+    }
+
+    getStorage(name: string) {
+        return this._storages.get(name);
+    }
+
+    getStorage_existing(name: string) {
+        return this._storages.get(name) || throwError(`Storage does not exist: ${name}`);
     }
 
     /**
