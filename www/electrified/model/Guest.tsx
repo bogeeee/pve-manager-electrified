@@ -258,15 +258,30 @@ export abstract class Guest extends ModelBase {
         }
     }
 
+    /**
+     * @see _writeConfig
+     */
     async _reReadFromConfig() {
         if(this.isSnapshot()) {
             throw new Error("Can only call it on the live guest");
         }
+
+        // Note: similar code in the fast-clone method
+
         const guestFromConfig = await Guest._fromConfig(this.configFile, this.constructor as any);
         guestFromConfig._node = this.node;
         guestFromConfig._id = this.id;
         const preserved = preserve(this, guestFromConfig)
         preserved === this || throwError("Illegal state");
+    }
+
+    /**
+     * Writes this._rawConfigRecord back to the config file
+     */
+    _writeConfig() {
+        const configObj = new Map( [...this.snapshotRoot.snapshots.entries()].map(([section, guest]) => [section, guest._rawConfigRecord]) );
+        const configContent = Guest._sections2Record_to_configString(configObj as any);
+        this.configFile.content = configContent;
     }
 
     /**
@@ -340,7 +355,7 @@ export abstract class Guest extends ModelBase {
                 }
             });
             return result;
-        }).join("\n\n");
+        }).join("\n");
     }
 
     isSnapshot() {
