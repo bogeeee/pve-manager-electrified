@@ -10,6 +10,8 @@ import {newDefaultMap} from "../util/util";
 import {retsync2promise} from "proxy-facades/retsync";
 import {Hardware} from "./hardware/Hardware";
 import {NetworkInterface} from "./hardware/NetworkInterface";
+import {stringify as brilloutJsonStringify} from "@brillout/json-serializer/stringify"
+import {instanceOf} from "prop-types";
 
 export abstract class Guest extends ModelBase {
     _id?: number;
@@ -31,6 +33,7 @@ export abstract class Guest extends ModelBase {
 
     /**
      * Used as a simple way to write a changed config back to disk (redundant with fields here)
+     * @see _configRecord
      */
     _rawConfigRecord!: Map<string, string | string[]>;
 
@@ -134,6 +137,26 @@ export abstract class Guest extends ModelBase {
         currentCpuUsage?: MeteredValue
     }
 
+    /**
+     * [Fieldname / same as key in config file] -> class info
+     */
+    static hardwareKeys2Classes: {[key: string]: {clazz: typeof Hardware}} = {
+        net: {clazz: NetworkInterface},
+
+        // LXC:
+        rootfs: {clazz: Disk}, // LXC root fs
+        mp: {clazz: Disk}, // LXC mountpoint
+
+        // Qemu:
+        ide: {clazz: Disk},
+        sata: {clazz: Disk},
+        scsi: {clazz: Disk},
+        virtio: {clazz: Disk},
+        efidisk: {clazz: Disk},
+        tpmstate: {clazz: Disk},
+        unused: {clazz: Disk},
+    }
+
     protected async constructAsync(): Promise<void> {
         await super.constructAsync();
 
@@ -153,7 +176,7 @@ export abstract class Guest extends ModelBase {
         const section2record = Guest._configString_to_sections2Record(cfgContent, configFile.path);
 
         // Safety check if parser functions are consistent:
-        if(!isDeepEqual(section2record, Guest._configString_to_sections2Record(Guest._sections2Record_to_configString(section2record), configFile.path))) { // Note: convert to map, cause _.isEqual does not compare map subclasses
+        if(!isDeepEqual(section2record, Guest._configString_to_sections2Record(Guest._sections2Record_to_configString(section2record), configFile.path))) {
             throw new Error("Config parsing/serializing functions do not deliver consistent result for " + configFile.path + ". Reserialized output:\n" + Guest._sections2Record_to_configString(section2record));
         }
 
@@ -167,6 +190,12 @@ export abstract class Guest extends ModelBase {
             guest.name = section.get("name") as string;
 
             await guest._applyConfigValues(section);
+
+            // Safety check, if methods are consistent:
+            const diag_sectionToString = (section:any) => Guest._sections2Record_to_configString(new Map([[sectionName,section]]) as any);
+            if(diag_sectionToString(section) !== diag_sectionToString(guest._configRecord)) {
+                throw new Error(`_applyConfigValues() and get _configRecord() methods are not consistent for ${configFile.path}#[${sectionName}]. Section:\n${diag_sectionToString(section)}\n****Reserialized output of get _configRecord():****\n${diag_sectionToString(guest._configRecord)}`);
+            }
 
             snapshotRoot.snapshots.set(sectionName, guest); //Register
             guest.snapshotRoot = snapshotRoot;
@@ -190,42 +219,26 @@ export abstract class Guest extends ModelBase {
 
     /**
      * ... must use it on fresh objects only.
+     * Reverse method of {@see _configRecord}
      * @param configEntries entries from the config file (only one section/snapshot)
      * @see constructAsync
      */
     async _applyConfigValues(configEntries: Map<string, string | string[]>) {
 
-        this._rawConfigRecord = configEntries;
-
-        const hardwareKeys2Classes: {[key: string]: {clazz: typeof Hardware}} = {
-            net: {clazz: NetworkInterface},
-
-            // LXC:
-            rootfs: {clazz: Disk}, // LXC root fs
-            mp: {clazz: Disk}, // LXC mountpoint
-
-            // Qemu:
-            ide: {clazz: Disk},
-            sata: {clazz: Disk},
-            scsi: {clazz: Disk},
-            virtio: {clazz: Disk},
-            efidisk: {clazz: Disk},
-            tpmstate: {clazz: Disk},
-            unused: {clazz: Disk},
-        }
+        this._rawConfigRecord = structuredClone(configEntries);
 
         for(const key of configEntries.keys()) {
-            let value: string | string[] | number = configEntries.get(key)!;
+            let configValue: string | string[] | number = configEntries.get(key)!;
 
             // Convert numeric value to number:
-            if(typeof value === "string") {
-                if(!Number.isNaN(Number(value))) {
-                    value = Number(value);
+            if(typeof configValue === "string") {
+                if(!Number.isNaN(Number(configValue))) {
+                    configValue = Number(configValue);
                 }
             }
 
             const createHardwareObject = async(key: string, rawConfigString: string, index?: number) => {
-                const clazz = hardwareKeys2Classes[key]?.clazz || Hardware;
+                const clazz = Guest.hardwareKeys2Classes[key]?.clazz || Hardware;
                 const fields = {
                     parent: this,
                     rawConfigString,
@@ -240,21 +253,36 @@ export abstract class Guest extends ModelBase {
                 return result;
             }
 
-            if(Array.isArray(value)) { // Multiple?
+            // Set value:
+            let value: unknown = undefined;
+            if(Array.isArray(configValue)) { // Multiple?
+                // Make sure, hardware class is registered, to help the _configRecord getter:
+                if(!Guest.hardwareKeys2Classes.hasOwnProperty(key)) {
+                    //console.log(`Registering hardware class: ${key}`);
+                    Guest.hardwareKeys2Classes[key] = {clazz: Hardware}
+                }
+
                 // Treat as hardwareArray:
                 const hardwareArray: Hardware[] = [];
-                for(const i in value) {
-                    hardwareArray[i] = await createHardwareObject(key, value[i], Number(i));
+                for(const i in configValue) {
+                    hardwareArray[i] = await createHardwareObject(key, configValue[i], Number(i));
                 }
-                //@ts-ignore
-                this[key] = hardwareArray;
+                value = hardwareArray;
+                this._rawConfigRecord.set(key, "DELETED_REDUNDANT_VALUE");
             }
             else {
                 if(!Object.hasOwnProperty(key)) { // Not initialized by other code?
-                    // @ts-ignore
-                    this[key] = hardwareKeys2Classes[key]?await createHardwareObject(key, value):value;
+                    if(Guest.hardwareKeys2Classes[key]) {
+                        value = await createHardwareObject(key, configValue as string);
+                        this._rawConfigRecord.set(key, "DELETED_REDUNDANT_VALUE");
+                    }
+                    else {
+                        value = configValue;
+                    }
                 }
             }
+            //@ts-ignore
+            this[key] = value;
         }
     }
 
@@ -279,9 +307,33 @@ export abstract class Guest extends ModelBase {
      * Writes this._rawConfigRecord back to the config file
      */
     _writeConfig() {
-        const configObj = new Map( [...this.snapshotRoot.snapshots.entries()].map(([section, guest]) => [section, guest._rawConfigRecord]) );
+        const configObj = new Map( [...this.snapshotRoot.snapshots.entries()].map(([section, guest]) => [section, guest._configRecord]) );
         const configContent = Guest._sections2Record_to_configString(configObj as any);
         this.configFile.content = configContent;
+    }
+
+    /**
+     * Reverse method of {@link _applyConfigValues}
+     * @returns Config record to be written to disk.
+     * @see _rawConfigRecord
+     */
+    get _configRecord() {
+        const result = new Map(this._rawConfigRecord.entries());
+        // Set hardware
+        for(const key of Object.keys(Guest.hardwareKeys2Classes)) {
+            //@ts-ignore
+            const value = this[key];
+            if(value === undefined) {
+                continue;
+            }
+            if(Array.isArray(value)) {
+                result.set(key, value.map(d => d.rawConfigString))
+            }
+            else {
+                result.set(key, value.rawConfigString);
+            }
+        }
+        return result;
     }
 
     /**
