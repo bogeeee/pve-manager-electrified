@@ -44,12 +44,13 @@ export abstract class Guest extends ModelBase {
 
     // *** Hardware ***
 
-    // There are also non-listed fields which come from the config file
-
     /**
-     * Array can have gaps, i.e. when the config file says: "disk0: ... , disk2: ..."
+     * Unused disks
+     * <p>
+     *  Array can have gaps, i.e. when the config file says: "unused0: ... , unused2: ..."
+     * </p>
      */
-    disks!: Disk[]
+    unused: Disk[] = [];
 
     // *** Fields from ResourceStore / https://pve.proxmox.com/pve-docs/api-viewer/#/cluster/resources: ***
     /**
@@ -196,7 +197,22 @@ export abstract class Guest extends ModelBase {
 
         this._rawConfigRecord = configEntries;
 
-        const hardwareKeys2Classes: {[key: string]: typeof Hardware} = {net: NetworkInterface, disk: Disk}
+        const hardwareKeys2Classes: {[key: string]: {clazz: typeof Hardware}} = {
+            net: {clazz: NetworkInterface},
+
+            // LXC:
+            rootfs: {clazz: Disk}, // LXC root fs
+            mp: {clazz: Disk}, // LXC mountpoint
+
+            // Qemu:
+            ide: {clazz: Disk},
+            sata: {clazz: Disk},
+            scsi: {clazz: Disk},
+            virtio: {clazz: Disk},
+            efidisk: {clazz: Disk},
+            tpmstate: {clazz: Disk},
+            unused: {clazz: Disk},
+        }
 
         for(const key of configEntries.keys()) {
             let value: string | string[] | number = configEntries.get(key)!;
@@ -208,20 +224,35 @@ export abstract class Guest extends ModelBase {
                 }
             }
 
+            const createHardwareObject = async(key: string, rawConfigString: string, index?: number) => {
+                const clazz = hardwareKeys2Classes[key]?.clazz || Hardware;
+                const fields = {
+                    parent: this,
+                    rawConfigString,
+                    ...(index !== undefined)?{index}:{},
+                    ...clazz.isDisk?{type: key}:{}
+                };
+                const result = await clazz.create(fields);
+
+                // Validity check:
+                result.rawConfigString === rawConfigString || throwError(`Guest ${this}'s hardware's config was not properly parsed. Key: ${key}${index!==undefined?index:""}.\nOriginal config string:\n${rawConfigString}\nAfter parsing and serializing:\n${result.rawConfigString}`);
+
+                return result;
+            }
+
             if(Array.isArray(value)) { // Multiple?
-                // Treat as hardware:
-                const hardware: Hardware[] = [];
+                // Treat as hardwareArray:
+                const hardwareArray: Hardware[] = [];
                 for(const i in value) {
-                    const clazz = hardwareKeys2Classes[key] || Hardware;
-                    hardware[i] = await clazz.create({index: Number(i), rawConfigString: value[i], parent: this});
+                    hardwareArray[i] = await createHardwareObject(key, value[i], Number(i));
                 }
                 //@ts-ignore
-                this[key] = hardware;
+                this[key] = hardwareArray;
             }
             else {
                 if(!Object.hasOwnProperty(key)) { // Not initialized by other code?
                     // @ts-ignore
-                    this[key] = value;
+                    this[key] = hardwareKeys2Classes[key]?await createHardwareObject(key, value):value;
                 }
             }
         }
@@ -346,6 +377,33 @@ export abstract class Guest extends ModelBase {
         return getElectrifiedApp().datacenter.pools.find(pool => pool.getGuest(this.id));
     }
 
+    /**
+     * Disks of all types.
+     * @see the fields "ide", "sata", "scsi", "virtio", "efidisk", "tpmstate", "rootfs", "mp", "unused", to get them for a certain type
+     */
+    get disks(): Disk[] {
+        const result: Disk[] = [];
+        for(const type of Disk.diskTypes) {
+            //@ts-ignore
+            const diskOrDisks: Disk | Disk[] = this[type];
+            if(!diskOrDisks) {
+                continue;
+            }
+            if(Array.isArray(diskOrDisks)) {
+                [...diskOrDisks].forEach(disk => {
+                    if(disk) {
+                        result.push(disk);
+                    }
+                })
+
+            }
+            else {
+                result.push(diskOrDisks);
+            }
+        }
+        return result;
+    }
+
     abstract get type(): "lxc" | "qemu"
 
     /**
@@ -383,6 +441,16 @@ export abstract class Guest extends ModelBase {
                 }
             }
         }
+    }
+
+    toString() {
+        let id = `<unknown id>${this.snapshotName?`/[${this.snapshotName}]`:""}`;
+        try {
+            id = `${this.id}`;
+        }
+        catch (e) {
+        }
+        return `${id} (${this.type})`
     }
 }
 

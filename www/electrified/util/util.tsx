@@ -103,6 +103,19 @@ export function fixErrorStack(error: Error) {
     }
 }
 
+export function toError(err: any): Error {
+    if(!err) {
+        return new Error();
+    }
+    if(err instanceof Error) {
+        return err;
+    }
+    if(typeof err === "string") {
+        return new Error(err);
+    }
+    return new Error(`<${typeof err}>`);
+}
+
 
 export async function sleep(ms: number) {
     return new Promise<void>((resolve, reject) => {

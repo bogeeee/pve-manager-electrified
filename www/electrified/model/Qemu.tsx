@@ -1,4 +1,5 @@
 import {Guest} from "./Guest";
+import {Disk} from "./hardware/Disk";
 
 /**
  * A qemu virtual machine guest.
@@ -12,6 +13,50 @@ export class Qemu extends Guest{
      * Used memory in bytes from the point of view of the host
      */
     memhost?: number
+
+    /**
+     * Ide disks
+     * <p>
+     *  Array can have gaps, i.e. when the config file says: "ide0: ... , ide2: ..."
+     * </p>
+     */
+    ide: Disk[] = [];
+    /**
+     * Sata disks
+     * <p>
+     *  Array can have gaps, i.e. when the config file says: "sata0: ... , sata2: ..."
+     * </p>
+     */
+    sata: Disk[] = [];
+    /**
+     * Scsi disks
+     * <p>
+     *  Array can have gaps, i.e. when the config file says: "scsi0: ... , scsi2: ..."
+     * </p>
+     */
+    scsi: Disk[] = [];
+    /**
+     * Virtio disks
+     * <p>
+     *  Array can have gaps, i.e. when the config file says: "virtio0: ... , virtio2: ..."
+     * </p>
+     */
+    virtio: Disk[] = [];
+    /**
+     * Efi disks
+     * <p>
+     *  Array can have gaps, i.e. when the config file says: "efi0: ... , efi2: ..."
+     * </p>
+     */
+    efidisk: Disk[] = [];
+    /**
+     * Tpm state disks
+     * <p>
+     *  Array can have gaps, i.e. when the config file says: "tpmstate0: ... , tpmstate2: ..."
+     * </p>
+     */
+    tpmstate: Disk[] = [];
+
 
     /**
      * Internal

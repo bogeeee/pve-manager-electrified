@@ -1,4 +1,5 @@
 import {Guest} from "./Guest";
+import {Disk} from "./hardware/Disk";
 
 /**
  * A lxc guest
@@ -9,6 +10,20 @@ import {Guest} from "./Guest";
  *
  */
 export class Lxc extends Guest {
+
+    /**
+     *
+     */
+    rootfs!: Disk;
+
+    /**
+     * Mount points
+     * <p>
+     * Array can have gaps, i.e. when the config file says: "mp0: ... , mp2: ..."
+     * </p>
+     */
+    mp:Disk[] = [];
+
     get type(): "lxc" {
         return "lxc";
     }
