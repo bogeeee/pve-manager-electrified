@@ -22,7 +22,7 @@ import {
     InfoTooltip,
     messageBox,
     getCookieByName,
-    checkForDuplicates, muiTheme, ErrorState
+    checkForDuplicates, muiTheme, ErrorState, ObjectHTMLSelect
 } from "./util/util";
 import {generated_pluginList as pluginList} from "../_generated_pluginList";
 import {
@@ -159,6 +159,7 @@ export class Application extends AsyncConstructableClass{
             InfoTooltip,
             confirm,
             messageBox,
+            ObjectHTMLSelect,
         }
     }
 

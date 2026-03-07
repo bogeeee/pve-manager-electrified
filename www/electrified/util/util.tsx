@@ -1,14 +1,15 @@
 import {CSSProperties, FunctionComponent, ReactNode, useEffect, useLayoutEffect, useState} from "react";
+import {stringify as brilloutJsonStringify} from "@brillout/json-serializer/stringify"
 
 import {
     Button,
     ButtonGroup,
     Classes,
     Dialog as BlueprintDialog,
-    DialogProps as BlueprintDialogProps, Icon,
+    DialogProps as BlueprintDialogProps, HTMLSelect, HTMLSelectProps, Icon,
     Intent,
     NonIdealState,
-    NonIdealStateIconSize,
+    NonIdealStateIconSize, Popover, PopoverProps,
     ProgressBar,
     Tag,
     Tooltip
@@ -21,9 +22,10 @@ import * as React from "react";
 import Draggable from 'react-draggable';
 import ReactDOM from "react-dom";
 import { createRoot } from 'react-dom/client';
-import {watchedComponent} from "react-deepwatch";
+import {binding, ValueOnObject, watchedComponent} from "react-deepwatch";
 import { ErrorBoundary } from "react-error-boundary";
 import {getElectrifiedApp} from "../globals";
+import {object} from "prop-types";
 
 function gettext(text: string) {
     const app = getElectrifiedApp();
@@ -999,6 +1001,43 @@ export function InfoTooltip(props: {children: React.ReactElement}) {
 }
 
 /**
+ * Shows a Tooltip on hover
+ * Usage: <HoverTooltip tooltip={"Here's a message"} showHand={true}>Hover me!</HoverTooltip>
+ * @param props
+ * @constructor
+ */
+export function HoverTooltip(props: PopoverProps & {tooltip: React.ReactNode, children: React.ReactElement, showHand?:boolean}) {
+    const enabled = props.tooltip?true:false;
+    return <span style={{cursor: (enabled && props.showHand)?"pointer":undefined}}><Popover interactionKind={"hover-target"} enforceFocus={false /* no important use case*/} hoverOpenDelay={0} hoverCloseDelay={0} transitionDuration={50} {...props}
+        isOpen={enabled?undefined:false /* Enforce rendering the same tree also when disabled. The RememberChoiceButton's icon css transition does not work otherwise */}
+                    content={<div style={{padding: "6px"}}>{props.tooltip}</div>}
+    >
+        {props.children}
+    </Popover></span>
+}
+
+/**
+ *
+ * @constructor
+ */
+export const RememberChoiceButton = watchedComponent<{currentValue: unknown, storageBind: ValueOnObject<unknown>}>(<T,>(props: {currentValue: T, storageBind: ValueOnObject<T>}) => {
+    // Save default value:
+    useEffect(() => {
+        if(props.storageBind.value === undefined && props.currentValue !== undefined) {
+            props.storageBind.value = props.currentValue;
+        }
+    }, [props.currentValue, props.storageBind.value])
+
+    const disabled = props.currentValue === props.storageBind.value;
+
+    const save = () => {
+        props.storageBind.value = props.currentValue;
+    }
+
+    return <HoverTooltip tooltip={!disabled?gettext(`Set as default for this dialog`):undefined}><a style={{cursor:disabled?"initial":"pointer"}} onClick={() => save()}><span className="fa fa-save" style={{opacity: disabled?"0.2":"1", transition:!disabled?"opacity 0.35s":undefined}} /></a></HoverTooltip>
+});
+
+/**
  *
  * @param title
  * @param message
@@ -1136,6 +1175,29 @@ export function detached(target: object, propName: string) {
         },
     });
 }
+
+let  objectHTMLSelect_idGenerator = 0;
+const objectHTMLSelect_ObjIds = newDefaultWeakMap<object, number>(obj => ++objectHTMLSelect_idGenerator);
+type SelectItem<T> = { value: T, content: ReactNode };
+
+type ObjectHtmlSelectProps<T> = { binding: ValueOnObject<T>, items: SelectItem<T>[] };
+/**
+ * Normal html selects only support string|number as target value, but here you can use object instances.
+ * Usage: <code><ObjectHTMLSelect binding={binding(state.myObj)} items={[{value: undefined, content: "please select"}, {value: {x: "myInstance1"}, content: "myInstance1"}, {value: {x: "myInstance1"}, content: "myInstance2"}]} />
+ */
+export const ObjectHTMLSelect = watchedComponent((props: HTMLSelectProps & ObjectHtmlSelectProps<unknown>) => {
+    function getKeyForItem(item: SelectItem<unknown>) {
+        return getKey(item.value);
+    }
+    function getKey(value: unknown) {
+        return isObject(value)?objectHTMLSelect_ObjIds.get(value as object):value as string | number | undefined;
+    }
+    function key2value(key: string | number | undefined) {
+        return props.items.find(item => String(getKeyForItem(item)) === String(key))?.value
+    }
+
+    return <HTMLSelect {...props} value={getKey(props.binding.value)} onChange={e => props.binding.value = key2value(e.target.value)}>{props.items.map(item => <option key={`${getKeyForItem(item)}`} value={getKeyForItem(item)}>{item.content}</option>)}</HTMLSelect>
+}) as (<T,>(props: HTMLSelectProps & ObjectHtmlSelectProps<T>) => any)
 
 /**
  * Quick implementation / slow at runtime
