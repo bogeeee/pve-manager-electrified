@@ -458,7 +458,7 @@ export abstract class Guest extends ModelBase {
                 continue;
             }
             if(Array.isArray(diskOrDisks)) {
-                [...diskOrDisks].forEach(disk => {
+                diskOrDisks.forEach(disk => {
                     if(disk) {
                         result.push(disk);
                     }
