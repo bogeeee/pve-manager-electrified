@@ -540,7 +540,7 @@ export abstract class Guest extends ModelBase {
 
     async deleteSnapshot() {
         this.snapshotName || throwError(`Must call deleteSnapshot on a snapshot and not on the live guest`);
-        const taskId = await this.node.api2fetch("POST", `/${this.type}/${this.id}/snapshot/${this.snapshotName}`, {}) as string;
+        const taskId = await this.node.api2fetch("DELETE", `/${this.type}/${this.id}/snapshot/${this.snapshotName}`, {}) as string;
         await this.node.awaitTask(taskId);
         await this.liveGuest._reReadFromConfig();
     }
