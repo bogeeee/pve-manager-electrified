@@ -666,7 +666,7 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
 
                 // Delete all other snapshots:
                 clone.snapshotRoot.snapshots = new Map([[undefined, clone]]);
-                clone.parentSnapshot = undefined;
+                clone._parentSnapshotName = undefined;
                 clone.childSnapshots = [];
 
                 // Set id and node like in the Guest#_reReadFromConfig:

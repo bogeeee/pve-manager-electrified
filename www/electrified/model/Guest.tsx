@@ -42,7 +42,7 @@ export abstract class Guest extends ModelBase {
      * Undefined when live guest
      */
     snapshotName?: string;
-    parentSnapshot?: Guest
+    _parentSnapshotName?: string
     childSnapshots: Guest[] = [];
 
     // *** Hardware ***
@@ -209,7 +209,7 @@ export abstract class Guest extends ModelBase {
             const section = section2record.get(sectionName)!;
             const parentName = section.get("parent") as string | undefined;
             if(parentName) {
-                guest.parentSnapshot = snapshotRoot.snapshots.get(parentName);
+                guest._parentSnapshotName = parentName;
                 guest.parentSnapshot?.childSnapshots.push(guest);
             }
         }
@@ -413,6 +413,10 @@ export abstract class Guest extends ModelBase {
 
     isSnapshot() {
         return this._node === undefined;
+    }
+
+    get parentSnapshot() {
+        return this.snapshotRoot.snapshots.get(this._parentSnapshotName);
     }
 
     /**
