@@ -140,6 +140,7 @@ export class Node extends GuestsContainerBase {
      * @returns the json result from under rawResult.data = the data that you want to work with.
      * @see Application#api2fetch
      * @see Node#electrifiedClient
+     * @see awaitTask
      *
      */
     async api2fetch(method: "GET" | "POST" | "PUT" | "DELETE", url: string, params?: Record<string, unknown>): Promise<unknown> {
@@ -148,6 +149,23 @@ export class Node extends GuestsContainerBase {
             throw new Error("Url must start with /");
         }
         return await getElectrifiedApp().api2fetch(method, `/nodes/${this.name}${url}`, params);
+    }
+
+    /**
+     * Waits til the pve task is finished or has failed (throws an error then)
+     * @param id
+     */
+    async awaitTask(id: string) {
+        while(true) {
+            const statusResult: any = await this.api2fetch("GET", `/tasks/${id}/status`);
+            if(statusResult.status !== "running") {
+                if(statusResult.exitstatus === "OK") {
+                    return;
+                }
+                throw new Error(`Task ${id} failed. Exit status: ${statusResult.exitstatus}`);
+            }
+            await sleep(100); // TODO: Friendly poll
+        }
     }
 
     /**
