@@ -1,34 +1,27 @@
-import {Plugin} from "./Plugin"
+import {ContextMenuItem, Plugin} from "./Plugin"
 import React, {CSSProperties, ReactNode} from "react";
-import {watchedComponent, watched, useWatchedState, bind} from "react-deepwatch"
-import {
-    Button,
-    ButtonGroup,
-    Checkbox,
-    Classes,
-    HTMLSelect,
-    Icon,
-    Intent,
-    InputGroup,
-    Label,
-    Menu,
-    MenuItem,
-    Popover,
-    Tooltip,
-    Slider
-} from "@blueprintjs/core";
+import {bind, binding, useWatchedState, watched} from "react-deepwatch"
+import {Button, ButtonGroup, Classes, Icon, InputGroup, Intent, NumericInput, Popover, Slider} from "@blueprintjs/core";
 import "@blueprintjs/core/lib/css/blueprint.css";
 import "@blueprintjs/icons/lib/css/blueprint-icons.css";
-import {getElectrifiedApp, t} from "./globals";
+import {t} from "./globals";
 import "./styles.css"
 import {Guest} from "./model/Guest";
 import {Node} from "./model/Node";
-import {string} from "prop-types";
-import {newDefaultMap, showMuiDialog, throwError} from "./util/util";
+import {
+    HoverTooltip,
+    newDefaultMap,
+    ObjectHTMLSelect, RememberChoiceButton,
+    showBlueprintDialog,
+    showMuiDialog,
+    throwError, toError
+} from "./util/util";
 import _ from "underscore";
 import {Pool} from "./model/Pool";
+import {Storage} from "./model/Storage"
 import {ElectrifiedJsonConfig} from "pveme-nodejsserver/Common";
 import {DialogActions, DialogContent, DialogContentText} from "@mui/material";
+import {retsync2promise} from "proxy-facades/retsync";
 
 /**
  * Offers nice features.
@@ -65,6 +58,12 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
             },
 
             width: 4
+        },
+
+        fastClone: {
+            start: false,
+            randomizeMacAddresses: true,
+            randomizeVmGenId: true,
         }
     }
 
@@ -467,6 +466,322 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
             }]
     }
 
+    async showFastCloneDialog(param_origGuest: Guest) {
+        const app = this.app;
+        const node = param_origGuest.node;
+
+        /**
+         * @returns string like "orig_name_2"
+         */
+        const getInitialSuggestedName = () => {
+            const idx2name = (idx: number) => `${param_origGuest.name}-${idx}`;
+            let idx = 2;
+            while(this.app.datacenter.nodes.some(node => node.guests.some(g => g.name === idx2name(idx)))) {
+                idx++;
+            }
+            return idx2name(idx)
+        }
+
+        interface DialogResult {
+            targetNode: Node;
+            pool: Pool | undefined;
+            snapshot: Guest;
+            id: number;
+            name: string;
+            targetStorage: Storage | undefined;
+            start: boolean;
+            randomizeMacAddresses:boolean;
+            randomizeVmGenId:boolean;
+            pauseOld:boolean;
+            fastClonePossible(): string | boolean;
+        }
+
+        const result = await showBlueprintDialog<DialogResult>({title: t`Clone ${param_origGuest.name} (${param_origGuest.id})`, style: {minWidth: "750px"}},(props) => {
+            const origGuest = watched(param_origGuest);
+            const fastCloneUserConfig = watched(this.userConfig.fastClone);
+
+            const state = useWatchedState(new class implements DialogResult {
+                targetNode = origGuest.node;
+                pool = origGuest.pool;
+                snapshot = origGuest;
+                id = app.datacenter.getFreeGuestId(origGuest.id);
+                name = getInitialSuggestedName();
+
+                /**
+                 * Undefined = same as source
+                 */
+                targetStorage: Storage | undefined;
+
+                start = fastCloneUserConfig.start !== undefined?fastCloneUserConfig.start:false;
+                randomizeMacAddresses = fastCloneUserConfig.randomizeMacAddresses !== undefined?fastCloneUserConfig.randomizeMacAddresses:true;
+                randomizeVmGenId = fastCloneUserConfig.randomizeVmGenId !== undefined?fastCloneUserConfig.randomizeVmGenId:true;
+                pauseOld = false;
+
+                fastClonePossible() {
+                    if (this.targetNode !== origGuest.node) {
+                        return t`Different target node.`;
+                    }
+                    if (this.targetStorage !== undefined) {
+                        return t`Can only fast clone when storage ist the same as source.`;
+                    }
+                    for(const disk of this.snapshot.disks) {
+                        if(disk.type === "unused") {
+                            continue;
+                        }
+                        if(disk.media === "cdrom") {
+                            continue;
+                        }
+                        if(!disk.storage) {
+                            return t`Disk ${disk.type}${disk.index} uses a storage that was not found: ${disk.storageName}.`;
+                        }
+                        if(disk.storage.type !== "zfspool") {
+                            return t`Disk ${disk.type}${disk.index} is not stored on ZFS. Instead: ${disk.storage.type}.`;
+                        }
+                    }
+                    return true;
+                }
+            });
+
+            function isValid() {
+                if(app.datacenter.getGuest(state.id)) {
+                    return false;
+                }
+                if(!state.name.match(Proxmox.Utils.DnsName_match)) {
+                    return false;
+                }
+                return true;
+            }
+
+            const iconFixStyle = {position: "relative", top: "-2px"}
+
+            return <div>
+                <div className={Classes.DIALOG_BODY} >
+                    <table>
+                        <tbody>
+                            <tr>
+                                {/* Target node: */}
+                                <td className="electrifiedFormLabel">{t`Target node`}:</td>
+                                <td><ObjectHTMLSelect binding={binding(state.targetNode)} items={this.app.datacenter.nodes.map(node => {return {value:node, content: node.name}})} fill={true}/></td>
+
+                                <td className="electrifiedDialogSpacer"/>
+
+                                {/* Snapshot: */}
+                                <td className="electrifiedFormLabel">{t`Snapshot`}:</td>
+                                <td><ObjectHTMLSelect binding={binding(state.snapshot)} items={[origGuest, ...[...origGuest.snapshotRoot.snapshots.values()].reverse().filter(g => g !== origGuest) /* bring them into the correct order*/].map(snap => {return {value: snap, content: snap.isSnapshot()?snap.snapshotName:t`Current`}})} fill={true} /></td>
+                            </tr>
+                            <tr>
+                                {/* Guest Id: */}
+                                <td className="electrifiedFormLabel">{t`Guest ID`}:</td>
+                                <td><NumericInput value={state.id} onValueChange={(val) => state.id = val} min={0} max={99999} fill={true}/></td>
+
+                                <td className="electrifiedDialogSpacer"/>
+
+                                {/* Target storage: */}
+                                <td className="electrifiedFormLabel">{t`Target storage`}:</td>
+                                <td><ObjectHTMLSelect binding={binding(state.targetStorage)} items={[{value: undefined, content: t`Same as source`}, ...app.datacenter.storages.filter(s => s.content.some(c => c === (origGuest.type === "qemu"?"images":"rootdir"))).map(storage => {return {value: storage, content: storage.name}})]} fill={true} /></td>
+                            </tr>
+                            <tr>
+                                {/* Name: */}
+                                <td className="electrifiedFormLabel">{t`Name`}:</td>
+                                <td colSpan={4}><InputGroup {...bind(state.name)} fill={true}/> </td>
+
+
+                            </tr>
+                            <tr>
+                                {/* Resource pool: */}
+                                <td className="electrifiedFormLabel">{t`Resource pool`}:</td>
+                                <td colSpan={4}><ObjectHTMLSelect binding={binding(state.pool)} items={[{value: undefined, content: t`No pool`}, ...app.datacenter.pools.map(pool => {return {value: pool, content: pool.name}})]} fill={true}/></td>
+                            </tr>
+                            <tr><td colSpan={99}><hr/></td></tr>
+                            <tr>
+                                {/* Randomize mac addresses: */}
+                                <td className="electrifiedFormLabel">{t`Randomize MAC address(es)`}:</td>
+                                <td><input type="checkbox" {...bind(state.randomizeMacAddresses)}/>&#160;<span style={iconFixStyle as any}><RememberChoiceButton currentValue={state.randomizeMacAddresses} storageBind={binding(fastCloneUserConfig.randomizeMacAddresses)}/></span></td>
+
+                                <td className="electrifiedDialogSpacer"/>
+                                <td className="electrifiedFormLabel"></td>
+                                <td></td>
+
+                            </tr>
+                            <tr>
+                                {/* Randomize vmgenId: */}
+                                <td className="electrifiedFormLabel">{t`Randomize VM gen id`}:</td>
+                                <td><input type="checkbox" {...bind(state.randomizeVmGenId)}/>&#160;<span style={iconFixStyle as any}><RememberChoiceButton currentValue={state.randomizeVmGenId} storageBind={binding(fastCloneUserConfig.randomizeVmGenId)}/></span></td>
+
+                                <td className="electrifiedDialogSpacer"/>
+                                <td className="electrifiedFormLabel"></td>
+                                <td></td>
+
+                            </tr>
+                            <tr>
+                                {/* Start guest: */}
+                                <td className="electrifiedFormLabel"><span className="fa fa-play"/> {t`Start guest`}:</td>
+                                <td><input type="checkbox" {...bind(state.start)}/>&#160;<span style={iconFixStyle as any}><RememberChoiceButton currentValue={state.start} storageBind={binding(fastCloneUserConfig.start)}/></span></td>
+
+                                <td className="electrifiedDialogSpacer"/>
+                                <td className="electrifiedFormLabel"></td>
+                                <td></td>
+
+                            </tr>
+                        </tbody>
+                    </table>
+                    <br/>
+                    <div style={{textAlign: "right"}}>&#160;{state.fastClonePossible()!==true?<span><Icon icon={"issue"}/> {t`Fast clone not possible:`} {state.fastClonePossible()}</span>:undefined}</div>
+                </div>
+
+                <div className={Classes.DIALOG_FOOTER}>
+                    <div className={Classes.DIALOG_FOOTER_ACTIONS}>
+                        <ButtonGroup>
+                            <div style={{alignSelf: "center"}}>
+                                <a onClick={() => {props.close(); (window as any).PVE.window.Clone.wrap(origGuest.node.name, origGuest.id, origGuest.name, origGuest.template, origGuest.type)}}>{t`Show classic dialog`}</a>
+                            </div>
+                            <Button onClick={() => props.resolve(state)} intent={Intent.PRIMARY} disabled={!isValid()}>{state.fastClonePossible() === true?t`Fast clone`:t`Clone`}</Button>
+                        </ButtonGroup>
+                    </div>
+                </div>
+            </div>;
+        });
+
+        if(!result) {
+            return;
+        }
+
+        app.datacenter.hasQuorum || throwError("Cannot clone. Datacenter has no quorum."); // Check quorum
+        const origGuest = param_origGuest;
+
+        if(result.fastClonePossible() === true) {
+            const rollbackFns: (() => Promise<void>)[] = [];
+            const finallyFns: (() => Promise<void>)[] = [];
+            try {
+                let tempSnapshotName: string | undefined = undefined;
+                if(result.snapshot.snapshotName === undefined) {
+                    let tempSnapshotName = `temp_for_cloning_${Math.floor(Math.random() * 10000000)}`;
+                    const tempSnapshot = await origGuest.createSnapshot(tempSnapshotName, `By PVE-Electrified. Will usually be deleted after cloning. Otherwise report this as a bug`, false);
+                    finallyFns.push(async () => await tempSnapshot.deleteSnapshot());
+                }
+
+                let clone = await Guest._fromConfig(origGuest.configFile, origGuest.constructor as any); // Construct clone in memory. Like in the Guest#_reReadFromConfig:
+
+                clone = clone.snapshotRoot.snapshots.get(tempSnapshotName || result.snapshot.snapshotName) || throwError(`Object not found for snapshotname: ${result.snapshot.snapshotName}`); // Use the specified snapshot as root
+
+                // Delete all other snapshots:
+                clone.snapshotRoot.snapshots = new Map([[undefined, clone]]);
+                clone.parentSnapshot = undefined;
+                clone.childSnapshots = [];
+
+                // Set id and node like in the Guest#_reReadFromConfig:
+                clone._node = origGuest.node;
+                clone._id = result.id;
+                rollbackFns.push(async () => {clone._id = undefined; clone._node = undefined}); // Clean up possible mess
+
+
+                // Copy firewall configuration:
+                if (await retsync2promise(() => node.getFile(`/etc/pve/firewall/${origGuest.id}.fw`).exists)) {
+                    await node.execCommand`cp /etc/pve/firewall/${origGuest.id}.fw /etc/pve/firewall/${clone.id}.fw`;
+                    rollbackFns.push(async () => {await node.execCommand`rm /etc/pve/firewall/${clone.id}.fw`;});
+                }
+
+                clone.unused = []; // Remove unused disks
+
+                // ZFS Clone disks
+                for(const disk of clone.disks) {
+                    if(disk.media === "cdrom") {
+                        continue;
+                    }
+                    disk.storage && disk.storage?.status === "available" || throwError(`Storage ${disk.storageName} is not available`);
+                    if(disk.storage === undefined) throwError("not available");
+                    disk.storage.type === "zfspool" || throwError(`Disk ${disk} is not zfs`);
+
+                    const datasetFilePath = await disk.zfsGetDatasetFilePath();
+                    const filePathMatch = /^vm-([0-9+])-(.*)$/.exec(datasetFilePath) || throwError(`Dataset file of disk ${disk} has invalid format: ${datasetFilePath}`);
+                    const clonedDatasetFilePath = `vm-${clone.id}-${filePathMatch[2]}`;
+
+                }
+
+                // Write config:
+                await retsync2promise(() => clone._writeConfig(), {checkSaved: false});
+            }
+            catch (e) {
+                // Roll back everything:
+                e = toError(e);
+                rollbackFns.reverse();
+                for(const fn of rollbackFns) {
+                    try {
+                        await fn();
+                    }
+                    catch (rollbackError) {
+                        e.message+= `\n\nThere was also a rollback error: ${toError(rollbackError).message}`;
+                    }
+                }
+
+                throw e;
+            }
+            finally {
+                // Run finallyFns:
+                finallyFns.reverse();
+                const errors: Error[] = [];
+                for(const fn of finallyFns) {
+                    try {
+                        await fn();
+                    }
+                    catch (err) {
+                        errors.push(toError(err));
+                    }
+                }
+
+                if(errors.length > 0) {
+                    const firstErr = errors[0];
+                    if(errors.length > 1) {
+                        firstErr.message+=`\n** more errors by finallyFns: ${errors.slice(1).map(e => e.message).join("; ")}`
+                    }
+                }
+            }
+        }
+        else {
+            const params: Record<string, unknown> = {
+                newid: result.id
+            };
+
+            if (result.snapshot) {
+                params.snapname = result.snapshot.snapshotName;
+            }
+
+            if (result.pool) {
+                params.pool = result.pool.name;
+            }
+
+            if (origGuest.type === 'lxc') {
+                params.hostname = result.name;
+            } else {
+                params.name = result.name;
+            }
+
+            params.target = result.targetNode.name;
+            params.full = 1;
+            if(result.targetStorage) {
+                params.storage = result.targetStorage.name;
+            }
+
+            await app.currentNode.api2fetch("POST", '/' + origGuest.type + '/' + origGuest.id + '/clone', params);
+        }
+
+        await app.datacenter.ensureUp2Date();
+    }
+
+    getGuestMenuItems(guest: Guest): (ContextMenuItem | "menuseparator")[] {
+        return [
+            "menuseparator",
+            // Fast clone
+            {
+                text: t`Fast clone`,
+                iconCls: 'fa fa-fw fa-clone',
+                handler: async () => {
+                    await this.showFastCloneDialog(guest);
+                }
+            },
+        ]
+    }
+
     get _localStorageConfigKey() {
         return `electrified_config`
     }
@@ -482,3 +797,10 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
     // ... for more plugin-hooks, use code completion here (ctrl+space).
 }
 let debug_renderCounter = 0;
+
+//@ts-ignore
+export var Ext = window.Ext;
+//@ts-ignore
+export var PVE = window.PVE;
+//@ts-ignore
+export var Proxmox = window.Proxmox;

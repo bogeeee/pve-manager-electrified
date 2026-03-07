@@ -689,7 +689,7 @@ export type TreeColumn = {
 /**
  * ... You can provide more fields than typed here, see {@link https://docs.sencha.com/extjs/6.7.0/modern/Ext.menu.Item.html Ext.menu.Item}
  */
-type ContextMenuItem = Record<string, unknown> & {
+export type ContextMenuItem = Record<string, unknown> & {
     text: string,
     /**
      * Example: 'fa fa-fw fa-send-o'.

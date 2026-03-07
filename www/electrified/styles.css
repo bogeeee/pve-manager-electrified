@@ -39,3 +39,12 @@
     /* remove ugly outline from blueprint (looks only good for blueprint components)*/
     outline:initial !important;
 }
+
+.electrifiedFormLabel {
+    padding-right: 10px;
+    white-space: nowrap;
+}
+
+.electrifiedDialogSpacer {
+    width: 25px;
+}

@@ -22,6 +22,8 @@ export class Storage extends ModelBase {
      */
     plugintype!: string;
 
+    status!: "available" | unknown;
+
     node!: Node | undefined
 
     constructor(name: string) {
@@ -53,7 +55,7 @@ export class Storage extends ModelBase {
      * @param fields fields from resource store
      */
     _updateFields(fields: any, datacenter: Datacenter) {
-        const fieldsToCopy: (keyof this)[] = ["disk", "maxdisk","plugintype"];
+        const fieldsToCopy: (keyof this)[] = ["disk", "maxdisk","plugintype", "status"];
         for(const key of fieldsToCopy) {
             //@ts-ignore
             this[key] = fields[key];

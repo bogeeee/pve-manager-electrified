@@ -8,11 +8,11 @@ export class Disk extends Hardware {
      * ... mp = lxc mount point
      */
     type!: "ide" | "sata" | "scsi" | "virtio" | "efidisk" | "tpmstate" | "rootfs" | "mp" | "unused";
-    static diskTypes = ["ide", "sata", "scsi", "virtio", "efidisk", "tpmstate", "rootfs", "mp", "unused"];
+    static diskTypes = ["ide", "sata", "scsi", "virtio", "efidisk", "tpmstate", "rootfs", "mp", "vmstate", "unused"];
     static isDisk = true;
 
     /**
-     * ... can be a string when an old configuration / snapshot was used
+     *
      */
     storageName!: string;
 
@@ -32,9 +32,9 @@ export class Disk extends Hardware {
             splitPoint = rawConfigString.length;
         }
         // Parse storage and file id:
-        const main = rawConfigString.substring(0, splitPoint).split(":");
-        main.length === 2 || throwIllegalConfig();
-        const [storageName, fileId] = main;
+        const volumeId = rawConfigString.substring(0, splitPoint).split(":");
+        volumeId.length === 2 || throwIllegalConfig();
+        const [storageName, fileId] = volumeId;
         this.storageName = storageName;
         this.fileId = fileId;
         // Parse raw options:
@@ -66,6 +66,37 @@ export class Disk extends Hardware {
      */
     get storage() {
         return getElectrifiedApp().datacenter.getStorage(this.storageName);
+    }
+
+    get media() {
+        return this.rawOptions["media"];
+    }
+
+    /**
+     * @returns I.e. `myZfsPool:vm-123-disk-0`
+     */
+    get volumeId() {
+        return `${this.storageName}:${this.fileId}`;
+    }
+
+    /**
+     * @returns I.e. `/dev/zvol/myStorage/myPool/vm-123-disk-0`
+     */
+    async getVolumeFilePath() {
+        return this.parent.node.execCommand`pvesm path ${this.volumeId}`;
+    }
+
+    /**
+     * @returns I.e. `myStorage/myPool/vm-123-disk-0`
+     */
+    async zfsGetDatasetFilePath() {
+        const volPath = await this.getVolumeFilePath();
+        const match = /^\/dev\/zvol\/(.*)$/.exec(volPath) || throwError(`Invalid volume file path: ${volPath}`);
+        return match[1];
+    }
+
+    toString() {
+        return `${this.type}${this.index !== undefined?this.index:""}`;
     }
 
 }

@@ -155,6 +155,7 @@ export abstract class Guest extends ModelBase {
         efidisk: {clazz: Disk},
         tpmstate: {clazz: Disk},
         unused: {clazz: Disk},
+        vmstate: {clazz: Disk},
     }
 
     protected async constructAsync(): Promise<void> {
@@ -360,7 +361,7 @@ export abstract class Guest extends ModelBase {
                 continue;
             }
 
-            const entryMatch = line.match(/^(\w+?)([0-9]*)\s*:(.*)$/);
+            const entryMatch = line.match(/^([\w\-]+?)([0-9]*)\s*:(.*)$/);
             if(!entryMatch) {
                 throw new Error(`Invalid line in config file ${diagnosis_configFilePath}:\n${line}`);
             }
@@ -518,6 +519,30 @@ export abstract class Guest extends ModelBase {
         catch (e) {
         }
         return `${id} (${this.type})`
+    }
+
+    /**
+     *
+     * @param snapname
+     * @param description
+     * @param vmstate Saves the vmstate = with memory
+     */
+    async createSnapshot(snapname: string, description:string, vmstate: boolean) {
+        const taskId = await this.node.api2fetch("POST", `/${this.type}/${this.id}/snapshot`, {
+            snapname,
+            description,
+            vmstate
+        }) as string;
+        await this.node.awaitTask(taskId);
+        await this._reReadFromConfig();
+        return this.snapshotRoot.snapshots.get(snapname) || throwError(`Snapshot does not exist`);
+    }
+
+    async deleteSnapshot() {
+        this.snapshotName || throwError(`Must call deleteSnapshot on a snapshot and not on the live guest`);
+        const taskId = await this.node.api2fetch("POST", `/${this.type}/${this.id}/snapshot/${this.snapshotName}`, {}) as string;
+        await this.node.awaitTask(taskId);
+        await this.liveGuest._reReadFromConfig();
     }
 }
 

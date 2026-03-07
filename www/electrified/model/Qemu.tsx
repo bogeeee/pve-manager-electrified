@@ -57,6 +57,7 @@ export class Qemu extends Guest{
      */
     tpmstate: Disk[] = [];
 
+    vmstate?: Disk
 
     /**
      * Internal

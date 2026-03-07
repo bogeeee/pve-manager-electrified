@@ -42,6 +42,13 @@ export class Datacenter extends ModelBase {
         }
     }
 
+    getFreeGuestId(start: number) {
+        while(this.getGuest(start)) {
+            start++;
+        }
+        return start;
+    }
+
     protected async constructAsync(): Promise<void> {
         const app = getElectrifiedApp();
 
