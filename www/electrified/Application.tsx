@@ -56,6 +56,7 @@ import {Hardware} from "./model/hardware/Hardware";
 import {NetworkInterface} from "./model/hardware/NetworkInterface";
 import {ThemeProvider} from "@mui/material";
 import {ExternalPromise} from "restfuncs-common";
+import _ from "underscore"
 
 let app: Application | undefined = undefined;
 
@@ -354,18 +355,30 @@ export class Application extends AsyncConstructableClass{
     }
 
     /**
-     * Called by workspace after login or on start, with valid login ticket
+     * Called by workspace after login or on start or regularly, with valid login ticket
      * @param loginData
      */
-    _onLogin(loginData: Application["loginData"]) {
-        if(this.loginData) { // User logged out and re-logged in
-            window.location.reload(); // Cause the File/Node/etc. objects can't deal with a potential different user and changed permissions or with beeing teporary logged out. And there's no cleanup for the whole app implemented.
+    _updateLoginData(loginData: Application["loginData"]) {
+        if(!loginData) { // Log out / invalid / other ?
+            window.location.reload(); // no valid case / method should not be called
+            return;
         }
+
+        const isUpdate = this.loginData !== undefined;
+        if(isUpdate) {
+            if (!(this.loginData?.username === loginData.username && _.isEqual(this.loginData.cap, loginData.cap))) { // User or capabilites changed?
+                window.location.reload(); // Cause the File/Node/etc. objects can't deal with a potential different user and changed permissions or with beeing teporary logged out. And there's no cleanup for the whole app implemented.
+            }
+        }
+
         this.loginData = loginData;
 
-        spawnWithErrorHandling(async () => {
-            await this._initWhenLoggedOn();
-        });
+        if(!isUpdate) {
+            spawnWithErrorHandling(async () => {
+                await this._initWhenLoggedOn();
+            });
+        }
+
     }
 
     /**
