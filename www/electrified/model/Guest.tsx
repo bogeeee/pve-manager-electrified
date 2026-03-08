@@ -165,7 +165,7 @@ export abstract class Guest extends ModelBase {
 
         await this._reReadFromConfig();
 
-        this.configFile.onChange(() => spawnAsync( () => this._reReadFromConfig()));
+        this.configFile.onChange(() => spawnAsync( async () => {this.checkValid(); await this._reReadFromConfig()}));
     }
 
     /**
@@ -302,6 +302,8 @@ export abstract class Guest extends ModelBase {
         guestFromConfig._id = this.id;
         const preserved = preserve(this, guestFromConfig)
         preserved === this || throwError("Illegal state");
+
+        this.checkValid();
     }
 
     /**
@@ -509,8 +511,14 @@ export abstract class Guest extends ModelBase {
             const val = this[k];
             if(val !== null && val instanceof Hardware) {
                 if(val.parent !== this) {
-                    throw new Error("Illegal parent");
+                    throw new Error("Illegal parent instance");
                 }
+            }
+        }
+
+        for (const snapshot of this.snapshotRoot.snapshots.values()) {
+            if (snapshot.snapshotRoot !== this.snapshotRoot) {
+                throw new Error("Illegal snapshotRoot instance");
             }
         }
     }
