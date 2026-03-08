@@ -9,6 +9,8 @@ import {Disk} from "./hardware/Disk";
  * </p>
  */
 export class Qemu extends Guest{
+    static NAME_CONFIGURATION_KEY = "name";
+
     /**
      * Used memory in bytes from the point of view of the host
      */

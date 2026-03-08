@@ -3,7 +3,7 @@ import {getElectrifiedApp, MeteredValue} from "../globals";
 import {ModelBase} from "./ModelBase";
 import {preserve} from "react-deepwatch";
 import type {Node} from "./Node"
-import {isDeepEqual, spawnAsync, throwError} from "../util/util";
+import {isDeepEqual, RetryableError, retryTilSuccess, spawnAsync, throwError} from "../util/util";
 import {Disk} from "./hardware/Disk";
 import {File} from "./File";
 import {newDefaultMap} from "../util/util";
@@ -14,6 +14,9 @@ import {stringify as brilloutJsonStringify} from "@brillout/json-serializer/stri
 import {instanceOf} from "prop-types";
 
 export abstract class Guest extends ModelBase {
+    //@ts-ignore
+    classType!: typeof Guest
+
     _id?: number;
 
     name!: string;
@@ -158,6 +161,8 @@ export abstract class Guest extends ModelBase {
         vmstate: {clazz: Disk},
     }
 
+    static NAME_CONFIGURATION_KEY: string = "name";
+
     protected async constructAsync(): Promise<void> {
         await super.constructAsync();
 
@@ -227,6 +232,11 @@ export abstract class Guest extends ModelBase {
     async _applyConfigValues(configEntries: Map<string, string | string[]>) {
 
         this._rawConfigRecord = structuredClone(configEntries);
+        const popConfigValue = (key: string) => {
+            const result = this._rawConfigRecord.get(key);
+            this._rawConfigRecord.set(key, "DELETED_REDUNDANT_VALUE");
+            return result;
+        }
 
         for(const key of configEntries.keys()) {
             let configValue: string | string[] | number = configEntries.get(key)!;
@@ -285,6 +295,8 @@ export abstract class Guest extends ModelBase {
             //@ts-ignore
             this[key] = value;
         }
+
+        this.name = popConfigValue( this.clazz.NAME_CONFIGURATION_KEY) as string;
     }
 
     /**
@@ -322,6 +334,9 @@ export abstract class Guest extends ModelBase {
      */
     get _configRecord() {
         const result = new Map(this._rawConfigRecord.entries());
+
+        result.set(this.clazz.NAME_CONFIGURATION_KEY, this.name);
+
         // Set hardware
         for(const key of Object.keys(Guest.hardwareKeys2Classes)) {
             //@ts-ignore

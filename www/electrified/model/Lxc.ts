@@ -11,6 +11,8 @@ import {Disk} from "./hardware/Disk";
  */
 export class Lxc extends Guest {
 
+    static NAME_CONFIGURATION_KEY: string = "hostname";
+
     /**
      *
      */
