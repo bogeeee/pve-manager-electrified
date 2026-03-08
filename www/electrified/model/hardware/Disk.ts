@@ -82,7 +82,7 @@ export class Disk extends Hardware {
     /**
      * @returns I.e. `/dev/zvol/myStorage/myPool/vm-123-disk-0`
      */
-    async getVolumeFilePath() {
+    async _getVolumeFileOrDatasetPath() {
         return this.parent.node.execCommand`pvesm path ${this.volumeId}`;
     }
 
@@ -90,9 +90,14 @@ export class Disk extends Hardware {
      * @returns I.e. `myStorage/myPool/vm-123-disk-0`
      */
     async zfsGetDatasetFilePath() {
-        const volPath = await this.getVolumeFilePath();
-        const match = /^\/dev\/zvol\/(.*)$/.exec(volPath) || throwError(`Invalid volume file path: ${volPath}`);
-        return match[1];
+        const volPath = await this._getVolumeFileOrDatasetPath();
+        if(volPath.startsWith("/dev/zvol/")) {
+            const match = /^\/dev\/zvol\/(.*)$/.exec(volPath) || throwError(`Invalid volume file path: ${volPath}`);
+            return match[1];
+        }
+        else { // Directly
+            return volPath.replace(/^\//,""); // Remove leading slash
+        }
     }
 
     toString() {

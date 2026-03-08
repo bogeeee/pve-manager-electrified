@@ -22,7 +22,11 @@ export class Storage extends ModelBase {
      */
     plugintype!: string;
 
-    status!: "available" | unknown;
+
+    /**
+     * Note: Saw a strange behaviour where "available" was reported as "unknown"
+     */
+    status!: "available" | "unknown" | unknown;
 
     node!: Node | undefined
 

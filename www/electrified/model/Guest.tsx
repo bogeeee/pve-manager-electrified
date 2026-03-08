@@ -558,11 +558,14 @@ export abstract class Guest extends ModelBase {
         const taskId = await this.node.api2fetch("POST", `/${this.type}/${this.id}/snapshot`, {
             snapname,
             description,
-            vmstate
+            ...(vmstate?{vmstate}:{})
         }) as string;
         await this.node.awaitTask(taskId);
-        await this._reReadFromConfig();
-        return this.snapshotRoot.snapshots.get(snapname) || throwError(`Snapshot does not exist`);
+        return await retryTilSuccess( async() => {
+            await this._reReadFromConfig();
+            return this.snapshotRoot.snapshots.get(snapname) || throwError(new RetryableError(`Snapshot does not exist`));
+        });
+
     }
 
     async deleteSnapshot() {

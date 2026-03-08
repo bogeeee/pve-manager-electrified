@@ -9,11 +9,12 @@ import "./styles.css"
 import {Guest} from "./model/Guest";
 import {Node} from "./model/Node";
 import {
+    getUniqueName,
     HoverTooltip,
     newDefaultMap,
     ObjectHTMLSelect, RememberChoiceButton,
     showBlueprintDialog,
-    showMuiDialog,
+    showMuiDialog, sleep,
     throwError, toError
 } from "./util/util";
 import _ from "underscore";
@@ -653,18 +654,21 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
             const rollbackFns: (() => Promise<void>)[] = [];
             const finallyFns: (() => Promise<void>)[] = [];
             try {
-                let tempSnapshotName: string | undefined = undefined;
-                if(result.snapshot.snapshotName === undefined) {
-                    let tempSnapshotName = `temp_for_cloning_${Math.floor(Math.random() * 10000000)}`;
-                    const tempSnapshot = await origGuest.createSnapshot(tempSnapshotName, `By PVE-Electrified. Will usually be deleted after cloning. Otherwise report this as a bug`, false);
-                    finallyFns.push(async () => await tempSnapshot.deleteSnapshot());
+                let sourceSnapshotName = result.snapshot.snapshotName;
+                if(sourceSnapshotName === undefined) {
+                    sourceSnapshotName =getUniqueName(`fork_${result.id}_${result.name}`, new Set(origGuest.snapshotRoot.snapshots.keys()));
+                    const sourceSnapshot = await origGuest.createSnapshot(sourceSnapshotName, t`Guest ${result.id} ${result.name} was forked/cloned from here using ZFS cloning (copy-on-write)`, false);
+                    finallyFns.push(async () => await sourceSnapshot.deleteSnapshot());
                 }
 
                 let clone = await Guest._fromConfig(origGuest.configFile, origGuest.constructor as any); // Construct clone in memory. Like in the Guest#_reReadFromConfig:
 
-                clone = clone.snapshotRoot.snapshots.get(tempSnapshotName || result.snapshot.snapshotName) || throwError(`Object not found for snapshotname: ${result.snapshot.snapshotName}`); // Use the specified snapshot as root
+                clone = clone.snapshotRoot.snapshots.get(sourceSnapshotName) || throwError(`Object not found for snapshotname: ${result.snapshot.snapshotName}`); // Use the specified snapshot as root
 
-                // Delete all other snapshots:
+                clone.name = result.name;
+
+                //Make clone the root and delete all other snapshots:
+                clone.snapshotName = undefined;
                 clone.snapshotRoot.snapshots = new Map([[undefined, clone]]);
                 clone._parentSnapshotName = undefined;
                 clone.childSnapshots = [];
@@ -688,14 +692,32 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
                     if(disk.media === "cdrom") {
                         continue;
                     }
-                    disk.storage && disk.storage?.status === "available" || throwError(`Storage ${disk.storageName} is not available`);
+                    (disk.storage && disk.storage?.status === "available" || disk.storage?.status === "unknown" /* Strange behaviour: despite beeing available, it is reported as unknwon  */) || throwError(`Storage ${disk.storageName} is not available`);
                     if(disk.storage === undefined) throwError("not available");
                     disk.storage.type === "zfspool" || throwError(`Disk ${disk} is not zfs`);
 
                     const datasetFilePath = await disk.zfsGetDatasetFilePath();
-                    const filePathMatch = /^vm-([0-9+])-(.*)$/.exec(datasetFilePath) || throwError(`Dataset file of disk ${disk} has invalid format: ${datasetFilePath}`);
-                    const clonedDatasetFilePath = `vm-${clone.id}-${filePathMatch[2]}`;
-
+                    const filePathMatch = /^(.*)\/(.*)-([0-9]+)-(.*)$/.exec(datasetFilePath) || throwError(`Dataset file of disk ${disk} has invalid format: ${datasetFilePath}`);
+                    const clonedDatasetFilePath = `${filePathMatch[1]}/${filePathMatch[2]}-${clone.id}-${filePathMatch[4]}`;
+                    await node.execCommand`zfs clone ${datasetFilePath}@${sourceSnapshotName} ${clonedDatasetFilePath}`
+                    rollbackFns.push(async () => {
+                        while (true) {
+                            try {
+                                await node.execCommand`zfs destroy ${clonedDatasetFilePath}`;
+                                return;
+                            }
+                            catch (e) {
+                                if((e as Error)?.message?.indexOf("dataset is busy") >= 0) {
+                                    await sleep(200);
+                                    continue; // try again
+                                }
+                                throw e;
+                            }
+                        }
+                    });
+                    // Set new file id in config:
+                    const fileIdMatch = /^(.*)-([0-9]+)-(.*)$/.exec(disk.fileId) || throwError(`FileId of disk ${disk} has invalid format: ${disk.fileId}`);
+                    disk.fileId = `${fileIdMatch[1]}-${clone.id}-${fileIdMatch[3]}`;
                 }
 
                 // Write config:
@@ -762,10 +784,12 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
                 params.storage = result.targetStorage.name;
             }
 
-            await app.currentNode.api2fetch("POST", '/' + origGuest.type + '/' + origGuest.id + '/clone', params);
+            await(node.awaitTask(await node.api2fetch("POST", '/' + origGuest.type + '/' + origGuest.id + '/clone', params) as string));
         }
 
         await app.datacenter.ensureUp2Date();
+        await app.refreshResourceTree();
+        app.workspace.down('pveResourceTree').selectById(result.id);
     }
 
     getGuestMenuItems(guest: Guest): (ContextMenuItem | "menuseparator")[] {

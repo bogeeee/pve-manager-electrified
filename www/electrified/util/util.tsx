@@ -1207,3 +1207,54 @@ export const ObjectHTMLSelect = watchedComponent((props: HTMLSelectProps & Objec
 export function isDeepEqual<T>(a: T, b:T) {
     return brilloutJsonStringify(a) === brilloutJsonStringify(b);
 }
+
+/**
+ *
+ * @param initialName
+ * @param existingNames
+ * @returns unique name with `-[number]` suffix if needed,
+ */
+export function getUniqueName(initialName: string, existingNames: Set<string | undefined>) {
+    if(!existingNames.has(initialName)) {
+        return initialName;
+    }
+
+    const idx2name = (idx: number) => `${initialName}-${idx}`;
+    let idx = 2;
+    while(existingNames.has(idx2name(idx))) {
+        idx++;
+    }
+    return idx2name(idx);
+
+}
+export class RetryableError extends Error {}
+
+/**
+ * Usage
+ * <code>await retryTilSuccess( async() => {do some stuff and evetually throw new RetryableError("message) })) </code>
+ *
+ * @param executer
+ */
+export async function retryTilSuccess<T>(executer: () => Promise<T>, options?: {initialRetryDelay?: number, maxTime?: number}) {
+    let retryDelay = options?.initialRetryDelay || 20;
+    let triesDone = 0;
+    const startTime = new  Date().getTime();
+    while(true) {
+        try {
+            triesDone++;
+            return await executer();
+        }
+        catch (e) {
+            if(e !== null && e instanceof RetryableError) {
+                if(new  Date().getTime() > (startTime + (options?.maxTime || 10000))) {
+                    e.message+=`\nTimed out after ${triesDone} retries`;
+                    throw e;
+                }
+                await sleep(retryDelay);
+                retryDelay*=1.2;
+                continue; // Try again
+            }
+            throw e;
+        }
+    }
+}
