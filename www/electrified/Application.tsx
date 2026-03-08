@@ -286,7 +286,7 @@ export class Application extends AsyncConstructableClass{
 
         // Start the classic app:
         Ext.onReady(async () => {
-            Ext.create('PVE.StdWorkspace');
+            this.workspace = Ext.create('PVE.StdWorkspace');
         });
 
         window.document.title = `${this.currentNode.name} - PVE`;
