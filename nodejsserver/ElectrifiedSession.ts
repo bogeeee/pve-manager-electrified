@@ -397,11 +397,15 @@ export class ElectrifiedSession extends ServerSession {
             });
         });
 
+        (watcher as any).on("error", async (error: unknown) => {
+            console.error(error);
+        });
+
         return clientCallbacks;
     })
 
     /**
-     * Informs you when a file content was changes, or it was added or deleted.
+     * Informs you when a file content was changed, or it was added or deleted.
      * For directories, when the directory was added or deleted or it's children were added/deleted (not deep)
      * @param path
      * @param callback
