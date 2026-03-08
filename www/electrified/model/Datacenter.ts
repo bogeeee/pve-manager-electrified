@@ -315,7 +315,20 @@ export class Datacenter extends ModelBase {
 
     async ensureUp2Date() {
         await this._refreshStatus();
-        throw new Error("TODO: trigger re-fetch of resource store");
+        // Call resourceStore.reload() and wait till this is updated
+        await new Promise<void>((resolve, reject) => {
+            const updateListener = () => resolve();
+            this.onUpdate(updateListener);
+            try {
+                getElectrifiedApp()._resourceStore.reload(); // Force reload
+            }
+            catch (e) {
+                reject(e);
+            }
+            finally {
+                this.offUpdate(updateListener);
+            }
+        });
     }
 
     /**

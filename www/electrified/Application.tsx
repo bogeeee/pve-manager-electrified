@@ -385,6 +385,12 @@ export class Application extends AsyncConstructableClass{
         return isPVEDarkTheme();
     }
 
+    async refreshResourceTree() {
+        const tree = this.workspace.down('pveResourceTree');
+        tree.updateTree();
+        await tree.slapForDoubleRefresh();
+    }
+
     /**
      * Internal. The PVE.data.ResourceStore
      */
