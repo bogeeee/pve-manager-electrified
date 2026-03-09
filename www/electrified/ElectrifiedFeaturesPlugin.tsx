@@ -683,7 +683,7 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
                 if(sourceSnapshotName === undefined) {
                     sourceSnapshotName =getUniqueName(`fork_${result.id}_${result.name}`, new Set(origGuest.snapshotRoot.snapshots.keys()));
                     const sourceSnapshot = await origGuest.createSnapshot(sourceSnapshotName, t`Guest ${result.id} ${result.name} was forked/cloned from here using ZFS cloning (copy-on-write)`, false);
-                    finallyFns.push(async () => await sourceSnapshot.deleteSnapshot());
+                    rollbackFns.push(async () => await sourceSnapshot.deleteSnapshot());
                 }
 
                 let clone = await Guest._fromConfig(origGuest.configFile, origGuest.constructor as any); // Construct clone in memory. Like in the Guest#_reReadFromConfig:
