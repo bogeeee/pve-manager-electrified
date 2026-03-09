@@ -875,22 +875,21 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
                 return <div style={{width: "100%", height: "100%", display: "flex", flexDirection: "column"}}>
                     {/* Filter row*/}
                     <div style={{ display: "flex", gap: "16px", alignItems: "center", marginBottom: "8px", padding: "8px", borderBottom:"1px solid #cfcfcf" }}>
-                        <div style={{display: "flex", alignItems: "center", gap:"4px"}}><div className="electrified_diskasssistantent_filterLabel">{t`Usage type`}:</div>
-                        <HTMLSelect title={t`Type`} {...bind(state.filterUsageType)}>
-                            <option value={undefined}>{t`All`}</option>
-                            <option value={"disks"}>{t`Disks`}</option>
-                            <option value={"diskSnapshots"}>{t`Disk snapshots`}</option>
-                            <option value={"mem"}>{t`Memory (snapshot state)`}</option>
-                        </HTMLSelect></div>
-                        <div style={{display: "flex", alignItems: "center", gap:"4px"}}><div className="electrified_diskasssistantent_filterLabel">{t`Storage`}</div>
+                        <div style={{display: "flex", alignItems: "center", gap: "4px"}}>
+                            <div className="electrified_diskasssistantent_filterLabel">{t`Storage`}</div>
                             <HTMLSelect title={t`Type`} {...bind(state.filterStorage)}>
                                 <option value={undefined}>{t`All`}</option>
                                 <option value={"zfs"}>{t`Zfs`}</option>
                                 <option value={"Other"}>{t`Other`}</option>
-                            </HTMLSelect></div>
+                            </HTMLSelect>
+                        </div>
 
+                        {filterCheckbox(t`Disks`, bind(state.test))}
+                        {filterCheckbox(t`Disks snapshots`, bind(state.test))}
+                        {filterCheckbox(t`Ram (snapshot state)`, bind(state.test))}
                         {filterCheckbox(t`Guests's unused disks`, bind(state.test))}
-                        {filterCheckbox(t`Abandoned`, bind(state.test))}
+                        {filterCheckbox(t`Abandoned volumes`, bind(state.test))}
+
                         <div style={{flexGrow:1}}></div>
                         <InputGroup type="search" leftIcon={"search"} placeholder={t`Search`} {...bind(state.filterText)} />
                     </div>
