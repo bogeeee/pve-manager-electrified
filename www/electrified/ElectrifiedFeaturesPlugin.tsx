@@ -1,7 +1,18 @@
-import {ContextMenuItem, Plugin} from "./Plugin"
+import {ConfigTab, ContextMenuItem, Plugin} from "./Plugin"
 import React, {CSSProperties, ReactNode} from "react";
-import {bind, binding, useWatchedState, watched} from "react-deepwatch"
-import {Button, ButtonGroup, Classes, Icon, InputGroup, Intent, NumericInput, Popover, Slider} from "@blueprintjs/core";
+import {bind, binding, useWatchedState, ValueOnObject, watched} from "react-deepwatch"
+import {
+    Button,
+    ButtonGroup, Checkbox,
+    Classes,
+    HTMLSelect,
+    Icon,
+    InputGroup,
+    Intent, Label, Menu, MenuDivider, MenuItem,
+    NumericInput,
+    Popover, Position,
+    Slider
+} from "@blueprintjs/core";
 import "@blueprintjs/core/lib/css/blueprint.css";
 import "@blueprintjs/icons/lib/css/blueprint-icons.css";
 import {t} from "./globals";
@@ -21,14 +32,28 @@ import _ from "underscore";
 import {Pool} from "./model/Pool";
 import {Storage} from "./model/Storage"
 import {ElectrifiedJsonConfig} from "pveme-nodejsserver/Common";
-import {DialogActions, DialogContent, DialogContentText} from "@mui/material";
+import {
+    DialogActions,
+    DialogContent,
+    DialogContentText,
+    Table, TableBody, TableCell,
+    TableContainer,
+    TableHead,
+    TableRow, TableSortLabel
+} from "@mui/material";
 import {retsync2promise} from "proxy-facades/retsync";
+import {Datacenter} from "./model/Datacenter";
+import {UserCapabilities} from "./Application";
 
 /**
  * Offers nice features.
  * This internal Plugin is always loaded. It's just like a user plugin. Every feature that electrified wants to offer and which can be delivered by a plugin, (i.e. CPU usage Column in the tree) is done through here
  */
 export class ElectrifiedFeaturesPlugin extends Plugin {
+    /**
+     * Still in development
+     */
+    static feature_diskSpaceAssistant = false;
 
     static packageName = "pveme-ui-plugin-electrified-features"
 
@@ -816,6 +841,101 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
 
     get _datacenterConfigFilePath() {
         return `/etc/pve/manager/electrified.json`
+    }
+
+    getGuestConfigTabs(caps: UserCapabilities): ConfigTab<Guest>[] {
+        return [...(ElectrifiedFeaturesPlugin.feature_diskSpaceAssistant?[this.getDiskAssistantTab(caps)]:[])];
+    }
+
+    getNodeConfigTabs(caps: UserCapabilities): ConfigTab<Node>[] {
+        return [...(ElectrifiedFeaturesPlugin.feature_diskSpaceAssistant?[this.getDiskAssistantTab(caps)]:[])];
+    }
+
+    getDatacenterConfigTabs(caps: UserCapabilities): ConfigTab<Datacenter>[] {
+        return [...(ElectrifiedFeaturesPlugin.feature_diskSpaceAssistant?[this.getDiskAssistantTab(caps)]:[])];
+    }
+
+    getDiskAssistantTab(caps: UserCapabilities) {
+        return {
+            title: t`Disk space assistant`,
+            key: "disk_assistant",
+            iconCls: "fa fa-fw fa-hdd-o",
+            componentFn: (props: any) => {
+                const starter:  Datacenter | Pool | Node | Guest = props.item;
+                const state = useWatchedState(new class {
+                    filterUsageType?: undefined | "disks" | "diskSnapshots" | "mem";
+                    filterStorage?: undefined | string;
+                    filterText = ""; // Searchfilter
+                    test = false;
+                });
+                const rows:any[] = [{},{},{},{},{},{},{},{},{},{},{},{}];
+                const filterCheckbox = (label: string, bind: any) => <div style={{display: "flex", alignItems:"center"}}><Checkbox style={{height: "9px"}} {...bind}/>{label}</div>
+                const headerCell = (label: ReactNode, sortKey?: string) => <TableCell>{sortKey?<a style={{textDecoration: "none"}} onClick={()=>{}} >{label}<TableSortLabel active={true} direction={'asc'} /></a>:label}</TableCell>
+
+                return <div style={{width: "100%", height: "100%", display: "flex", flexDirection: "column"}}>
+                    {/* Filter row*/}
+                    <div style={{ display: "flex", gap: "16px", alignItems: "center", marginBottom: "8px", padding: "8px", borderBottom:"1px solid #cfcfcf" }}>
+                        <div style={{display: "flex", alignItems: "center", gap:"4px"}}><div className="electrified_diskasssistantent_filterLabel">{t`Usage type`}:</div>
+                        <HTMLSelect title={t`Type`} {...bind(state.filterUsageType)}>
+                            <option value={undefined}>{t`All`}</option>
+                            <option value={"disks"}>{t`Disks`}</option>
+                            <option value={"diskSnapshots"}>{t`Disk snapshots`}</option>
+                            <option value={"mem"}>{t`Memory (snapshot state)`}</option>
+                        </HTMLSelect></div>
+                        <div style={{display: "flex", alignItems: "center", gap:"4px"}}><div className="electrified_diskasssistantent_filterLabel">{t`Storage`}</div>
+                            <HTMLSelect title={t`Type`} {...bind(state.filterStorage)}>
+                                <option value={undefined}>{t`All`}</option>
+                                <option value={"zfs"}>{t`Zfs`}</option>
+                                <option value={"Other"}>{t`Other`}</option>
+                            </HTMLSelect></div>
+
+                        {filterCheckbox(t`Guests's unused disks`, bind(state.test))}
+                        {filterCheckbox(t`Abandoned`, bind(state.test))}
+                        <div style={{flexGrow:1}}></div>
+                        <InputGroup type="search" leftIcon={"search"} placeholder={t`Search`} {...bind(state.filterText)} />
+                    </div>
+
+                    {/* Table row*/}
+                    <TableContainer style={{ flexGrow: 1 }} >
+                        <Table sx={{ minWidth: 650}} aria-label="Disks table" size={"small"} stickyHeader>
+                            <TableHead>
+                                <TableRow>
+                                    <TableCell>{t`Usage type`}</TableCell>
+                                    <TableCell>{t`Storage`}</TableCell>
+                                    <TableCell>{t`Guest`}</TableCell>
+                                    <TableCell>{t`Slot`}</TableCell>
+                                    {headerCell(<strong>{t`Used`}</strong>, "used")}
+                                    {headerCell(t`Max size`,"maxSize")}
+                                    <TableCell>{t`Discard`}</TableCell>
+                                    <TableCell align="right">{t`Action`} <Popover position={Position.BOTTOM_LEFT} content={<Menu><MenuItem icon="new-text-box" text="New text box" onClick={() => console.log("New text box")} /><MenuItem icon="new-object" text="New object" onClick={() => console.log("New object")} />
+                                        <MenuItem icon="new-link" text="New link" onClick={() => console.log("New link")} />
+                                    </Menu>}><Button rightIcon="caret-down">Bulk actions</Button></Popover></TableCell>
+                                </TableRow>
+                            </TableHead>
+                            <TableBody>
+                                {rows.map(row => {
+                                    const cellStyle: CSSProperties = {verticalAlign: "top"}
+                                    return <TableRow key={"TODO"} sx={{ '&:last-child td, &:last-child th': { border: 0 } }}>
+                                        <TableCell style={cellStyle}>
+                                            Test
+                                        </TableCell>
+                                    </TableRow>
+                                })}
+                            </TableBody>
+                        </Table>
+                    </TableContainer>
+                    {/* Button bar row*/}
+                    <div style={{margin: "8px"}}>
+                        <div className={Classes.DIALOG_FOOTER_ACTIONS} style={{alignItems: "center"}}>
+                            <div>{t`Listing total`}: <strong>123Gb</strong></div>
+                            <Button icon={"refresh"}>{t`Refresh list`}</Button>
+                            <ButtonGroup><Button intent={Intent.PRIMARY}>Apply actions</Button>
+                            </ButtonGroup>
+                        </div>
+                    </div>
+                </div>
+            }
+        }
     }
 
     // ... for more plugin-hooks, use code completion here (ctrl+space).
