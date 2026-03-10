@@ -405,6 +405,16 @@ table {
     border-spacing: 0;
 }
 
+details summary::before {
+    content: "▶ ";
+}
+details[open] summary::before {
+    content: "⬇ ";
+}
+summary {
+    cursor: pointer;
+}
+
 .go-top {
 position: fixed;
 bottom: 2em;
