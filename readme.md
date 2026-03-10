@@ -26,8 +26,14 @@ Also, open source does not develop it's self. Developers need motivation, so wri
   [^1]: Realtime = 1 second interval. As this comes with some cost, on systems with many lxcs, the interval will increase automatically.
 - **A plugin system** that allows to easily [create and publish UI plugins](https://github.com/bogeeee/pve-manager-electrified/blob/main/docs/plugin-development.md).  
   ![](docs/images/Screenshot_plugin_manager.png)
+- COMING SOON: **Instant cloning** of guests   
+  - Uses ZFS's copy-on-write mechanism 
+  - Allows cloning of **snapshots**, so you can have a quick peak into an older state of your vm.
+  - Allows cloning with RAM.
+  - Has an improved dialog for a faster workflow.
+  
+  _The mentioned clone features work with ZFS only_
 - PLANNED: Show real thin **disk usage** in the tree.
-- PLANNED: **Instant cloning** of guests. Uses ZFS's copy-on write feature. Allows cloning of snapshots, so you can have a quick peak into an older state of your vm. Also allows cloning with RAM. There is an improved dialog for a faster workflow. _These mentioned clone features work with ZFS only_.
 - PLANNED: **Docker support**.
 - PLANNED: **Assistants for several small optimizations for home-lab usage:** Gpu passthrough; Dynamic ip; Prevent ssd wear-down; Install microcode update packages; Fix zfs memory settings; Fix disk stalling; Warn on simultaneous USB device use; Show password prompts for encrypted disks;
 
