@@ -50,6 +50,8 @@ export abstract class Guest extends ModelBase {
 
     // *** Hardware ***
 
+    net: NetworkInterface[] = [];
+
     /**
      * Unused disks
      * <p>
@@ -193,6 +195,7 @@ export abstract class Guest extends ModelBase {
             //@ts-ignore
             const guest: Guest = new guestClazz(); // use the non-async constructor
             guest.snapshotName = sectionName;
+            guest._parentSnapshotName = section.get("parent") as string | undefined; // set here as well to not fail the safety check
             guest.name = section.get("name") as string;
 
             await guest._applyConfigValues(section);
@@ -336,6 +339,13 @@ export abstract class Guest extends ModelBase {
         const result = new Map(this._rawConfigRecord.entries());
 
         result.set(this.clazz.NAME_CONFIGURATION_KEY, this.name);
+        // Set parent:
+        if(this._parentSnapshotName) {
+            result.set("parent", this._parentSnapshotName);
+        }
+        else {
+            result.delete("parent");
+        }
 
         // Set hardware
         for(const key of Object.keys(Guest.hardwareKeys2Classes)) {
@@ -499,7 +509,7 @@ export abstract class Guest extends ModelBase {
      * @param fields fields from resource store (classic pve)
      */
     _updateFieldsFromResourceStore(fields: any) {
-        const fieldsToCopy: (keyof this)[] = ["name", "cpu","disk","diskread", "diskwrite", "hastate", "lock", "maxcpu", "maxdisk", "maxmem", "mem", "netin", "netout", "status", "uptime"];
+        const fieldsToCopy: (keyof this)[] = ["cpu","disk","diskread", "diskwrite", "hastate", "lock", "maxcpu", "maxdisk", "maxmem", "mem", "netin", "netout", "status", "uptime"];
         for(const key of fieldsToCopy) {
             //@ts-ignore
             this[key] = fields[key];
@@ -574,6 +584,12 @@ export abstract class Guest extends ModelBase {
         await this.node.awaitTask(taskId);
         await this.liveGuest._reReadFromConfig();
     }
+
+    async start() {
+        getElectrifiedApp().currentNode.execCommand`${this.manageCmd} start ${this.id}`;
+    }
+
+    abstract get manageCmd(): string;
 }
 
 class SnapshotRoot {

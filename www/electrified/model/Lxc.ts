@@ -29,4 +29,8 @@ export class Lxc extends Guest {
     get type(): "lxc" {
         return "lxc";
     }
+
+    get manageCmd() {
+        return "pct"
+    }
 }

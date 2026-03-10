@@ -78,4 +78,9 @@ export class Qemu extends Guest{
     get type(): "qemu" {
         return "qemu";
     }
+
+    get manageCmd() {
+        return "qm"
+    }
+
 }

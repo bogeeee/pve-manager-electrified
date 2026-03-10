@@ -23,7 +23,7 @@ import {
     getUniqueName,
     HoverTooltip,
     newDefaultMap,
-    ObjectHTMLSelect, RememberChoiceButton,
+    ObjectHTMLSelect, RememberChoiceButton, RetryableError, retryTilSuccess,
     showBlueprintDialog,
     showMuiDialog, sleep,
     throwError, toError
@@ -629,16 +629,18 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
                                 <td></td>
 
                             </tr>
-                            <tr>
-                                {/* Randomize vmgenId: */}
-                                <td className="electrifiedFormLabel">{t`Randomize VM gen id`}:</td>
-                                <td><input type="checkbox" {...bind(state.randomizeVmGenId)}/>&#160;<span style={iconFixStyle as any}><RememberChoiceButton currentValue={state.randomizeVmGenId} storageBind={binding(fastCloneUserConfig.randomizeVmGenId)}/></span></td>
+                            {origGuest.type === "qemu" &&
+                                <tr>
+                                    {/* Randomize vmgenId: */}
+                                    <td className="electrifiedFormLabel">{t`Randomize VM gen id`}:</td>
+                                    <td><input type="checkbox" {...bind(state.randomizeVmGenId)}/>&#160;<span style={iconFixStyle as any}><RememberChoiceButton currentValue={state.randomizeVmGenId} storageBind={binding(fastCloneUserConfig.randomizeVmGenId)}/></span></td>
 
-                                <td className="electrifiedDialogSpacer"/>
-                                <td className="electrifiedFormLabel"></td>
-                                <td></td>
+                                    <td className="electrifiedDialogSpacer"/>
+                                    <td className="electrifiedFormLabel"></td>
+                                    <td></td>
 
-                            </tr>
+                                </tr>
+                            }
                             <tr>
                                 {/* Start guest: */}
                                 <td className="electrifiedFormLabel"><span className="fa fa-play"/> {t`Start guest`}:</td>
@@ -809,12 +811,36 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
                 params.storage = result.targetStorage.name;
             }
 
-            await(node.awaitTask(await node.api2fetch("POST", '/' + origGuest.type + '/' + origGuest.id + '/clone', params) as string));
+            await(app.currentNode.awaitTask(await node.api2fetch("POST", '/' + origGuest.type + '/' + origGuest.id + '/clone', params) as string));
+        }
+
+        // Freshly retrieve clone:
+        const clone = await retryTilSuccess(async () => {
+            await app.datacenter.ensureUp2Date();
+            return app.datacenter.getGuest(result.id) || throwError(new RetryableError("Guest not found after clone"));
+        },{maxTime: 30000});
+
+        if(result.randomizeMacAddresses) {
+            clone.net.forEach(networkInterface => networkInterface.randomizeMacAddress())
+        }
+
+        // Write config:
+        await retsync2promise(() => clone._writeConfig(), {checkSaved: false});
+
+        if(clone.type === "qemu" && result.randomizeVmGenId) {
+            await app.currentNode.execCommand`qm set ${clone.id} -vmgenid 1`;
+        }
+
+        if(result.start) {
+            await clone.start();
         }
 
         await app.datacenter.ensureUp2Date();
         await app.refreshResourceTree();
-        app.workspace.down('pveResourceTree').selectById(result.id);
+
+        if(result.fastClonePossible() === true) { // Used fast clone / it didn't take long, so we can do jumpy stuff on the screen without disturbing the user?
+            app.workspace.down('pveResourceTree').selectById(`${clone.type}/${clone.id}`); // Select clone in tree
+        }
     }
 
     getGuestMenuItems(guest: Guest): (ContextMenuItem | "menuseparator")[] {
