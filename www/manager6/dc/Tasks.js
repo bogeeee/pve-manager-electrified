@@ -124,7 +124,7 @@ Ext.define('PVE.dc.Tasks', {
                     width: 200,
                     renderer: function (value, metaData, record) {
                         if (record.data.pid) {
-                            if (record.data.type !== 'vncproxy') {
+                            if (record.data.type !== 'vncproxy' && record.data.type !== 'vncshell' && record.data.type !== 'spiceshell') {
                                 metaData.tdCls = 'x-grid-row-loading';
                             }
                             return '';
