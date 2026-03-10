@@ -5,6 +5,21 @@
 This is a modification of the [Proxmox Virtual Environment](https://www.proxmox.com/en/products/proxmox-virtual-environment/overview) **user interface**, that brings some nice features, mainly for homelab'ers.
 PVE electrified is **independant** of the company Proxmox. Also, it adds a plugin system and lifts PVE to a very developer friendly architecture, because in the past it was so hard for developers to enhance the PVE UI that almost no community mods existed.
 
+<details>
+<summary>Motivation</summary>
+
+Since years, i have been an enthusiastic user of my PVE home-lab and semi-professional environment, meaning, using it as infrastructure for my development machines for my job as a freelancer. 
+Back in the days, i was experimenting with different linux distos and software stacks and always needed a feature to quickly jump between snapshots or fork from them to test things out.
+Cloning vms took longer and more disk space than my attention span and storages offered. So i wondered why there is no good way to quickly make copy-on-write clones (inspired/a bit similar to what the "templates" feature offered, but which had its own limitations and misconceptions imho).
+So i thought: why not modify the PVE gui, since it's open source. But then i realized that there were super many stones in the way to get a proper development environment.
+I.e. the javascript is delivered as a >20k of lines bigfile, hardly debuggable and for a round trip, you had to run minute long make targets. Not fun at all!
+So i decided to improve all this and port it to a modern environment with vite, React, typescript on the server and client side. 
+Development took some time: Starting in 2022 and besides having to deal with my normal contract work, and it went a bit off the road cause i realized, that no proper RPC existed for Node.js, like i was used to, with Direct-Web-Remoting in my java days. Therefore, as a side project, [Restfuncs](https://github.com/bogeeee/restfuncs) was born. And then the next backing side project was born: [React deepwatch](https://github.com/bogeeee/react-deepwatch).
+And on the way came many other ideas like the cpu bars and a plugin system and, see [the planned features](#features).  
+Also, open source does not develop it's self. Developers need motivation, so write me, if you like it and also i'll be setting um something for financial motivation (donations) which would allow me to put more time into it because currently, i have to go back to focus on contract-work for my earnings. 
+</details>
+
+
 # Features
 - **CPU usage bars** in the tree. Updated in realtime.[^1]  
   ![](docs/images/Screenshot_cpu_bars.png)  
