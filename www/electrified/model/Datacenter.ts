@@ -313,20 +313,24 @@ export class Datacenter extends ModelBase {
         return this._hasQuorum;
     }
 
+    /**
+     * Forces a big refresh.
+     * <p>
+     * Warning: Still some things are stale after the call. I.e. cloned guests don't appear. You may have to wait and retry till you see the desired data.
+     * </p>
+     */
     async ensureUp2Date() {
         await this._refreshStatus();
-        // Call resourceStore.reload() and wait till this is updated
+        // Call resourceStore.startUpdate() to force a refresh and wait till we receive an update:
         await new Promise<void>((resolve, reject) => {
-            const updateListener = () => resolve();
+            const updateListener = () => {this.offUpdate(updateListener);resolve(); }
             this.onUpdate(updateListener);
             try {
-                getElectrifiedApp()._resourceStore.reload(); // Force reload
+                getElectrifiedApp()._resourceStore.startUpdate(); // Force reload
             }
             catch (e) {
-                reject(e);
-            }
-            finally {
                 this.offUpdate(updateListener);
+                reject(e);
             }
         });
     }
