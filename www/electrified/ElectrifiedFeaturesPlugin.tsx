@@ -371,7 +371,7 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
                         return <React.Fragment>
                             <DialogContent>
                                 <DialogContentText>
-                                    {t`Show unused cpu background bars for`}:<br/>
+                                    <h3 style={{margin: "0px"}}>{t`Background`}</h3> {t`Show unused cpu background bars for`}:<br/>
                                     {[{key: "datacenter", text: t`Datacenter`}, {key: "pool", text: t`Pools`}, {key: "node", text: t`Nodes`}, {key: "guest", text: t`Guests`}].map(item =>
                                         <div>&#160;<input type="checkbox" {...bind((plugin.userConfig.cpuBars.showBackground as any)[item.key])} /> {item.text}</div>
                                     )}
