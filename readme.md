@@ -84,5 +84,5 @@ See [here](https://github.com/bogeeee/pve-manager-electrified/blob/main/docs/plu
 [contact me](mailto:bogeee@bogitech.de)
 
 # 100% hand coded
-Electrified code is 100% hand coded with passion ❤, by an experienced software developer
-Contact me, if you need  features or if you have freelancer work to give out (in the EU, german / english speaking).
+Electrified code is 100% hand coded (_except the Logo, but i'm no painter😀😀_) with passion ❤, by an experienced software developer.
+Contact me, if you need  features or if you have freelancer work to give out (in the EU, german / english speaking).  
