@@ -19,7 +19,7 @@ export class ElectrifiedRestfuncsClient<S extends WithPermissionCheck> extends R
                 if(e?.cause?.name === "NeedToRefreshPermissionsViaHttp") {
                     await this.doCall_http("ensurePermissionsAreUp2Date",[]);
                     // return await super.doCall(methodName, args); // Possible race condition when ticket is renewed just before this line. So instead we retry a few times.
-                    throw new RetryableError();
+                    throw new RetryableError("Call failed and threw Error with NeedToRefreshPermissionsViaHttp flag, but refreshing permissions and trying again did not work.", {cause: e});
                 }
 
                 throw e;
