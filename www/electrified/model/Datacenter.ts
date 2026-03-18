@@ -189,6 +189,8 @@ export class Datacenter extends ModelBase {
             return; // /cluster/status needs that permission so we can't do anything here. Quorum related method will check for this permission also
         }
 
+        await getElectrifiedApp().checkLoggedOut();
+
         const fetchResult = await getElectrifiedApp().api2fetch("GET", "/cluster/status") as any[];
         let clusterData = fetchResult.filter(r => r.type === "cluster");
         let newHasQuorum = true;

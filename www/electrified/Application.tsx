@@ -1,4 +1,4 @@
-import {RestfuncsClient} from "restfuncs-client";
+import {RestfuncsClient, ServerError} from "restfuncs-client";
 import {createRoot} from "react-dom/client";
 import React from "react";
 
@@ -22,7 +22,7 @@ import {
     InfoTooltip,
     messageBox,
     getCookieByName,
-    checkForDuplicates, muiTheme, ErrorState, ObjectHTMLSelect
+    checkForDuplicates, muiTheme, ErrorState, ObjectHTMLSelect, sleep
 } from "./util/util";
 import {generated_pluginList as pluginList} from "../_generated_pluginList";
 import {
@@ -382,6 +382,33 @@ export class Application extends AsyncConstructableClass{
     }
 
     /**
+     * Checks, if the user was logged out in the meanwhile. Ensures this is handled properly then: I.e. shows an UI dialog and reloads the page
+     * @param reloadDelay
+     */
+    async checkLoggedOut(reloadDelay = 3) {
+        if(this.loginData === undefined) { // initial application state / user has not yet been logged in this browser window?
+            return; // Ignore.
+        }
+
+        try {
+            await this.currentNode.electrifiedApi.ping();
+        }
+        catch (e) {
+            if(e !== null && e instanceof ServerError && e.httpStatusCode === 401) { // Not logged in?
+                if(reloadDelay > 0) {
+                    // Show dialog:
+                    spawnAsync(async () => {
+                        await messageBox(t`Logged out`, t`You are not logged in. Reloading the page in ${reloadDelay} seconds`)
+                    });
+                }
+
+                await sleep(reloadDelay * 1000);
+                window.location.reload();
+            }
+        }
+    }
+
+    /**
      * Sets up faster logout propagation. Useful for vite-devserver mode
      * @protected
      */
@@ -391,6 +418,9 @@ export class Application extends AsyncConstructableClass{
         (window as any).Proxmox.Utils.authClear = async () => {
             orig_authClear();
             await this.currentNode.electrifiedApi.clearCachedPermissions();
+            if(this.loginData !== undefined) { // User was logged in and is now logged out?
+                window.location.reload();
+            }
         }
     }
 
