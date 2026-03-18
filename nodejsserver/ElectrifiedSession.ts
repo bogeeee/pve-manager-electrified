@@ -192,9 +192,10 @@ export class ElectrifiedSession extends ServerSession {
      * @protected
      */
     protected async checkPermission(path: string, permission: string) {
-        await this.ensurePermissionsAreUp2Date();
+        const now = new Date(); // Fix: A situation was observed, where checkCachedPermission saw a date that had already passed a millisecond further and the permissions were outdated. So we give all methods the same date to operate.
+        await this.ensurePermissionsAreUp2Date(now);
 
-        return this.checkCachedPermission(path, permission);
+        return this.checkCachedPermission(path, permission, now);
     }
 
     /**
@@ -202,8 +203,9 @@ export class ElectrifiedSession extends ServerSession {
      * <p>Also internally used.</p>
      * @param path
      * @param permission
+     * @param now specify **current** date when you want to make sure that multiple calls operate on the same date and are not fractions of milliseconds off which could lead to quirks. See {@see #checkPermission}.
      */
-    checkCachedPermission(path: string, permission: string) {
+    checkCachedPermission(path: string, permission: string, now = new Date()) {
         if(!this.cachedPermissions) {
             // Throw error:
             const error = new CommunicationError("Not logged in", {httpStatusCode: 401});
@@ -211,7 +213,7 @@ export class ElectrifiedSession extends ServerSession {
             throw error;
         }
 
-        if(!this.permissionsAreUp2Date()) {
+        if(!this.permissionsAreUp2Date(now)) {
             throw new Error("Permissions are not up 2 date. Try to re-load the page or re-login.");
         }
 
@@ -229,11 +231,12 @@ export class ElectrifiedSession extends ServerSession {
     /**
      * Makes sure, this.cachedPermissions is up2date.
      * May throw a not logged in error
+     * @param now specify **current** date when you want to make sure that multiple calls operate on the same date and are not fractions of milliseconds off which could lead to quirks. See {@see #checkPermission}.
      * @private
      */
     @remote
-    async ensurePermissionsAreUp2Date() {
-        if (!this.permissionsAreUp2Date()) { // Permissions not fetched or outdated ?
+    async ensurePermissionsAreUp2Date(now = new Date()) {
+        if (!this.permissionsAreUp2Date(now)) { // Permissions not fetched or outdated ?
             if(!this.call.req) { // Non http (websocket)
                 const error = new CommunicationError("Need to refresh permissions via http");
                 error.name= "NeedToRefreshPermissionsViaHttp"; // Flag it for the client to recognize
@@ -248,13 +251,17 @@ export class ElectrifiedSession extends ServerSession {
                 error.name = "NotLoggedInError";
                 throw error;
             }
-            this.cachedPermissions = {permissions: queriedPermissions, lastRetrievedTime: new Date().getTime()}
+            this.cachedPermissions = {permissions: queriedPermissions, lastRetrievedTime: now.getTime()}
         }
     }
 
-    @remote permissionsAreUp2Date() {
+
+    /**
+     *@param now specify **current** date when you want to make sure that multiple calls operate on the same date and are not fractions of milliseconds off which could lead to quirks. See {@see #checkPermission}.
+     */
+    @remote permissionsAreUp2Date(now = new Date()) {
         const permissionCacheMaxAgeMs = appServer.config.permissionCacheMaxAgeMs[appServer.useViteDevServer?"dev":"prod"];
-        return ! (!this.cachedPermissions || (new Date().getTime() - this.cachedPermissions.lastRetrievedTime > permissionCacheMaxAgeMs));
+        return ! (!this.cachedPermissions || (now.getTime() - this.cachedPermissions.lastRetrievedTime > permissionCacheMaxAgeMs));
     }
 
     @remote clearCachedPermissions() {
