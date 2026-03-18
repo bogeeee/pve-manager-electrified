@@ -26,8 +26,8 @@ Also, open source does not develop it's self. Developers need motivation, so wri
   [^1]: Realtime = 1 second interval. As this comes with some cost, on systems with many lxcs, the interval will increase automatically.
 - **A plugin system** that allows to easily [create and publish UI plugins](https://github.com/bogeeee/pve-manager-electrified/blob/main/docs/plugin-development.md).  
   ![](docs/images/Screenshot_plugin_manager.png)
-- COMING SOON: **Instant cloning** of guests   
-  - Uses ZFS's copy-on-write mechanism 
+- COMING SOON: **Instant cloning** of guests. _It's already usable as a preview version - just right-click on the guest._ 
+  - Uses ZFS's copy-on-write mechanism.
   - Allows cloning of **snapshots**, so you can have a quick peak into an older state of your vm.
   - Allows cloning with RAM.
   - Has an improved dialog for a faster workflow.

@@ -582,6 +582,7 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
 
             return <div>
                 <div className={Classes.DIALOG_BODY} >
+                    <i>This is the preview version. Everything should be working already, except: <ul><li>Cloning with ram is not yet implemented.</li> <li>taking initial snapshots in the new clone is not yet implemented (minor handy feature)</li><li>Guest comments get lost.</li> </ul></i>
                     <table>
                         <tbody>
                             <tr>
@@ -633,11 +634,9 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
                                 <tr>
                                     {/* Randomize vmgenId: */}
                                     <td className="electrifiedFormLabel">{t`Randomize VM gen id`}:</td>
-                                    <td><input type="checkbox" {...bind(state.randomizeVmGenId)}/>&#160;<span style={iconFixStyle as any}><RememberChoiceButton currentValue={state.randomizeVmGenId} storageBind={binding(fastCloneUserConfig.randomizeVmGenId)}/></span></td>
-
-                                    <td className="electrifiedDialogSpacer"/>
-                                    <td className="electrifiedFormLabel"></td>
-                                    <td></td>
+                                    <td colSpan={99}>
+                                        <input type="checkbox" {...bind(state.randomizeVmGenId)}/>&#160;<span style={iconFixStyle as any}><RememberChoiceButton currentValue={state.randomizeVmGenId} storageBind={binding(fastCloneUserConfig.randomizeVmGenId)}/></span>
+                                        <i>&#160;Preview version note: This feature is not yet implemented</i></td>
 
                                 </tr>
                             }
@@ -848,7 +847,7 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
             "menuseparator",
             // Fast clone
             {
-                text: t`Fast clone`,
+                text: t`Fast clone (preview version)`,
                 iconCls: 'fa fa-fw fa-clone',
                 handler: async () => {
                     await this.showFastCloneDialog(guest);
