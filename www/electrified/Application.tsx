@@ -185,6 +185,10 @@ export class Application extends AsyncConstructableClass{
         return this._datacenter;
     }
 
+    get initialized() {
+        return this._datacenter !== undefined;
+    }
+
     get plugins(){
         return [...this._plugins.values()];
     }
@@ -550,6 +554,14 @@ export class Application extends AsyncConstructableClass{
     }
 
 
+    _diagnosis_addElectrifiedMenuItems_addWarningItem(extJsMenuItems: any[]) {
+        return [
+            ...extJsMenuItems,
+            {xtype: "menuseparator"}, {
+                text: "<i>Electrified app not initialized</i>",
+                iconCls: 'fa fa-fw fa-exclamation-triangle'
+            }];
+    }
     /**
      * Called by classic code to add / rearrange menu items and spacers
      * @param extJsMenuItems
@@ -559,6 +571,11 @@ export class Application extends AsyncConstructableClass{
     }
 
     _addDatacenterElectrifiedMenuItems(extJsMenuItems: any[] ) {
+        // Error diagnosis:
+        if(!this.initialized) {
+            return this._diagnosis_addElectrifiedMenuItems_addWarningItem(extJsMenuItems);
+        }
+
         return returnWithErrorHandling(() => {
             const contextObj = this.datacenter;
             return this._addElectrifiedMenuItems(contextObj, extJsMenuItems);
@@ -566,6 +583,11 @@ export class Application extends AsyncConstructableClass{
     }
 
     _addNodeElectrifiedMenuItems(nodeName: string,extJsMenuItems: any[] ) {
+        // Error diagnosis:
+        if(!this.initialized) {
+            return this._diagnosis_addElectrifiedMenuItems_addWarningItem(extJsMenuItems);
+        }
+
         return returnWithErrorHandling(() => {
             const contextObj = this.datacenter.getNode_existing(nodeName);
             return this._addElectrifiedMenuItems(contextObj, extJsMenuItems);
@@ -573,6 +595,11 @@ export class Application extends AsyncConstructableClass{
     }
 
     _addGuestElectrifiedMenuItems(info: any,extJsMenuItems: any[] ) {
+        // Error diagnosis:
+        if(!this.initialized) {
+            return this._diagnosis_addElectrifiedMenuItems_addWarningItem(extJsMenuItems);
+        }
+
         return returnWithErrorHandling(() => {
             const contextObj = this.datacenter.getNode_existing(info.node).getGuest_existing(info.vmid);
             return this._addElectrifiedMenuItems(contextObj, extJsMenuItems);
