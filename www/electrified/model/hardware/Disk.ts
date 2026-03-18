@@ -12,9 +12,9 @@ export class Disk extends Hardware {
     static isDisk = true;
 
     /**
-     *
+     * Storage name or undefined which was observed in old configs for lxcs that had just the path. I.e. "/rpool/subvol-150-disk-1/some/path"
      */
-    storageName!: string;
+    storageName?: string;
 
     /**
      * File id under storage. I.e. vm-827-disk-2
@@ -33,10 +33,19 @@ export class Disk extends Hardware {
         }
         // Parse storage and file id:
         const volumeId = rawConfigString.substring(0, splitPoint).split(":");
-        volumeId.length === 2 || throwIllegalConfig();
-        const [storageName, fileId] = volumeId;
-        this.storageName = storageName;
-        this.fileId = fileId;
+        if(volumeId.length === 1) { // Observed some old configs for lxcs that had just the path. I.e. "/rpool/subvol-150-disk-1/some/path"
+            this.storageName = undefined;
+            this.fileId = volumeId[0];
+        }
+        else if(volumeId.length === 2) {
+            const [storageName, fileId] = volumeId;
+            this.storageName = storageName;
+            this.fileId = fileId;
+        }
+        else {
+            throwIllegalConfig();
+        }
+
         // Parse raw options:
         this.rawOptions = {}
         if(splitPoint < rawConfigString.length) { // Options not empty?
@@ -50,7 +59,7 @@ export class Disk extends Hardware {
 
     get rawConfigString(): string {
         const optionTokens = Object.keys(this.rawOptions).map(key => `${key}=${this.rawOptions[key]}`);
-        return [`${this.storageName}:${this.fileId}`, ...optionTokens].join(",");
+        return [this.volumeId, ...optionTokens].join(",");
     }
 
     set storage(value: Storage | undefined) {
@@ -62,9 +71,12 @@ export class Disk extends Hardware {
     }
 
     /**
-     * Can be undefined when an old storage was configured
+     * Can be undefined when an old storage was configured or an old format was used
      */
     get storage() {
+        if(!this.storageName) {
+            return undefined;
+        }
         return getElectrifiedApp().datacenter.getStorage(this.storageName);
     }
 
@@ -76,7 +88,7 @@ export class Disk extends Hardware {
      * @returns I.e. `myZfsPool:vm-123-disk-0`
      */
     get volumeId() {
-        return `${this.storageName}:${this.fileId}`;
+        return this.storageName?`${this.storageName}:${this.fileId}`:this.fileId;
     }
 
     /**
