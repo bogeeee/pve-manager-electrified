@@ -1,3 +1,13 @@
+pve-manager-electrified (9.5.0) trixie; urgency=medium
+  * Proxmox 9.1.6 features merged.
+  * Fast clone (preview version)
+  * Hide annoying spinning wheel in the tasks list for shells windows.
+  * Bugfix: Pve-docs are not shown
+  * Fix/improve connection interruptions
+  * API: _writeConfig method
+
+ -- PVE-electrified crew <crew@pve-electrified.net>  Wed, 18 Mar 2026 00:00:04 +0200
+
 pve-manager-electrified (9.4.0) trixie; urgency=medium
 
   * Improved API for plugin developers
