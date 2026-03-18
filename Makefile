@@ -198,6 +198,7 @@ IDE_create_aptly_repo: local.config.mk /usr/bin/aptly
 
 # ...
 # See also: IDE_prod_run_nodejsserver, which you should run as a smoke test before publishing
+# If you get a "dpkg-checkbuilddeps: Error: unfulfilled dependencies". Re-run `mk-build-deps --install`. See development-readme.md
 .PHONY: IDE_build_and_publish_package
 IDE_build_and_publish_package: local.config.mk IDE_create_aptly_repo /usr/bin/sshpass /usr/bin/aptly IDE_rsync_project_to_targt_pve_host
 	# Build on the pve server:
