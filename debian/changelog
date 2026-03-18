@@ -1,3 +1,8 @@
+pve-manager-electrified (9.5.1) trixie; urgency=medium
+  * Bugfix: Allow old storage configs for lxcs. I.e. /rpool/subvol-150-disk-1/some/path
+
+ -- PVE-electrified crew <crew@pve-electrified.net>  Wed, 18 Mar 2026 00:00:05 +0200
+
 pve-manager-electrified (9.5.0) trixie; urgency=medium
   * Proxmox 9.1.6 features merged.
   * Fast clone (preview version)
