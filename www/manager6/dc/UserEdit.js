@@ -99,6 +99,7 @@ Ext.define('PVE.dc.UserEdit', {
             column1.splice(1, 0, {
                 xtype: 'pmxRealmComboBox',
                 name: 'realm',
+                stateful: false, // realm is not saved between page reloads
                 fieldLabel: gettext('Realm'),
                 allowBlank: false,
                 matchFieldWidth: false,

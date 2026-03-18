@@ -80,7 +80,7 @@ Ext.define('PVE.qemu.EFIDiskInputPanel', {
             },
             {
                 xtype: 'label',
-                text: gettext("Warning: The VM currently does not uses 'OVMF (UEFI)' as BIOS."),
+                text: gettext("Warning: The VM currently does not use 'OVMF (UEFI)' as BIOS."),
                 userCls: 'pmx-hint',
                 hidden: me.usesEFI,
             },

@@ -56,6 +56,19 @@ Ext.define('PVE.window.TreeSettingsEdit', {
                     deleteEmpty: false,
                 },
                 {
+                    xtype: 'proxmoxKVComboBox',
+                    name: 'nest-pools',
+                    fieldLabel: gettext('Nest Pools'),
+                    comboItems: [
+                        ['__default__', `${Proxmox.Utils.defaultText} (${gettext('Yes')})`],
+                        [1, gettext('Yes')],
+                        [0, gettext('No')],
+                    ],
+                    defaultValue: '__default__',
+                    value: '__default__',
+                    deleteEmpty: false,
+                },
+                {
                     xtype: 'displayfield',
                     userCls: 'pmx-hint',
                     value: gettext('Settings are saved in the local storage of the browser'),

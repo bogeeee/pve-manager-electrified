@@ -111,7 +111,9 @@ Ext.define('PVE.qemu.DisplayInputPanel', {
             xtype: 'displayfield',
             name: 'vncMigration',
             userCls: 'pmx-hint',
-            value: gettext('You cannot live-migrate while using the VNC clipboard.'),
+            value: gettext(
+                'You cannot live-migrate while using the VNC clipboard with machine versions older than 10.1.',
+            ),
             bind: {
                 hidden: '{hideVNCHint}',
             },

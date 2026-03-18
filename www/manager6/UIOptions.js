@@ -93,6 +93,7 @@ Ext.define('PVE.UIOptions', {
             'sort-field': 'vmid',
             'group-templates': true,
             'group-guest-types': true,
+            'nest-pools': true,
         };
 
         return browserValues?.[key] ?? defaults[key];

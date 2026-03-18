@@ -47,6 +47,7 @@ Ext.define('PVE.lxc.MountPointInputPanel', {
         setMPOpt('ro', values.ro);
         setMPOpt('acl', values.acl);
         setMPOpt('replicate', values.replicate);
+        setMPOpt('keepattrs', values.keepattrs);
 
         let res = {};
         res[confid] = PVE.Parser.printLxcMountPoint(me.mp);
@@ -337,6 +338,20 @@ Ext.define('PVE.lxc.MountPointInputPanel', {
             inputValue: '0', // reverses the logic
             name: 'replicate',
             fieldLabel: gettext('Skip replication'),
+        },
+        {
+            xtype: 'proxmoxcheckbox',
+            name: 'keepattrs',
+            defaultValue: '0',
+            fieldLabel: gettext('Keep Attributes'),
+            autoEl: {
+                tag: 'div',
+                'data-qtip': gettext('Preserve ownership and permissions of mount point directory'),
+            },
+            bind: {
+                hidden: '{isRoot}',
+                disabled: '{isRoot}',
+            },
         },
     ],
 });

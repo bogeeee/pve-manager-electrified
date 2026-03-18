@@ -43,6 +43,19 @@ sha512sum: 1900ccb1b092b5563c0430ff9d9ede63c23bf2fa4a872b8816d2b03d711c76c1d2ea2
 Infopage: https://linuxcontainers.org
 Description: LXC default image for alpine 3.22 (20250617)
 
+Package: alpine-3.23-default
+Version: 20260116
+Type: lxc
+OS: alpine
+Section: system
+Maintainer: Proxmox Support Team <support@proxmox.com>
+Architecture: amd64
+Location: system/alpine-3.23-default_20260116_amd64.tar.xz
+md5sum: 2538c3bc2ca5215cc0392383f838d643
+sha512sum: d6835836b59888d8bb3971668820483a246cfa46e992f62209464b6faabd6a223f4132bc0aa86675603223b6646edf4fc33b8b6e80673e1b31183fac191baee4
+Infopage: https://linuxcontainers.org
+Description: LXC default image for alpine 3.23 (20260116)
+
 Package: centos-9-stream-default
 Version: 20240828
 Type: lxc
@@ -111,6 +124,19 @@ sha512sum: 05d08e345648277fd35ed4b9b99832dc4ca4536340a135400ef9c9c51ac76d78d5d5d
 Infopage: https://linuxcontainers.org
 Description: LXC default image for fedora 42 (20250428)
 
+Package: fedora-43-default
+Version: 20260115
+Type: lxc
+OS: fedora
+Section: system
+Maintainer: Proxmox Support Team <support@proxmox.com>
+Architecture: amd64
+Location: system/fedora-43-default_20260115_amd64.tar.xz
+md5sum: a50b573c7a24e6de2227709349606ca0
+sha512sum: 2a1d710f8d9671e6cea2e775bff94c7e00a9dfde3aaaa07cc932e4df8938de398d65f7b2c4d7242196fec25101a33be9f6b8200185e4c24a4b869acf9f174781
+Infopage: https://linuxcontainers.org
+Description: LXC default image for fedora 43 (20260115)
+
 Package: gentoo-current-openrc
 Version: 20250508
 Type: lxc
@@ -149,6 +175,19 @@ md5sum: c1de1a7a5fad45ee90bc4d5c98f2ad3f
 sha512sum: a0154162ef5128ebce176cab67d98b3d0c1db7bde92ac13e89b799de81a9b99f80d9f7afaf032a8247808a5d2d13261c5b7b9148fe03d60111666edfffc94523
 Infopage: https://linuxcontainers.org
 Description: LXC default image for opensuse 15.6 (20240910)
+
+Package: opensuse-16.0-default
+Version: 20260116
+Type: lxc
+OS: opensuse
+Section: system
+Maintainer: Proxmox Support Team <support@proxmox.com>
+Architecture: amd64
+Location: system/opensuse-16.0-default_20260116_amd64.tar.xz
+md5sum: 0b5893343ecbc0bfd7b048dee510754a
+sha512sum: 132ce5d762debc066d11083a65ca46d1bf7425eb74f8b79e6b8f70534b02e42b2fea24aa7cc720db2c0bbe31baa501164382d0663b7b219375b768751a34a687
+Infopage: https://linuxcontainers.org
+Description: LXC default image for opensuse 16.0 (20260116)
 
 Package: proxmox-mail-gateway-8.2-standard
 Version: 8.2-1

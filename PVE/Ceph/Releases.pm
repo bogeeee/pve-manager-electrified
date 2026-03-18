@@ -78,6 +78,16 @@ my sub get_ceph_release_def {
                 9 => 1,
             },
         },
+        tentacle => {
+            release => '20.2',
+            # 'current-backend-default' => 1,
+            unsupported => 1, # TODO: drop once deemed as fully stabilized.
+            'initial-upstream-release' => '2025-11-18',
+            'estimated-end-of-upstream-support' => '2027-11-18',
+            'available-for-pve-release' => {
+                9 => 1,
+            },
+        },
     };
 
     my $current_pve_major_release = get_current_pve_major_release();

@@ -160,12 +160,32 @@ __PACKAGE__->register_method({
 
         my $cephver = $param->{version} || $default_ceph_version;
 
+        my $available_ceph_releases = PVE::Ceph::Releases::get_all_available_ceph_releases();
+        die "unsupported ceph version: $cephver"
+            if !exists($available_ceph_releases->{$cephver});
+
+        my $experimental_release = !!$available_ceph_releases->{$cephver}->{unsupported};
+
         my $repo = $param->{'repository'} // 'enterprise';
         my $enterprise_repo = $repo eq 'enterprise';
         my $cdn =
             $enterprise_repo ? 'https://enterprise.proxmox.com' : 'http://download.proxmox.com';
 
-        if (has_valid_subscription()) {
+        if ($experimental_release && $enterprise_repo) {
+            warn "\nWARN: Enterprise repository selected, but Ceph release is still marked as"
+                . " experimental, repository might not (yet) be useable!\n\n";
+
+            if (-t STDOUT) {
+                print "Do you want to switch to the test repository (Y/n)? ";
+                my $answer = <STDIN> // '';
+                chomp $answer;
+                if (!$answer || $answer =~ m/^\s*y(?:es)?\s*$/i) {
+                    $repo = 'test';
+                    $enterprise_repo = 0;
+                    $cdn = 'http://download.proxmox.com';
+                }
+            }
+        } elsif (has_valid_subscription()) {
             if (!$enterprise_repo) {
                 warn "\nNOTE: The node has an active subscription but a non-production Ceph"
                     . " repository selected.\n\n";
@@ -184,10 +204,6 @@ __PACKAGE__->register_method({
             warn "\nWARN: The test repository should only be used for test setups or after"
                 . " consulting the official Proxmox support!\n\n";
         }
-
-        my $available_ceph_releases = PVE::Ceph::Releases::get_all_available_ceph_releases();
-        die "unsupported ceph version: $cephver"
-            if !exists($available_ceph_releases->{$cephver});
 
         my $repo_source = <<"EOF";
 Types: deb
@@ -211,7 +227,7 @@ EOF
         if ($repo ne "manual") {
             PVE::Tools::file_set_contents("/etc/apt/sources.list.d/ceph.sources", $repo_source);
 
-            if ($available_ceph_releases->{$cephver}->{unsupported}) {
+            if ($experimental_release) {
                 if ($param->{'allow-experimental'}) {
                     warn
                         "NOTE: installing experimental/tech-preview Ceph release ${rendered_release}!\n";

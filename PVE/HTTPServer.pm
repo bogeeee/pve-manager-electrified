@@ -84,12 +84,23 @@ sub auth_handler {
     if ($require_auth) {
         if ($api_token) {
             # the token-ID `<user>@<realm>!<tokenname>` is the user for token based authentication
-            $username = PVE::AccessControl::verify_token($api_token);
+            $username = eval { PVE::AccessControl::verify_token($api_token); };
+            if (my $err = $@) {
+                warn "authentication failure: $err\n";
+                die "Authentication failed!\n";
+            }
         } else {
             die "No ticket\n" if !$ticket;
 
-            ($username, $age, my $tfa_info) = PVE::AccessControl::verify_ticket($ticket);
-            $rpcenv->check_user_enabled($username);
+            my $tfa_info;
+            eval {
+                ($username, $age, $tfa_info) = PVE::AccessControl::verify_ticket($ticket);
+                $rpcenv->check_user_enabled($username);
+            };
+            if (my $err = $@) {
+                warn "authentication failure: $err\n";
+                die "Authentication failed!\n";
+            }
 
             if (defined($tfa_info)) {
                 if (defined(my $challenge = $tfa_info->{challenge})) {

@@ -2126,6 +2126,7 @@ __PACKAGE__->register_method({
                     my $d = $vmlist->{$vmid};
 
                     PVE::Cluster::check_cfs_quorum(); # abort when we loose quorum
+                    PVE::Cluster::cfs_update(); # ensure modifications by hookscripts are visible
 
                     eval {
                         my $default_delay = 0;
@@ -2296,6 +2297,9 @@ __PACKAGE__->register_method({
                 };
 
                 for my $vmid (sort { $b <=> $a } keys %$vmlist) {
+
+                    PVE::Cluster::cfs_update(); # ensure modifications by hookscripts are visible
+
                     my $d = $vmlist->{$vmid};
                     my $timeout = int($d->{down} // $param->{timeout} // 180);
                     my $upid = eval {
@@ -2431,6 +2435,8 @@ __PACKAGE__->register_method({
                 };
 
                 for my $vmid (sort { $b <=> $a } keys %$vmlist) {
+                    PVE::Cluster::cfs_update(); # ensure modifications by hookscripts are visible
+
                     my $d = $vmlist->{$vmid};
                     if ($d->{type} ne 'qemu') {
                         log_warn("skipping $vmid, only VMs can be suspended");
@@ -2636,6 +2642,8 @@ __PACKAGE__->register_method({
             my $workers = {};
             my $workers_started = 0;
             foreach my $vmid (sort keys %$vmlist) {
+                PVE::Cluster::cfs_update(); # ensure modifications by hookscripts are visible
+
                 my $d = $vmlist->{$vmid};
                 my $pid;
                 eval {

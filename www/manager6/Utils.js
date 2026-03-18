@@ -402,7 +402,7 @@ Ext.define('PVE.Utils', {
             enabled: gettext('Enabled'),
             disabled: gettext('Disabled'),
             'not a volume': gettext('Not a volume'),
-            'efidisk but no OMVF BIOS': gettext('EFI Disk without OMVF BIOS'),
+            'efidisk but no OVMF BIOS': gettext('EFI Disk without OVMF BIOS'),
         },
 
         renderNotFound: (what) => Ext.String.format(gettext('No {0} found'), what),
