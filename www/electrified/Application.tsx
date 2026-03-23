@@ -350,7 +350,7 @@ export class Application extends AsyncConstructableClass{
             }
 
 
-            this.plugins.forEach(p => p.onUiReady()); // TODO: Remove this line here and call it from the right place
+            for(const plugin of this.plugins) {await plugin.onUiReady()}; // TODO: Remove this line here and call it from the right place
 
             this.initializedAndLoggedOnPromise.resolve(undefined);
         }
