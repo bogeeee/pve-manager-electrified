@@ -58,6 +58,8 @@ import {ThemeProvider} from "@mui/material";
 import {ExternalPromise} from "restfuncs-common";
 import _ from "underscore"
 
+ExternalPromise.diagnosis_recordCallstacks=true; // For debugging "socket connection has been closed" TODO: remove this line
+
 let app: Application | undefined = undefined;
 
 export class Application extends AsyncConstructableClass{
