@@ -1,5 +1,6 @@
 import {Guest} from "./Guest";
 import {Disk} from "./hardware/Disk";
+import {t} from "../globals";
 
 /**
  * A lxc guest
@@ -29,6 +30,12 @@ export class Lxc extends Guest {
     get type(): "lxc" {
         return "lxc";
     }
+
+    ui_toString() {
+        return t`LXC ${this.id}`;
+    }
+
+    faIcon = "cube"; // Implemented in subclass
 
     get manageCmd() {
         return "pct"

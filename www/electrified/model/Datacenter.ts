@@ -2,14 +2,16 @@ import {AsyncConstructableClass} from "../util/AsyncConstructableClass";
 import {Guest} from "./Guest";
 import {FetchError, spawnAsync, throwError} from "../util/util";
 import {Node} from "./Node"
-import {getElectrifiedApp} from "../globals";
+import {getElectrifiedApp, t} from "../globals";
 import {ModelBase} from "./ModelBase";
 import {ExternalPromise} from "restfuncs-common";
 import {Pool} from "./Pool";
 import {Storage} from "./Storage"
 
+import {Notification, NotificationTarget} from "../Notification";
 
-export class Datacenter extends ModelBase {
+
+export class Datacenter extends ModelBase implements NotificationTarget{
     /**
      * Fast stats means: Electrified does additional polling calls with `usr/bin/ps`, to query for cpu, network, and guest status (running/not running). Cause the cluster cluster/resources's stats are too lame (~30 second average or so).
      */
@@ -243,6 +245,29 @@ export class Datacenter extends ModelBase {
         }
         this._cpuUsageWasNeeded = false;
     }
+
+    // *** <Notification interface> ***
+    get id() {
+        return "datacenter";
+    }
+    get type() {
+        return "datacenter";
+    }
+    get parent() {
+        return undefined;
+    }
+    get ui_pluralType() {
+        return "";
+    }
+    ui_toString() {
+        return t`the datacenter`;
+    }
+    faIcon = "server"; // Implemented in subclass
+    /**
+     * TODO: keep content when preserving
+     */
+    notifications = new Map<string, Notification>();
+    // *** </Notification interface> ***
 
     getNode(name: string) {
         return this._nodes.get(name);

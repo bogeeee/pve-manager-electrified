@@ -1,5 +1,6 @@
 import {Guest} from "./Guest";
 import {Disk} from "./hardware/Disk";
+import {t} from "../globals";
 
 /**
  * A qemu virtual machine guest.
@@ -78,6 +79,12 @@ export class Qemu extends Guest{
     get type(): "qemu" {
         return "qemu";
     }
+
+    ui_toString() {
+        return t`VM ${this.id}`;
+    }
+
+    faIcon = "desktop"; // Implemented in subclass
 
     get manageCmd() {
         return "qm"

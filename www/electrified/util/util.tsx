@@ -12,7 +12,7 @@ import {
     NonIdealStateIconSize, Popover, PopoverProps,
     ProgressBar,
     Tag,
-    Tooltip
+    Tooltip, TooltipProps
 } from "@blueprintjs/core";
 import "@blueprintjs/core/lib/css/blueprint.css";
 import "@blueprintjs/icons/lib/css/blueprint-icons.css";
@@ -26,6 +26,8 @@ import {binding, ValueOnObject, watchedComponent} from "react-deepwatch";
 import { ErrorBoundary } from "react-error-boundary";
 import {getElectrifiedApp} from "../globals";
 import {object} from "prop-types";
+import _ from "underscore";
+import ex = CSS.ex;
 
 function gettext(text: string) {
     const app = getElectrifiedApp();
@@ -993,11 +995,14 @@ export function isPVEDarkTheme() {
 
 /**
  * Shows an info icon with a tooltip with the specified content
+ * <p>
+ * You need to add this css to your app: .utilInfoTooltip { display: inline-block !important; }
+ * </p>
  * @param props
  * @constructor
  */
-export function InfoTooltip(props: {children: React.ReactElement}) {
-    return <Tooltip content={props.children} interactionKind={"hover"}><Icon icon={"small-info-sign"}/></Tooltip>
+export function InfoTooltip(props: {children: React.ReactElement} & Omit<TooltipProps, "content">) {
+    return <Tooltip {...props} content={props.children} interactionKind={"hover"} className={"utilInfoTooltip"} ><Icon icon={"small-info-sign"}/></Tooltip>
 }
 
 /**
@@ -1257,4 +1262,15 @@ export async function retryTilSuccess<T>(executer: () => Promise<T>, options?: {
             throw e;
         }
     }
+}
+
+/**
+ * Like {@link _#extend}. But does not complain if you extend a getter (with no setter)
+ */
+export function extend_quick<DEST extends object, SOURCE extends object>(dest: DEST, source: SOURCE): (DEST & SOURCE) {
+    for(const key in source) {
+        const propDesc = Object.getOwnPropertyDescriptor(source, key)!; // TODO: (now **own**)
+        Object.defineProperty(dest, key, propDesc);
+    }
+    return dest as any;
 }

@@ -57,6 +57,9 @@ import {NetworkInterface} from "./model/hardware/NetworkInterface";
 import {ThemeProvider} from "@mui/material";
 import {ExternalPromise} from "restfuncs-common";
 import _ from "underscore"
+import {Notification}  from "./Notification";
+import {showNotificationSettings} from "./ui/NotificationSettings";
+import {ToasterWrapper} from "./ui/ToasterWrapper";
 
 ExternalPromise.diagnosis_recordCallstacks=true; // For debugging "socket connection has been closed" TODO: remove this line
 
@@ -146,7 +149,8 @@ export class Application extends AsyncConstructableClass{
             Datacenter, Node, Pool, Guest, Qemu, Lxc,
             hardware: Hardware, Disk, NetworkInterface,
         },
-        Plugin
+        Plugin,
+        Notification,
     }
 
     util = {
@@ -170,6 +174,11 @@ export class Application extends AsyncConstructableClass{
      * Classic proxmox's Ext.js workspace component
      */
     workspace!: any;
+
+    /**
+     * Shows notifications
+     */
+    toaster!: ToasterWrapper;
 
     private _plugins=  new Map<PluginClass, Plugin>();
 
@@ -248,9 +257,15 @@ export class Application extends AsyncConstructableClass{
         await showPluginManager();
     }
 
+    async showNotificationSettings() {
+        await showNotificationSettings();
+    }
+
 
     async constructAsync() {
         console.log("Starting Proxmox VE Manager electrified");
+
+        this.toaster = await ToasterWrapper.create();
 
         (window as any).electrifiedApp = app = this; // Make available for other modules
 
@@ -555,6 +570,12 @@ export class Application extends AsyncConstructableClass{
         return jsonResult.data;
     }
 
+    /**
+     * shows the notification as a popup toast message. Only if not muted.
+     */
+    _popupNotification(notification: Notification) {
+        this.toaster.show({Component: notification.OuterPopupComponent, isObsolete: () => notification.isMuted() || notification.isDestroyed});
+    }
 
     _diagnosis_addElectrifiedMenuItems_addWarningItem(extJsMenuItems: any[]) {
         return [

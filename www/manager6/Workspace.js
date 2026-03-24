@@ -449,6 +449,13 @@ Ext.define('PVE.StdWorkspace', {
                                     },
                                 },
                                 {
+                                    iconCls: 'fa fa-bell',
+                                    text: gettext('Notifications'),
+                                    handler: function() {
+                                        window.electrifiedApp.showNotificationSettings();
+                                    },
+                                },
+                                {
                                     iconCls: 'fa fa-code',
                                     text: gettext('Web build control panel'),
                                     handler: function() {

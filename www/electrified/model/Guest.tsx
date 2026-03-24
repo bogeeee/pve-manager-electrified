@@ -1,5 +1,5 @@
 import {AsyncConstructableClass} from "../util/AsyncConstructableClass";
-import {getElectrifiedApp, MeteredValue} from "../globals";
+import {getElectrifiedApp, MeteredValue, t} from "../globals";
 import {ModelBase} from "./ModelBase";
 import {preserve} from "react-deepwatch";
 import type {Node} from "./Node"
@@ -12,8 +12,9 @@ import {Hardware} from "./hardware/Hardware";
 import {NetworkInterface} from "./hardware/NetworkInterface";
 import {stringify as brilloutJsonStringify} from "@brillout/json-serializer/stringify"
 import {instanceOf} from "prop-types";
+import {NotificationTarget, Notification} from "../Notification";
 
-export abstract class Guest extends ModelBase {
+export abstract class Guest extends ModelBase implements NotificationTarget {
     //@ts-ignore
     classType!: typeof Guest
 
@@ -142,6 +143,20 @@ export abstract class Guest extends ModelBase {
         currentCpuUsage?: MeteredValue
     }
 
+    get ui_pluralType() {
+        return t`guests`;
+    }
+    ui_toString() {
+        return t`guest ${this.id}`;
+    }
+
+    faIcon = ""; // Implemented in subclass
+
+    /**
+     * TODO: keep content when preserving
+     */
+    notifications = new Map<string, Notification>();
+
     /**
      * [Fieldname / same as key in config file] -> class info
      */
@@ -242,6 +257,10 @@ export abstract class Guest extends ModelBase {
         }
 
         for(const key of configEntries.keys()) {
+            if(key === "parent") {
+                continue; // Ignore, field has duplicate meaning
+            }
+
             let configValue: string | string[] | number = configEntries.get(key)!;
 
             // Convert numeric value to number:
@@ -466,6 +485,10 @@ export abstract class Guest extends ModelBase {
 
     get node() {
         return this.liveGuest._node!;
+    }
+
+    get parent(): Node {
+        return this.node;
     }
 
     get configFile(): File {

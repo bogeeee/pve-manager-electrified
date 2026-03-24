@@ -1,6 +1,6 @@
 import {Hardware} from "./Hardware";
 import {throwError} from "../../util/util";
-import {getElectrifiedApp} from "../../globals";
+import {getElectrifiedApp, t} from "../../globals";
 import {Storage} from "../Storage";
 
 export class Disk extends Hardware {
@@ -112,8 +112,13 @@ export class Disk extends Hardware {
         }
     }
 
-    toString() {
-        return `${this.type}${this.index !== undefined?this.index:""}`;
+    get ui_pluralType() {
+        return t`disks`;
     }
+    ui_toString() {
+        return t`disk ${this.toString()} in ${this.parent.ui_toString()}}`;
+    }
+
+    faIcon = "hdd-o"; // Implemented in subclass
 
 }

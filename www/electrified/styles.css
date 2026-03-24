@@ -48,3 +48,12 @@
 .electrifiedDialogSpacer {
     width: 25px;
 }
+
+.utilInfoTooltip {
+    display: inline-block !important;
+    cursor: pointer;
+}
+
+.bp6-toast {
+    max-width: 100% !important; /* remove limitation */
+}

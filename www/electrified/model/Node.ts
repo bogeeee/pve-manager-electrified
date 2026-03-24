@@ -5,18 +5,19 @@ import {RestfuncsClient} from "restfuncs-client";
 import type {ElectrifiedSession, ExecaOptions} from "pveme-nodejsserver/ElectrifiedSession"
 import {Guest} from "./Guest";
 import {ElectrifiedRestfuncsClient} from "../util/ElectrifiedRestfuncsClient";
-import {getElectrifiedApp, MeteredValue} from "../globals";
+import {getElectrifiedApp, MeteredValue, t} from "../globals";
 import _ from "underscore"
 import {Lxc} from "./Lxc";
 import {Qemu} from "./Qemu";
 import {ModelBase} from "./ModelBase";
 import {preserve} from "react-deepwatch";
 import {GuestsContainerBase} from "./GuestsContainerBase";
+import {Notification, NotificationTarget} from "../Notification";
 
 /**
  * A PVE-Node. All fields are live updated.
  */
-export class Node extends GuestsContainerBase {
+export class Node extends GuestsContainerBase implements NotificationTarget {
     name!: string;
 
     _electrifiedClient?: RestfuncsClient<ElectrifiedSession>;
@@ -248,6 +249,16 @@ export class Node extends GuestsContainerBase {
         return "node";
     }
 
+    get ui_pluralType() {
+        return t`nodes`;
+    }
+
+    ui_toString() {
+        return t`node ${this.name}`;
+    }
+
+    faIcon = "building"; // Implemented in subclass
+
     /**
      * ElectrifiedResourceStats are additional stats with cpu usage and [running/not running]. Cause the cluster cluster/resources's stats are too lame (~30 second average or so).
      * @protected
@@ -305,6 +316,19 @@ export class Node extends GuestsContainerBase {
 
         this._fireUpdate();
     }
+
+    get id() {
+        return this.name;
+    }
+
+    get parent(): NotificationTarget {
+        return getElectrifiedApp().datacenter;
+    }
+
+    /**
+     * TODO: keep content when preserving
+     */
+    notifications = new Map<string, Notification>();
 }
 
 

@@ -44,6 +44,7 @@ import {
 import {retsync2promise} from "proxy-facades/retsync";
 import {Datacenter} from "./model/Datacenter";
 import {UserCapabilities} from "./Application";
+import {Notification, NotificationFilter, NotificationSettings} from "./Notification";
 
 /**
  * Offers nice features.
@@ -71,8 +72,8 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
      *
      * Because this field may be updated to a new object instance (on external config change), make sure to to not **hold* references to sub-objects over a long time. I.e. <WRONG>const myLongTermConst = this.userConfig.treeColumnConfigs;</WRONG>
      */
-    userConfig = {
-        cpuBars: {
+    userConfig = new class {
+        cpuBars= {
             /**
              * Shows the total / grayed out background bars
              */
@@ -84,13 +85,18 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
             },
 
             width: 4
-        },
+        };
 
-        fastClone: {
+        fastClone= {
             start: false,
             randomizeMacAddresses: true,
             randomizeVmGenId: true,
         }
+
+        notificationSettings: {
+            filter: NotificationFilter,
+            settings: NotificationSettings
+        }[] = [];
     }
 
     /**
@@ -112,8 +118,11 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
      *
      * Because this field may be updated to a new object instance (on external config change), make sure to to not **hold* references to sub-objects over a long time. I.e. <WRONG>const myLongTermConst = this.datacenterConfig.treeColumnConfigs;</WRONG>
      */
-    datacenterConfig = {
-
+    datacenterConfig = new class {
+        notificationSettings: {
+            filter: NotificationFilter,
+            settings: NotificationSettings
+        }[] = [];
     }
 
     /**

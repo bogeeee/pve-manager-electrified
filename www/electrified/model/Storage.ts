@@ -1,10 +1,11 @@
 import {ModelBase} from "./ModelBase";
 import {preserve} from "react-deepwatch";
-import {getElectrifiedApp} from "../globals";
+import {getElectrifiedApp, t} from "../globals";
 import {Node} from "./Node"
 import type {Datacenter} from "./Datacenter"
+import {Notification, NotificationTarget} from "../Notification";
 
-export class Storage extends ModelBase {
+export class Storage extends ModelBase implements NotificationTarget {
     name!: string;
     content!: string[];
     /**
@@ -53,6 +54,26 @@ export class Storage extends ModelBase {
     get type() {
         return this.plugintype;
     }
+
+    // *** <Notification interface> ***
+    get id() {
+        return this.name;
+    }
+    get parent() {
+        return getElectrifiedApp().datacenter;
+    }
+    get ui_pluralType() {
+        return t`storages`;
+    }
+    ui_toString() {
+        return t`storage ${this.name}`;
+    }
+    faIcon = "database"; // Implemented in subclass
+    /**
+     * TODO: keep content when preserving
+     */
+    notifications = new Map<string, Notification>();
+    // *** </Notification interface> ***
 
     /**
      * Internal

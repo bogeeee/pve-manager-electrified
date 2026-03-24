@@ -1,5 +1,6 @@
 import {Hardware} from "./Hardware";
 import {throwError} from "../../util/util";
+import {t} from "../../globals";
 
 export class NetworkInterface extends Hardware {
 
@@ -30,5 +31,15 @@ export class NetworkInterface extends Hardware {
         }
         return result.join(':').toUpperCase();
     }
+
+    get ui_pluralType() {
+        return t`network interfaces`;
+    }
+
+    ui_toString() {
+        return t`network interface ${this.toString()} in ${this.parent.ui_toString()}}`;
+    }
+
+    faIcon = "hdd-o"; // Implemented in subclass
 
 }
