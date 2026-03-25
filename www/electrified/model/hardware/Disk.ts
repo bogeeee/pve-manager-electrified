@@ -112,6 +112,9 @@ export class Disk extends Hardware {
         }
     }
 
+    get ui_type() {
+        return t`disk`;
+    }
     get ui_pluralType() {
         return t`disks`;
     }

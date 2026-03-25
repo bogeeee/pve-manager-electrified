@@ -256,6 +256,9 @@ export class Datacenter extends ModelBase implements NotificationTarget{
     get parent() {
         return undefined;
     }
+    get ui_type() {
+        return t`datacenter`;
+    }
     get ui_pluralType() {
         return "";
     }

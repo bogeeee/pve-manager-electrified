@@ -1274,3 +1274,10 @@ export function extend_quick<DEST extends object, SOURCE extends object>(dest: D
     }
     return dest as any;
 }
+
+export function capitalize(value: string) {
+    if(!value) {
+        return value;
+    }
+    return value.charAt(0).toUpperCase() + value.slice(1);
+}

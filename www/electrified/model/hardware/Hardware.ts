@@ -41,6 +41,9 @@ export class Hardware extends AsyncConstructableClass implements NotificationTar
         return `${this.parent.id}/${this.type}${this.index || ""}`
     }
 
+    get ui_type() {
+        return t`hardware`;
+    }
     get ui_pluralType() {
         return this.type + "s";
     }

@@ -62,6 +62,9 @@ export class Storage extends ModelBase implements NotificationTarget {
     get parent() {
         return getElectrifiedApp().datacenter;
     }
+    get ui_type() {
+        return t`storage`;
+    }
     get ui_pluralType() {
         return t`storages`;
     }

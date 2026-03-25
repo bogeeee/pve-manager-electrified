@@ -32,6 +32,9 @@ export class NetworkInterface extends Hardware {
         return result.join(':').toUpperCase();
     }
 
+    get ui_type() {
+        return t`network interface`;
+    }
     get ui_pluralType() {
         return t`network interfaces`;
     }

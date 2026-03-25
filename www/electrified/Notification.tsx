@@ -1,5 +1,13 @@
 import type {Plugin} from "./Plugin"
-import {extend_quick, HoverTooltip, InfoTooltip, spawnAsync, spawnWithErrorHandling, throwError} from "./util/util";
+import {
+    capitalize,
+    extend_quick,
+    HoverTooltip,
+    InfoTooltip,
+    spawnAsync,
+    spawnWithErrorHandling,
+    throwError
+} from "./util/util";
 import {getElectrifiedApp, t} from "./globals";
 import _ from "underscore"
 import {Button, ButtonGroup, Checkbox, Icon, Menu, MenuItem, Popover, Position} from "@blueprintjs/core";
@@ -24,6 +32,7 @@ export type NotificationFilter = {
 
     cache_about_ui_pluralType?: string;
 
+    cache_for_ui_type?:string;
     /**
      * Output of target's ui_toString
      */
@@ -48,6 +57,11 @@ export interface NotificationTarget {
      * Class-id -> Notification
      */
     notifications: Map<string, Notification>
+
+    /**
+     *
+     */
+    ui_type: string
 
     /**
      * I.e. "disks".
@@ -196,6 +210,7 @@ export class Notification {
             cache_aboutType: this.about.type,
             cache_ui_className: this.ui_className,
             cache_about_ui_pluralType: this.about.ui_pluralType,
+            cache_for_ui_type: target.ui_type,
             cache_for_ui_string: target.ui_toString(),
             cache_for_faIcon: target.faIcon,
         }
@@ -268,7 +283,7 @@ export class Notification {
                             <Menu>
                                 {
                                     possibleTargetScopes.map(target => {
-                                        return <MenuItem key={target.type} icon={<span className={`fa fa-${target.faIcon}`}/>} text={target === this.about?t`Mute "${this.ui_className}" notifications for ${target.ui_toString()}` : t`Mute "${this.ui_className}" notifications for all ${this.about.ui_pluralType} under ${target.ui_toString()}`} onClick={() => spawnWithErrorHandling(async () => {await this.mute(target, state.muteForAllUsers); props.close()})}/>
+                                        return <MenuItem key={target.type} icon={<span className={`fa fa-${target.faIcon}`}/>} text={<span><strong>{capitalize(target.ui_type)} wide</strong>: {target === this.about?t`Mute "${this.ui_className}" notifications for ${target.ui_toString()}` : t`Mute "${this.ui_className}" notifications for all ${this.about.ui_pluralType} under ${target.ui_toString()}`}</span>} onClick={() => spawnWithErrorHandling(async () => {await this.mute(target, state.muteForAllUsers); props.close()})}/>
                                     })
                                 }
                             </Menu>

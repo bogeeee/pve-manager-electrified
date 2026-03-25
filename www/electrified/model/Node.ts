@@ -249,6 +249,9 @@ export class Node extends GuestsContainerBase implements NotificationTarget {
         return "node";
     }
 
+    get ui_type() {
+        return t`node`;
+    }
     get ui_pluralType() {
         return t`nodes`;
     }

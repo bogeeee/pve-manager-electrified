@@ -143,6 +143,9 @@ export abstract class Guest extends ModelBase implements NotificationTarget {
         currentCpuUsage?: MeteredValue
     }
 
+    get ui_type() {
+        return t`guest`;
+    }
     get ui_pluralType() {
         return t`guests`;
     }
