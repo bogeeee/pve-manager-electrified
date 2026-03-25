@@ -23,7 +23,15 @@ import {
 } from "@blueprintjs/core";
 import "@blueprintjs/core/lib/css/blueprint.css";
 import "@blueprintjs/icons/lib/css/blueprint-icons.css";
-import {confirm, formatDate, showBlueprintDialog, spawnAsync, throwError, spawnWithErrorHandling} from "../util/util";
+import {
+    confirm,
+    formatDate,
+    showBlueprintDialog,
+    spawnAsync,
+    throwError,
+    spawnWithErrorHandling,
+    capitalize
+} from "../util/util";
 import {getElectrifiedApp, gettext, t} from "../globals";
 import _ from "underscore";
 import {Table, TableBody, TableCell, TableContainer, TableHead, TableRow} from "@mui/material";
@@ -67,6 +75,7 @@ export async function showNotificationSettings() {
                 return Object.keys(f).some(k => f[k] !== null && typeof f[k] === "string" && f[k].toLowerCase().indexOf(state.filterText.toLowerCase()) >= 0)
             })
         }
+        const isFiltered = state.filterByType !== "all" || state.filterText;
 
         return <div >
             <div className={Classes.DIALOG_BODY}>
@@ -108,9 +117,10 @@ export async function showNotificationSettings() {
                                     </TableCell>
                                     {/* Scope */}
                                     <TableCell style={cellStyle}>
+                                        <span className={`fa fa-${item.filter.cache_for_faIcon}`}/> <strong>{t`${capitalize(item.filter.cache_for_ui_type || item.filter.forType)} wide`}: </strong>
                                         {item.filter.forType === item.filter.cache_aboutType?
-                                            <strong>{t`For ${item.filter.cache_for_ui_string || item.filter.forType}`}</strong> :
-                                            <span>{t`For all ${item.filter.cache_about_ui_pluralType || "..."}`} <strong>{t`under ${item.filter.cache_for_ui_string || item.filter.forType}`}</strong></span>}
+                                            <span>{t`For ${item.filter.cache_for_ui_string || item.filter.forType}`}</span> :
+                                            <span>{t`For all ${item.filter.cache_about_ui_pluralType || "..."}`} {t`under ${item.filter.cache_for_ui_string || item.filter.forType}`}</span>}
                                     </TableCell>
                                     {/* Action */}
                                     <TableCell style={cellStyle}>
@@ -125,7 +135,7 @@ export async function showNotificationSettings() {
             <div className={Classes.DIALOG_FOOTER}>
                 <div className={Classes.DIALOG_FOOTER_ACTIONS}>
                     <ButtonGroup>
-                        <Button onClick={() => items.forEach(i => i.settings.muted = false)} intent={Intent.PRIMARY} disabled={items.length === 0} icon={<span className={"fa fa-bell"}/>}>{t`Unmute all`}</Button>
+                        <Button onClick={() => items.forEach(i => i.settings.muted = false)} intent={Intent.PRIMARY} disabled={items.length === 0} icon={<span className={"fa fa-bell"}/>}>{isFiltered?t`Unmute all, matching filter`:t`Unmute all`}</Button>
                         <Button onClick={() => props.resolve(undefined)}>{t`Close`}</Button>
                     </ButtonGroup>
                 </div>

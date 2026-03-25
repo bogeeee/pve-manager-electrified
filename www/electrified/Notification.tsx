@@ -277,13 +277,13 @@ export class Notification {
 
 
                                 <hr style={{marginTop: "8px", marginBottom: "8px"}}/>
-                                {possibleTargetScopes.length >1 && <h3 style={{margin: 0}}>{t`Please make the choice, how broad you want to mute`}</h3>}
+                                {possibleTargetScopes.length >1 && <h3 style={{margin: 0}}>{t`Please make the choice, how broad you want to mute "${this.ui_className}"`}</h3>}
                             </div>
                             {possibleTargetScopes.length >1 &&
                             <Menu>
                                 {
                                     possibleTargetScopes.map(target => {
-                                        return <MenuItem key={target.type} icon={<span className={`fa fa-${target.faIcon}`}/>} text={<span><strong>{capitalize(target.ui_type)} wide</strong>: {target === this.about?t`Mute "${this.ui_className}" notifications for ${target.ui_toString()}` : t`Mute "${this.ui_className}" notifications for all ${this.about.ui_pluralType} under ${target.ui_toString()}`}</span>} onClick={() => spawnWithErrorHandling(async () => {await this.mute(target, state.muteForAllUsers); props.close()})}/>
+                                        return <MenuItem key={target.type} icon={<span className={`fa fa-${target.faIcon}`}/>} text={<span><strong>{t`${capitalize(target.ui_type)} wide`}</strong>: {target === this.about?t`Mute it for ${target.ui_toString()}` : t`Mute it for all ${this.about.ui_pluralType} under ${target.ui_toString()}`}</span>} onClick={() => spawnWithErrorHandling(async () => {await this.mute(target, state.muteForAllUsers); props.close()})}/>
                                     })
                                 }
                             </Menu>
