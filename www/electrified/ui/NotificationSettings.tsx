@@ -79,6 +79,10 @@ export async function showNotificationSettings() {
 
         return <div >
             <div className={Classes.DIALOG_BODY}>
+                <h2>{t`General`}</h2>
+                    {/* Never show notifications as popup */}
+                    <div style={{display: "flex", alignItems: "top", gap: "0px"}}><Checkbox {...bind(watched(getElectrifiedApp().userConfig).hideNotificationPopups)}/><div><strong>{t`Never show notifications as popups`}</strong></div></div>
+
                 <h2>{t`Muted notifications`}</h2>
                 {/* Filter row*/}
                 <div style={{ display: "flex", gap: "10px", alignItems: "center", marginBottom: "8px" }}>

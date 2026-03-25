@@ -574,7 +574,7 @@ export class Application extends AsyncConstructableClass{
      * shows the notification as a popup toast message. Only if not muted.
      */
     _popupNotification(notification: Notification) {
-        this.toaster.show({Component: notification.OuterPopupComponent, isObsolete: () => notification.isMuted() || notification.isDestroyed});
+        this.toaster.show({Component: notification.OuterPopupComponent, isObsolete: () => this.userConfig.hideNotificationPopups || notification.isMuted() || notification.isDestroyed});
     }
 
     _diagnosis_addElectrifiedMenuItems_addWarningItem(extJsMenuItems: any[]) {

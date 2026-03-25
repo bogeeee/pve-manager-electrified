@@ -97,6 +97,10 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
             filter: NotificationFilter,
             settings: NotificationSettings
         }[] = [];
+        /**
+         * Never show notifications as popup.<p>They are still shown in the resource tree and under the "warnings" configuration tab.</p>
+         */
+        hideNotificationPopups = false;
     }
 
     /**

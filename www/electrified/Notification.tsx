@@ -12,7 +12,7 @@ import {getElectrifiedApp, t} from "./globals";
 import _ from "underscore"
 import {Button, ButtonGroup, Checkbox, Icon, Menu, MenuItem, Popover, Position} from "@blueprintjs/core";
 import React from "react";
-import {bind, useWatchedState, watchedComponent} from "react-deepwatch";
+import {bind, useWatchedState, watched, watchedComponent} from "react-deepwatch";
 import type {ToastMessageComponentProps} from "./ui/ToasterWrapper";
 
 /**
@@ -248,10 +248,11 @@ export class Notification {
      */
     OuterPopupComponent = watchedComponent((props: ToastMessageComponentProps) => {
         const state = useWatchedState(new class {
-            muteForAllUsers = false;
+            muteFor: "user" | "datacenter" = "user";
         })
 
         const possibleTargetScopes = this._getPossibleTargetScopes().reverse();
+        const rememberSelectBox = <select {...bind(state.muteFor)}><option value={"user"}>{t`in this browser`}</option><option value={"datacenter"}>{t`for all users in the datacenter`}</option></select>;
 
         return <div style={{width: "600px"}}>
             <div style={{display: "flex", flexDirection: "row", alignItems: "center", gap: "8px", marginBottom: "16px"}}>
@@ -267,28 +268,40 @@ export class Notification {
                 {props.moreToastsWaiting > 0 && <div style={{textAlign: "right"}}><i>{t`${props.moreToastsWaiting} more notifications`}</i></div>}
                 {/* Mute button*/}
                 <ButtonGroup>
-                    <Button icon={<span className={"fa fa-bell-slash"} style={{width: "14px"}}/>} onClick={() => spawnWithErrorHandling(async () => {await this.mute(undefined, state.muteForAllUsers); props.close()})}>Mute</Button>
+                    <Button icon={<span className={"fa fa-bell-slash"} style={{width: "14px"}}/>} onClick={() => spawnWithErrorHandling(async () => {await this.mute(undefined, state.muteFor === "datacenter"); props.close()})}>Mute</Button>
                     <Popover position={Position.BOTTOM_LEFT} usePortal={false} content={
                         <div style={{width: "600px", display: "flex", flexDirection: "column", gap: "0px"}}>
-                            <div style={{paddingLeft: "8px", paddingRight:"8px", paddingTop:"8px"}}>
-
-                                <div style={{display: "flex", alignItems: "top", gap: "0px"}}><Checkbox {...bind(state.muteForAllUsers)}/><div><strong>{t`Mute for all users.`}</strong><i> {t`This stores the following choice for all users`}</i>{/*<InfoTooltip usePortal={false}><span>todo</span></InfoTooltip>*/}.</div></div>
-                                <div><HoverTooltip interactionKind={"click-target"} tooltip={<div style={{paddingBottom: "50px"}}>{t`You will find it under: Settings > Notifications`}<br/><img src="../../images/screenshot_notification_settings.png"/></div>} showHand={true} placement={"top"} ><i><Icon icon={"info-sign"}/> {t`Where to un-mute it later?`}</i></HoverTooltip></div>
-
-
-                                <hr style={{marginTop: "8px", marginBottom: "8px"}}/>
-                                {possibleTargetScopes.length >1 && <h3 style={{margin: 0}}>{t`Please make the choice, how broad you want to mute "${this.ui_className}"`}</h3>}
-                            </div>
-                            {possibleTargetScopes.length >1 &&
-                            <Menu>
-                                {
-                                    possibleTargetScopes.map(target => {
-                                        return <MenuItem key={target.type} icon={<span className={`fa fa-${target.faIcon}`}/>} text={<span><strong>{t`${capitalize(target.ui_type)} wide`}</strong>: {target === this.about?t`Mute it for ${target.ui_toString()}` : t`Mute it for all ${this.about.ui_pluralType} under ${target.ui_toString()}`}</span>} onClick={() => spawnWithErrorHandling(async () => {await this.mute(target, state.muteForAllUsers); props.close()})}/>
-                                    })
-                                }
-                            </Menu>
+                            {possibleTargetScopes.length > 1?
+                                <div>
+                                    <div style={{padding: "8px"}}>
+                                        <h3 style={{margin: 0}}>{t`Please make the choice, how broad you want to mute "${this.ui_className}"`}</h3>
+                                        <div style={{marginTop: "6px"}}>{t`The choice will be remembered ${""}`}{rememberSelectBox}</div>
+                                    </div>
+                                    <Menu>
+                                        {
+                                            possibleTargetScopes.map(target => {
+                                                return <MenuItem key={target.type}
+                                                                 icon={<span className={`fa fa-${target.faIcon}`}/>}
+                                                                 text={
+                                                                     <span><strong>{t`${capitalize(target.ui_type)} wide`}</strong>: {target === this.about ? t`Mute it for ${target.ui_toString()}` : t`Mute it for all ${this.about.ui_pluralType} under ${target.ui_toString()}`}</span>}
+                                                                 onClick={() => spawnWithErrorHandling(async () => {
+                                                                     await this.mute(target, state.muteFor === "datacenter");
+                                                                     props.close()
+                                                                 })}/>
+                                            })
+                                        }
+                                    </Menu>
+                                    <hr style={{marginTop: "8px", marginBottom: "8px"}}/>
+                                </div>:
+                                <div style={{padding:"8px"}}>
+                                    {t`Remember mute choice ${""}`}{rememberSelectBox}
+                                </div>
                             }
-
+                            <div style={{padding:"8px", paddingTop:"0px"}}>
+                                <div style={{display: "flex", alignItems: "top", gap: "0px"}}><Checkbox {...bind(watched(getElectrifiedApp().userConfig).hideNotificationPopups)}/><div><strong>{t`Never show notifications as popups`}</strong><br/><i> {t`They will still be shown in the resource tree and under the "warnings" configuration tab.`}</i></div></div>
+                                <br/>
+                                <div><HoverTooltip interactionKind={"click-target"} tooltip={<div style={{paddingBottom: "400px"}}>{t`You will find these settings under: Settings > Notifications`}<br/><img src="../../images/screenshot_notification_settings.png"/></div>} showHand={true} placement={"top"} ><i><Icon icon={"info-sign"}/> {t`Where to un-mute or change these settings later?`}</i></HoverTooltip></div>
+                            </div>
                         </div>
                     }><Button rightIcon="caret-down"></Button></Popover>
                 </ButtonGroup>
