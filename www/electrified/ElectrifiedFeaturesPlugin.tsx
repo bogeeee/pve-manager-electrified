@@ -45,6 +45,7 @@ import {retsync2promise} from "proxy-facades/retsync";
 import {Datacenter} from "./model/Datacenter";
 import {UserCapabilities} from "./Application";
 import {Notification, NotificationFilter, NotificationSettings} from "./Notification";
+import {Qemu} from "./model/Qemu";
 
 /**
  * Offers nice features.
@@ -649,7 +650,7 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
                                     <td className="electrifiedFormLabel">{t`Randomize VM gen id`}:</td>
                                     <td colSpan={99}>
                                         <input type="checkbox" {...bind(state.randomizeVmGenId)}/>&#160;<span style={iconFixStyle as any}><RememberChoiceButton currentValue={state.randomizeVmGenId} storageBind={binding(fastCloneUserConfig.randomizeVmGenId)}/></span>
-                                        <i>&#160;Preview version note: This feature is not yet implemented</i></td>
+                                    </td>
 
                                 </tr>
                             }
@@ -834,6 +835,10 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
 
         if(result.randomizeMacAddresses) {
             clone.net.forEach(networkInterface => networkInterface.randomizeMacAddress())
+        }
+
+        if(result.randomizeVmGenId && clone instanceof Qemu) {
+            clone.randomizeVmGenId();
         }
 
         // Write config:

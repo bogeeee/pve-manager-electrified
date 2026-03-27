@@ -90,4 +90,22 @@ export class Qemu extends Guest{
         return "qm"
     }
 
+    /**
+     * Sets a new vmGenId in the format: 0e7a9f0f-8b56-46c3-bc21-f0c21b61fad9
+     */
+    randomizeVmGenId() {
+        const digit = () => Math.floor(Math.random() * 16).toString(16);
+        const digits = (repeat: number) => {
+            let result = "";
+            for(let i=0;i<repeat;i++) {
+                result+=digit();
+            }
+            return result;
+        }
+
+        const newVmGenId = `${digits(8)}-${digits(4)}-${digits(4)}-${digits(4)}-${digits(12)}`
+
+        this._rawConfigRecord.set("vmgenid", newVmGenId);
+    }
+
 }
