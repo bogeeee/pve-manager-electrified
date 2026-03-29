@@ -1025,7 +1025,7 @@ export function HoverTooltip(props: PopoverProps & {tooltip: React.ReactNode, ch
  *
  * @constructor
  */
-export const RememberChoiceButton = watchedComponent<{currentValue: unknown, storageBind: ValueOnObject<unknown>}>(<T,>(props: {currentValue: T, storageBind: ValueOnObject<T>}) => {
+export const RememberChoiceButton = watchedComponent<{currentValue: unknown, storageBind: ValueOnObject<unknown>, tooltip?: string, disabled?: boolean}>(<T,>(props: {currentValue: T, storageBind: ValueOnObject<T>, tooltip?: string, disabled?: boolean}) => {
     // Save default value:
     useEffect(() => {
         if(props.storageBind.value === undefined && props.currentValue !== undefined) {
@@ -1033,13 +1033,13 @@ export const RememberChoiceButton = watchedComponent<{currentValue: unknown, sto
         }
     }, [props.currentValue, props.storageBind.value])
 
-    const disabled = props.currentValue === props.storageBind.value;
+    const disabled = (props.disabled === true) || props.currentValue === props.storageBind.value;
 
     const save = () => {
         props.storageBind.value = props.currentValue;
     }
 
-    return <HoverTooltip tooltip={!disabled?gettext(`Set as default for this dialog`):undefined}><a style={{cursor:disabled?"initial":"pointer"}} onClick={() => save()}><span className="fa fa-save" style={{opacity: disabled?"0.2":"1", transition:!disabled?"opacity 0.35s":undefined}} /></a></HoverTooltip>
+    return <HoverTooltip tooltip={!disabled?(props.tooltip || gettext(`Set as default for this dialog`)):undefined}><a style={{cursor:disabled?"initial":"pointer"}} onClick={() => save()}><span className="fa fa-save" style={{opacity: disabled?"0.2":"1", transition:!disabled?"opacity 0.35s":undefined}} /></a></HoverTooltip>
 });
 
 /**

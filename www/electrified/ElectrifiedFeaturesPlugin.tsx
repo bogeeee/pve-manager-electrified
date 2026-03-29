@@ -90,6 +90,9 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
 
         fastClone= {
             start: false,
+            withRam_forOlderSnapshots: false,
+            withRam_forCurrent: true,
+            createInitialSnapshot: true,
             randomizeMacAddresses: true,
             randomizeVmGenId: true,
         }
@@ -530,6 +533,7 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
             name: string;
             targetStorage: Storage | undefined;
             start: boolean;
+            withRam: boolean;
             randomizeMacAddresses:boolean;
             randomizeVmGenId:boolean;
             pauseOld:boolean;
@@ -543,7 +547,7 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
             const state = useWatchedState(new class implements DialogResult {
                 targetNode = origGuest.node;
                 pool = origGuest.pool;
-                snapshot = origGuest;
+                private _snapshot = origGuest;
                 id = app.datacenter.getFreeGuestId(origGuest.id);
                 name = getInitialSuggestedName();
 
@@ -553,9 +557,25 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
                 targetStorage: Storage | undefined;
 
                 start = fastCloneUserConfig.start !== undefined?fastCloneUserConfig.start:false;
+                withRam = origGuest instanceof Qemu?(fastCloneUserConfig.withRam_forCurrent !== undefined?fastCloneUserConfig.withRam_forCurrent:true):false;
+                _createInitialSnapshot = fastCloneUserConfig.createInitialSnapshot !== undefined?fastCloneUserConfig.createInitialSnapshot:false;
                 randomizeMacAddresses = fastCloneUserConfig.randomizeMacAddresses !== undefined?fastCloneUserConfig.randomizeMacAddresses:true;
                 randomizeVmGenId = fastCloneUserConfig.randomizeVmGenId !== undefined?fastCloneUserConfig.randomizeVmGenId:true;
                 pauseOld = false;
+
+                get snapshot(): Guest {
+                    return this._snapshot;
+                }
+
+                set snapshot(value: Guest) {
+                    if(this.snapshot === origGuest && value !== origGuest) { // Flank to older snapshot?
+                        this.withRam = fastCloneUserConfig.withRam_forOlderSnapshots;
+                    }
+                    else if(this.snapshot !== origGuest && value === origGuest) { // Flank to current?
+                        this.withRam = fastCloneUserConfig.withRam_forCurrent;
+                    }
+                    this._snapshot = value;
+                }
 
                 fastClonePossible() {
                     if (this.targetNode !== origGuest.node) {
@@ -564,7 +584,7 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
                     if (this.targetStorage !== undefined) {
                         return t`Can only fast clone when storage ist the same as source.`;
                     }
-                    for(const disk of this.snapshot.disks) {
+                    for(const disk of this._snapshot.disks) {
                         if(disk.type === "unused") {
                             continue;
                         }
@@ -579,6 +599,29 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
                         }
                     }
                     return true;
+                }
+
+                get withRamPossible() {
+                    if(!this.isOlderSnapshot) {
+                        return true;
+                    }
+
+                    return (state.snapshot as Qemu).vmstate !== undefined;
+                }
+
+                get isOlderSnapshot() {
+                    return state.snapshot !== origGuest;
+                }
+
+                get createInitialSnapshot(): boolean {
+                    if(this.withRam && this.withRamPossible) {
+                        return true;
+                    }
+                    return this._createInitialSnapshot;
+                }
+
+                set createInitialSnapshot(value: boolean) {
+                    this._createInitialSnapshot = value;
                 }
             });
 
@@ -634,14 +677,35 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
                                 <td colSpan={4}><ObjectHTMLSelect binding={binding(state.pool)} items={[{value: undefined, content: t`No pool`}, ...app.datacenter.pools.map(pool => {return {value: pool, content: pool.name}})]} fill={true}/></td>
                             </tr>
                             <tr><td colSpan={99}><hr/></td></tr>
+                            </tbody></table>
+                            <table><tbody>
+                            {origGuest instanceof Qemu &&
+                                <tr>
+                                    {/* With RAM: */}
+                                    <td className="electrifiedFormLabel">{t`With RAM`}:</td>
+                                    <td><input type="checkbox" {...bind(state.withRam)} disabled={!state.withRamPossible}/>&#160;<span
+                                        style={iconFixStyle as any}><RememberChoiceButton
+                                        currentValue={state.withRam}
+                                        storageBind={state.isOlderSnapshot?binding(fastCloneUserConfig.withRam_forOlderSnapshots):binding(fastCloneUserConfig.withRam_forCurrent)}
+                                        tooltip={state.isOlderSnapshot?t`Set as default for this dialog for cloning from an older snapshot`:t`Set as default for this dialog when cloning from **current** state`}/></span></td>
+
+                                    <td className="electrifiedDialogSpacer"/>
+                                </tr>
+                            }
+                            <tr>
+                                {/* Take initial snapshot: */}
+                                <td className="electrifiedFormLabel">{t`Take an initial snapshot in the new clone, named "cloned"`}:</td>
+                                <td><input type="checkbox" {...bind(state.createInitialSnapshot)} disabled={state.withRam && state.withRamPossible}/>&#160;<span style={iconFixStyle as any}><RememberChoiceButton currentValue={state.createInitialSnapshot} storageBind={binding(fastCloneUserConfig.createInitialSnapshot)} disabled={state.withRam && state.withRamPossible}/></span></td>
+
+                                <td className="electrifiedDialogSpacer"/>
+
+                            </tr>
                             <tr>
                                 {/* Randomize mac addresses: */}
                                 <td className="electrifiedFormLabel">{t`Randomize MAC address(es)`}:</td>
                                 <td><input type="checkbox" {...bind(state.randomizeMacAddresses)}/>&#160;<span style={iconFixStyle as any}><RememberChoiceButton currentValue={state.randomizeMacAddresses} storageBind={binding(fastCloneUserConfig.randomizeMacAddresses)}/></span></td>
 
                                 <td className="electrifiedDialogSpacer"/>
-                                <td className="electrifiedFormLabel"></td>
-                                <td></td>
 
                             </tr>
                             {origGuest.type === "qemu" &&

@@ -108,4 +108,8 @@ export class Qemu extends Guest{
         this._rawConfigRecord.set("vmgenid", newVmGenId);
     }
 
+    async deleteRunningState() {
+
+    }
+
 }
