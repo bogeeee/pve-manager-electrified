@@ -882,15 +882,11 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
             }
 
             if(result.randomizeVmGenId && clone instanceof Qemu) {
-                clone.randomizeVmGenId();
+                await clone.randomizeVmGenId();
             }
 
             // Write config:
             await retsync2promise(() => clone._writeConfig(), {checkSaved: false});
-
-            if(clone.type === "qemu" && result.randomizeVmGenId) {
-                await app.currentNode.execCommand`qm set ${clone.id} -vmgenid 1`;
-            }
 
             if(result.start) {
                 await clone.start();
