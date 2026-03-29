@@ -768,10 +768,12 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
         app.datacenter.hasQuorum || throwError("Cannot clone. Datacenter has no quorum."); // Check quorum
         const origGuest = param_origGuest;
 
-        if(result.fastClonePossible() === true) {
-            const rollbackFns: (() => Promise<void>)[] = [];
-            const finallyFns: (() => Promise<void>)[] = [];
-            try {
+
+
+        const rollbackFns: (() => Promise<void>)[] = [];
+        const finallyFns: (() => Promise<void>)[] = [];
+        try {
+            if(result.fastClonePossible() === true) {
                 let sourceSnapshotName = result.snapshot.snapshotName;
                 if(sourceSnapshotName === undefined) {
                     sourceSnapshotName =getUniqueName(`fork_${result.id}_${result.name}`, new Set(origGuest.snapshotRoot.snapshots.keys()));
@@ -841,101 +843,102 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
                 // Write config:
                 await retsync2promise(() => clone._writeConfig(), {checkSaved: false});
             }
-            catch (e) {
-                // Roll back everything:
-                e = toError(e);
-                rollbackFns.reverse();
-                for(const fn of rollbackFns) {
-                    try {
-                        await fn();
-                    }
-                    catch (rollbackError) {
-                        e.message+= `\n\nThere was also a rollback error: ${toError(rollbackError).message}`;
-                    }
-                }
-                if(rollbackFns.length > 0) { e.message+="\n\nClone actions were rolled back after this error."}
-                throw e;
-            }
-            finally {
-                // Run finallyFns:
-                finallyFns.reverse();
-                const errors: Error[] = [];
-                for(const fn of finallyFns) {
-                    try {
-                        await fn();
-                    }
-                    catch (err) {
-                        errors.push(toError(err));
-                    }
+            else {
+                const params: Record<string, unknown> = {
+                    newid: result.id
+                };
+
+                if (result.snapshot) {
+                    params.snapname = result.snapshot.snapshotName;
                 }
 
-                if(errors.length > 0) {
-                    const firstErr = errors[0];
-                    if(errors.length > 1) {
-                        firstErr.message+=`\n** more errors by finallyFns: ${errors.slice(1).map(e => e.message).join("; ")}`
-                    }
-                    throw firstErr;
+                if (result.pool) {
+                    params.pool = result.pool.name;
                 }
-            }
-        }
-        else {
-            const params: Record<string, unknown> = {
-                newid: result.id
-            };
 
-            if (result.snapshot) {
-                params.snapname = result.snapshot.snapshotName;
-            }
+                if (origGuest.type === 'lxc') {
+                    params.hostname = result.name;
+                } else {
+                    params.name = result.name;
+                }
 
-            if (result.pool) {
-                params.pool = result.pool.name;
-            }
+                params.target = result.targetNode.name;
+                params.full = 1;
+                if(result.targetStorage) {
+                    params.storage = result.targetStorage.name;
+                }
 
-            if (origGuest.type === 'lxc') {
-                params.hostname = result.name;
-            } else {
-                params.name = result.name;
+                await(app.currentNode.awaitTask(await node.api2fetch("POST", '/' + origGuest.type + '/' + origGuest.id + '/clone', params) as string));
             }
 
-            params.target = result.targetNode.name;
-            params.full = 1;
-            if(result.targetStorage) {
-                params.storage = result.targetStorage.name;
+            // Freshly retrieve clone:
+            const clone = await retryTilSuccess(async () => {
+                await app.datacenter.ensureUp2Date();
+                return app.datacenter.getGuest(result.id) || throwError(new RetryableError("Guest not found after clone"));
+            },{maxTime: 30000});
+
+            if(result.randomizeMacAddresses) {
+                clone.net.forEach(networkInterface => networkInterface.randomizeMacAddress())
             }
 
-            await(app.currentNode.awaitTask(await node.api2fetch("POST", '/' + origGuest.type + '/' + origGuest.id + '/clone', params) as string));
-        }
+            if(result.randomizeVmGenId && clone instanceof Qemu) {
+                clone.randomizeVmGenId();
+            }
 
-        // Freshly retrieve clone:
-        const clone = await retryTilSuccess(async () => {
+            // Write config:
+            await retsync2promise(() => clone._writeConfig(), {checkSaved: false});
+
+            if(clone.type === "qemu" && result.randomizeVmGenId) {
+                await app.currentNode.execCommand`qm set ${clone.id} -vmgenid 1`;
+            }
+
+            if(result.start) {
+                await clone.start();
+            }
+
             await app.datacenter.ensureUp2Date();
-            return app.datacenter.getGuest(result.id) || throwError(new RetryableError("Guest not found after clone"));
-        },{maxTime: 30000});
+            await app.refreshResourceTree();
 
-        if(result.randomizeMacAddresses) {
-            clone.net.forEach(networkInterface => networkInterface.randomizeMacAddress())
+            if(result.fastClonePossible() === true) { // Used fast clone / it didn't take long, so we can do jumpy stuff on the screen without disturbing the user?
+                app.workspace.down('pveResourceTree').selectById(`${clone.type}/${clone.id}`); // Select clone in tree
+            }
+
         }
-
-        if(result.randomizeVmGenId && clone instanceof Qemu) {
-            clone.randomizeVmGenId();
+        catch (e) {
+            // Roll back everything:
+            e = toError(e);
+            rollbackFns.reverse();
+            for(const fn of rollbackFns) {
+                try {
+                    await fn();
+                }
+                catch (rollbackError) {
+                    e.message+= `\n\nThere was also a rollback error: ${toError(rollbackError).message}`;
+                }
+            }
+            if(rollbackFns.length > 0) { e.message+="\n\nClone actions were rolled back after this error."}
+            throw e;
         }
+        finally {
+            // Run finallyFns:
+            finallyFns.reverse();
+            const errors: Error[] = [];
+            for(const fn of finallyFns) {
+                try {
+                    await fn();
+                }
+                catch (err) {
+                    errors.push(toError(err));
+                }
+            }
 
-        // Write config:
-        await retsync2promise(() => clone._writeConfig(), {checkSaved: false});
-
-        if(clone.type === "qemu" && result.randomizeVmGenId) {
-            await app.currentNode.execCommand`qm set ${clone.id} -vmgenid 1`;
-        }
-
-        if(result.start) {
-            await clone.start();
-        }
-
-        await app.datacenter.ensureUp2Date();
-        await app.refreshResourceTree();
-
-        if(result.fastClonePossible() === true) { // Used fast clone / it didn't take long, so we can do jumpy stuff on the screen without disturbing the user?
-            app.workspace.down('pveResourceTree').selectById(`${clone.type}/${clone.id}`); // Select clone in tree
+            if(errors.length > 0) {
+                const firstErr = errors[0];
+                if(errors.length > 1) {
+                    firstErr.message+=`\n** more errors by finallyFns: ${errors.slice(1).map(e => e.message).join("; ")}`
+                }
+                throw firstErr;
+            }
         }
     }
 
