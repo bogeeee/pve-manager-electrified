@@ -525,29 +525,88 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
             return idx2name(idx)
         }
 
-        interface DialogResult {
-            targetNode: Node;
-            pool: Pool | undefined;
-            snapshot: Guest;
-            id: number;
-            name: string;
-            targetStorage: Storage | undefined;
-            start: boolean;
-            withRam: boolean;
-            randomizeMacAddresses:boolean;
-            randomizeVmGenId:boolean;
-            pauseOld:boolean;
-            fastClonePossible(): string | boolean;
+        class DialogResult {
+            targetNode!: Node;
+            pool!: Pool | undefined;
+            _snapshot!: Guest;
+            id!: number;
+            name!: string;
+            targetStorage!: Storage | undefined;
+            start!: boolean;
+            withRam!: boolean;
+            _createInitialSnapshot!: boolean;
+            randomizeMacAddresses!:boolean;
+            randomizeVmGenId!:boolean;
+            pauseOld!:boolean;
+
+            fastClonePossible() {
+                if (this.targetNode !== this.origGuest.node) {
+                    return t`Different target node.`;
+                }
+                if (this.targetStorage !== undefined) {
+                    return t`Can only fast clone when storage ist the same as source.`;
+                }
+                for(const disk of this._snapshot.disks) {
+                    if(disk.type === "unused") {
+                        continue;
+                    }
+                    if(disk.media === "cdrom") {
+                        continue;
+                    }
+                    if(!disk.storage) {
+                        return t`Disk ${disk.type}${disk.index} uses a storage that was not found: ${disk.storageName}.`;
+                    }
+                    if(disk.storage.type !== "zfspool") {
+                        return t`Disk ${disk.type}${disk.index} is not stored on ZFS. Instead: ${disk.storage.type}.`;
+                    }
+                }
+                return true;
+            }
+
+            get snapshot(): Guest {
+                return this._snapshot;
+            }
+
+            set snapshot(value: Guest) {
+                this._snapshot = value;
+            }
+
+            get withRamPossible() {
+                if(!this.isOlderSnapshot) {
+                    return true;
+                }
+
+                return (this.snapshot as Qemu).vmstate !== undefined;
+            }
+
+            get isOlderSnapshot() {
+                return this.snapshot !== this.origGuest;
+            }
+
+            get createInitialSnapshot(): boolean {
+                if(this.withRam && this.withRamPossible) {
+                    return true;
+                }
+                return this._createInitialSnapshot;
+            }
+
+            set createInitialSnapshot(value: boolean) {
+                this._createInitialSnapshot = value;
+            }
+
+            get origGuest() {
+                return this.snapshot.liveGuest;
+            }
         }
 
         const result = await showBlueprintDialog<DialogResult>({title: t`Clone ${param_origGuest.name} (${param_origGuest.id})`, style: {minWidth: "750px"}},(props) => {
             const origGuest = watched(param_origGuest);
             const fastCloneUserConfig = watched(this.userConfig.fastClone);
 
-            const state = useWatchedState(new class implements DialogResult {
+            const state = useWatchedState(new class extends DialogResult {
                 targetNode = origGuest.node;
                 pool = origGuest.pool;
-                private _snapshot = origGuest;
+                _snapshot = origGuest;
                 id = app.datacenter.getFreeGuestId(origGuest.id);
                 name = getInitialSuggestedName();
 
@@ -577,52 +636,7 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
                     this._snapshot = value;
                 }
 
-                fastClonePossible() {
-                    if (this.targetNode !== origGuest.node) {
-                        return t`Different target node.`;
-                    }
-                    if (this.targetStorage !== undefined) {
-                        return t`Can only fast clone when storage ist the same as source.`;
-                    }
-                    for(const disk of this._snapshot.disks) {
-                        if(disk.type === "unused") {
-                            continue;
-                        }
-                        if(disk.media === "cdrom") {
-                            continue;
-                        }
-                        if(!disk.storage) {
-                            return t`Disk ${disk.type}${disk.index} uses a storage that was not found: ${disk.storageName}.`;
-                        }
-                        if(disk.storage.type !== "zfspool") {
-                            return t`Disk ${disk.type}${disk.index} is not stored on ZFS. Instead: ${disk.storage.type}.`;
-                        }
-                    }
-                    return true;
-                }
 
-                get withRamPossible() {
-                    if(!this.isOlderSnapshot) {
-                        return true;
-                    }
-
-                    return (state.snapshot as Qemu).vmstate !== undefined;
-                }
-
-                get isOlderSnapshot() {
-                    return state.snapshot !== origGuest;
-                }
-
-                get createInitialSnapshot(): boolean {
-                    if(this.withRam && this.withRamPossible) {
-                        return true;
-                    }
-                    return this._createInitialSnapshot;
-                }
-
-                set createInitialSnapshot(value: boolean) {
-                    this._createInitialSnapshot = value;
-                }
             });
 
             function isValid() {
