@@ -190,7 +190,16 @@ export abstract class Guest extends ModelBase implements NotificationTarget {
 
         await this._reReadFromConfig();
 
-        this.configFile.onChange(() => spawnAsync( async () => {this.checkValid(); await this._reReadFromConfig()}));
+        // Handle file changes:
+        this.configFile.onChange(() => spawnAsync( async () => {
+            this.checkValid();
+
+            if(!await retsync2promise(() => this.configFile.exists)) { // it was a delete event  ?
+                return;
+            }
+
+            await this._reReadFromConfig()
+        }));
     }
 
     /**
