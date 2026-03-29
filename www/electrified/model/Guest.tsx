@@ -484,7 +484,7 @@ export abstract class Guest extends ModelBase implements NotificationTarget {
        if(!this.isSnapshot()) {
            return this;
        }
-       return this.childSnapshots.find(s => s.liveGuest) || throwError("Illegal state: no life guest found. Note that this error can occur after taking a snapshot, after which the config config file is **temporarily** in an illegal state (proxmox does not write the changes atomically).");
+       return this.snapshotRoot.snapshots.get(undefined) || throwError("Illegal state: no life guest found. Note that this error can occur after taking a snapshot, after which the config config file is **temporarily** in an illegal state (proxmox does not write the changes atomically).");
     }
 
     get id() {
