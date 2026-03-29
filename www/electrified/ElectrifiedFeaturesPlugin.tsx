@@ -853,7 +853,7 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
                         e.message+= `\n\nThere was also a rollback error: ${toError(rollbackError).message}`;
                     }
                 }
-
+                if(rollbackFns.length > 0) { e.message+="\n\nClone actions were rolled back after this error."}
                 throw e;
             }
             finally {
@@ -874,6 +874,7 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
                     if(errors.length > 1) {
                         firstErr.message+=`\n** more errors by finallyFns: ${errors.slice(1).map(e => e.message).join("; ")}`
                     }
+                    throw firstErr;
                 }
             }
         }
