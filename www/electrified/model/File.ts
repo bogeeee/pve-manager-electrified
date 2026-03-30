@@ -9,7 +9,7 @@ import {
 } from "proxy-facades/retsync";
 import {FileStats} from "pveme-nodejsserver/ElectrifiedSession";
 import _ from "underscore";
-import {ExternalPromise, spawnWithErrorHandling} from "../util/util";
+import {ExternalPromise, sleep, spawnWithErrorHandling} from "../util/util";
 import {WatchedProxyFacade} from "proxy-facades";
 import {BufferEncoding, getElectrifiedApp} from "../globals";
 
@@ -18,6 +18,12 @@ import {BufferEncoding, getElectrifiedApp} from "../globals";
  * See {@link Node#getFile}
  */
 export class File {
+    /**
+     * The server's onChange events may fire a but fuzzy some time **after** the real change. We don't want to interrupt them the **next** write operation so we wait this much ms when an onChange event was seen.
+     *
+     */
+    public static CALM_DOWN_TIME_BEFORE_WRITES = 500;
+
     node: Node
 
     /**
@@ -66,7 +72,7 @@ export class File {
     }
 
     protected setStringContent_writeOperation?: {newValue: string, encoding: BufferEncoding, promise: Promise<void>, onFileChangedHandler: () => boolean};
-
+    protected lastChangeEventTime?: Date;
 
     /**
      * @returns the string content (interpreted as utf8)
@@ -116,7 +122,13 @@ export class File {
                 constructor() {
                     this.promise = (async () => {
                         try {
-
+                            // Calm down (wait some time) after onChange events:
+                            if(thisFile.lastChangeEventTime) {
+                                const toWait = File.CALM_DOWN_TIME_BEFORE_WRITES - (new Date().getTime() - thisFile.lastChangeEventTime.getTime());
+                                if(toWait > 0) {
+                                    await sleep(toWait);
+                                }
+                            }
 
                             await thisFile.ensureWatchesForChangesOnDisk();
                             await thisFile.checkWriteAllowed();
@@ -200,6 +212,8 @@ export class File {
     }
 
     protected changeOnDiskHandler = (async(new_stats: FileStats | false ) => {
+        this.lastChangeEventTime = new Date();
+
         // *** Re-populate whole cache content ***:
         // Retrieve cache_stringContents:
         const new_cache_stringContents = new Map<BufferEncoding, string>();
