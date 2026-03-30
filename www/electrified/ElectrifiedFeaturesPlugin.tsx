@@ -90,6 +90,10 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
 
         fastClone= {
             start: false,
+            /**
+             * Start when cloning with ram?
+             */
+            start_withRam:true,
             withRam_forOlderSnapshots: false,
             withRam_forCurrent: true,
             createInitialSnapshot: true,
@@ -533,7 +537,7 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
             name!: string;
             targetStorage!: Storage | undefined;
             start!: boolean;
-            withRam!: boolean;
+            _withRam!: boolean;
             _createInitialSnapshot!: boolean;
             randomizeMacAddresses!:boolean;
             randomizeVmGenId!:boolean;
@@ -571,6 +575,14 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
                 this._snapshot = value;
             }
 
+            get withRam(): boolean {
+                return this._withRam;
+            }
+
+            set withRam(value: boolean) {
+                this._withRam = value;
+            }
+
             get withRamPossible() {
                 if(!this.isOlderSnapshot) {
                     return true;
@@ -585,7 +597,7 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
             }
 
             get createInitialSnapshot(): boolean {
-                if(this.withRam && this.withRamPossible) {
+                if(this._withRam && this.withRamPossible) {
                     return true;
                 }
                 return this._createInitialSnapshot;
@@ -615,13 +627,15 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
                  * Undefined = same as source
                  */
                 targetStorage: Storage | undefined;
-
-                start = fastCloneUserConfig.start !== undefined?fastCloneUserConfig.start:false;
-                withRam = origGuest instanceof Qemu?(fastCloneUserConfig.withRam_forCurrent !== undefined?fastCloneUserConfig.withRam_forCurrent:true):false;
                 _createInitialSnapshot = fastCloneUserConfig.createInitialSnapshot !== undefined?fastCloneUserConfig.createInitialSnapshot:false;
                 randomizeMacAddresses = fastCloneUserConfig.randomizeMacAddresses !== undefined?fastCloneUserConfig.randomizeMacAddresses:true;
                 randomizeVmGenId = fastCloneUserConfig.randomizeVmGenId !== undefined?fastCloneUserConfig.randomizeVmGenId:true;
                 pauseOld = false;
+
+                constructor() {
+                    super();
+                    this.withRam = origGuest instanceof Qemu?(fastCloneUserConfig.withRam_forCurrent !== undefined?fastCloneUserConfig.withRam_forCurrent:true):false;
+                }
 
                 get snapshot(): Guest {
                     return this._snapshot;
@@ -629,15 +643,26 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
 
                 set snapshot(value: Guest) {
                     if(this.snapshot === origGuest && value !== origGuest) { // Flank to older snapshot?
-                        this.withRam = fastCloneUserConfig.withRam_forOlderSnapshots;
+                        this._withRam = fastCloneUserConfig.withRam_forOlderSnapshots;
                     }
                     else if(this.snapshot !== origGuest && value === origGuest) { // Flank to current?
-                        this.withRam = fastCloneUserConfig.withRam_forCurrent;
+                        this._withRam = fastCloneUserConfig.withRam_forCurrent;
                     }
                     this._snapshot = value;
                 }
 
+                get withRam(): boolean {
+                    return this._withRam;
+                }
 
+                set withRam(value: boolean) {
+                    const hasChanged = this._withRam !== value;
+                    this._withRam = value;
+
+                    if(hasChanged) {
+                        this.start = this.withRam?(fastCloneUserConfig.start_withRam !== undefined?fastCloneUserConfig.start_withRam:true):(fastCloneUserConfig.start !== undefined?fastCloneUserConfig.start:false);
+                    }
+                }
             });
 
             function isValid() {
@@ -736,7 +761,7 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
                             <tr>
                                 {/* Start guest: */}
                                 <td className="electrifiedFormLabel"><span className="fa fa-play"/> {t`Start guest`}:</td>
-                                <td><input type="checkbox" {...bind(state.start)}/>&#160;<span style={iconFixStyle as any}><RememberChoiceButton currentValue={state.start} storageBind={binding(fastCloneUserConfig.start)}/></span></td>
+                                <td><input type="checkbox" {...bind(state.start)}/>&#160;<span style={iconFixStyle as any}><RememberChoiceButton currentValue={state.start} storageBind={state.withRam?binding(fastCloneUserConfig.start_withRam):binding(fastCloneUserConfig.start)} tooltip={state.withRam?t`Set as default for this dialog for when cloning **With RAM**`:t`Set as default for this dialog when cloning **without RAM**`}/></span></td>
 
                                 <td className="electrifiedDialogSpacer"/>
                                 <td className="electrifiedFormLabel"></td>
