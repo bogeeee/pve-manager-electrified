@@ -95,7 +95,7 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
              */
             start_withRam:true,
             withRam_forOlderSnapshots: false,
-            withRam_forCurrent: true,
+            withRam_forCurrent: false,
             createInitialSnapshot: true,
             randomizeMacAddresses: true,
             randomizeVmGenId: true,
@@ -585,7 +585,7 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
 
             get withRamPossible() {
                 if(!this.isOlderSnapshot) {
-                    return true;
+                    return this.origGuest.isRunning();
                 }
 
                 const snapshot = this.snapshot;
@@ -634,7 +634,7 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
 
                 constructor() {
                     super();
-                    this.withRam = origGuest instanceof Qemu?(fastCloneUserConfig.withRam_forCurrent !== undefined?fastCloneUserConfig.withRam_forCurrent:true):false;
+                    this.withRam = this.withRamPossible && (origGuest instanceof Qemu?(fastCloneUserConfig.withRam_forCurrent !== undefined?fastCloneUserConfig.withRam_forCurrent:false):false);
                 }
 
                 get snapshot(): Guest {
@@ -646,7 +646,7 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
                         this._withRam = fastCloneUserConfig.withRam_forOlderSnapshots;
                     }
                     else if(this.snapshot !== origGuest && value === origGuest) { // Flank to current?
-                        this._withRam = fastCloneUserConfig.withRam_forCurrent;
+                        this._withRam = this.origGuest.isRunning() && fastCloneUserConfig.withRam_forCurrent;
                     }
                     this._snapshot = value;
                 }
@@ -727,7 +727,9 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
                                         style={iconFixStyle as any}><RememberChoiceButton
                                         currentValue={state.withRam}
                                         storageBind={state.isOlderSnapshot?binding(fastCloneUserConfig.withRam_forOlderSnapshots):binding(fastCloneUserConfig.withRam_forCurrent)}
-                                        tooltip={state.isOlderSnapshot?t`Set as default for this dialog for cloning from an older snapshot`:t`Set as default for this dialog when cloning from **current** state`}/></span></td>
+                                        tooltip={state.isOlderSnapshot?t`Set as default for this dialog for cloning from an older snapshot`:t`Set as default for this dialog when cloning from **current** state`}
+                                        disabled={!state.withRamPossible}
+                                    /></span></td>
 
                                     <td className="electrifiedDialogSpacer"/>
                                 </tr>

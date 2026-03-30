@@ -123,7 +123,7 @@ export abstract class Guest extends ModelBase implements NotificationTarget {
     /**
      *
      */
-    status!: string
+    status!:"running" | "stopped"
     /**
      * Tags
      */
@@ -594,7 +594,9 @@ export abstract class Guest extends ModelBase implements NotificationTarget {
         return this.lock !== undefined && this.lock !== "";
     }
 
-
+    isRunning() {
+        return this.status === "running";
+    }
 
     toString() {
         let id = `<unknown id>${this.snapshotName?`/[${this.snapshotName}]`:""}`;
