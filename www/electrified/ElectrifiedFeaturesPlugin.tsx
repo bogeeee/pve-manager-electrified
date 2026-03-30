@@ -680,7 +680,6 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
 
             return <div>
                 <div className={Classes.DIALOG_BODY} >
-                    <i>This is the preview version. Everything should be working already, except: <ul><li>Guest comments get lost.</li> </ul></i>
                     <table>
                         <tbody>
                             <tr>
@@ -823,6 +822,7 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
                 clone = clone.snapshotRoot.snapshots.get(sourceSnapshotName) || throwError(`Object not found for snapshotname: ${sourceSnapshotName}`); // Use the specified snapshot as root
 
                 clone.name = result.name;
+                clone.comment = result.snapshot.comment;
 
                 //Make clone the root and delete all other snapshots:
                 clone.snapshotName = undefined;

@@ -29,6 +29,8 @@ export abstract class Guest extends ModelBase implements NotificationTarget {
 
     name!: string;
 
+    comment?: string;
+
     /**
      * Back reference. Undefined when this is a snapshot
      */
@@ -377,6 +379,10 @@ export abstract class Guest extends ModelBase implements NotificationTarget {
         const result = new Map(this._rawConfigRecord.entries());
 
         result.set(this.clazz.NAME_CONFIGURATION_KEY, this.name);
+        if(this.comment) {
+            result.set("comment", this.comment);
+        }
+
         // Set parent:
         if(this._parentSnapshotName) {
             result.set("parent", this._parentSnapshotName);
@@ -422,7 +428,9 @@ export abstract class Guest extends ModelBase implements NotificationTarget {
             if(line.match(/^\s*$/)) { // Empty line ?
                 continue;
             }
-            if(line.match(/^\s*#.*/)) { // Comment ?
+            const commentMatch = line.match(/^\s*#(.*)$/);
+            if(commentMatch) { // Comment ?
+                section.set("comment", (section.get("comment")?`${section.get("comment") as string}\n`:"") + commentMatch[1]);
                 continue;
             }
 
@@ -460,6 +468,10 @@ export abstract class Guest extends ModelBase implements NotificationTarget {
             result+= `${sectionName?`[${sectionName}]\n`:""}`;  // [section]
             [...record.entries()].forEach(([key, value]) => {
                 value !== undefined && value !== null || throwError("Value must not be null or undefined"); // Safety check
+                if(key === "comment") {
+                    result+=(value as string).split("\n").map(line => `#${line}`).join("\n") + "\n";
+                    return;
+                }
                 if(typeof value === "string") {
                     result+=`${key}: ${value}\n`
                 }
