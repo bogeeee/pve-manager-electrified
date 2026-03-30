@@ -676,6 +676,7 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
             }
 
             const iconFixStyle = {position: "relative", top: "-2px"}
+            const cellStyle: CSSProperties = {verticalAlign: "top"}
 
             return <div>
                 <div className={Classes.DIALOG_BODY} >
@@ -723,52 +724,43 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
                                 <tr>
                                     {/* With RAM: */}
                                     <td className="electrifiedFormLabel">{t`With RAM`}:</td>
-                                    <td><input type="checkbox" {...bind(state.withRam)} disabled={!state.withRamPossible}/>&#160;<span
+                                    <td style={{...cellStyle, whiteSpace: "nowrap"}}><input type="checkbox" {...bind(state.withRam)} disabled={!state.withRamPossible}/>&#160;<span
                                         style={iconFixStyle as any}><RememberChoiceButton
                                         currentValue={state.withRam}
                                         storageBind={state.isOlderSnapshot?binding(fastCloneUserConfig.withRam_forOlderSnapshots):binding(fastCloneUserConfig.withRam_forCurrent)}
                                         tooltip={state.isOlderSnapshot?t`Set as default for this dialog for cloning from an older snapshot`:t`Set as default for this dialog when cloning from **current** state`}
                                         disabled={!state.withRamPossible}
                                     /></span></td>
-
-                                    <td className="electrifiedDialogSpacer"/>
                                 </tr>
                             }
                             <tr>
                                 {/* Take initial snapshot: */}
                                 <td className="electrifiedFormLabel">{t`Take an initial snapshot in the new clone, named "cloned"`}:</td>
-                                <td><input type="checkbox" {...bind(state.createInitialSnapshot)} disabled={state.withRam && state.withRamPossible}/>&#160;<span style={iconFixStyle as any}><RememberChoiceButton currentValue={state.createInitialSnapshot} storageBind={binding(fastCloneUserConfig.createInitialSnapshot)} disabled={state.withRam && state.withRamPossible}/></span></td>
-
-                                <td className="electrifiedDialogSpacer"/>
-
+                                <td style={{...cellStyle, whiteSpace: "nowrap"}}><input type="checkbox" {...bind(state.createInitialSnapshot)} disabled={state.withRam && state.withRamPossible}/>&#160;<span style={iconFixStyle as any}><RememberChoiceButton currentValue={state.createInitialSnapshot} storageBind={binding(fastCloneUserConfig.createInitialSnapshot)} disabled={state.withRam && state.withRamPossible}/></span></td>
                             </tr>
                             <tr>
                                 {/* Randomize mac addresses: */}
-                                <td className="electrifiedFormLabel">{t`Randomize MAC address(es)`}:</td>
-                                <td><input type="checkbox" {...bind(state.randomizeMacAddresses)}/>&#160;<span style={iconFixStyle as any}><RememberChoiceButton currentValue={state.randomizeMacAddresses} storageBind={binding(fastCloneUserConfig.randomizeMacAddresses)}/></span></td>
-
-                                <td className="electrifiedDialogSpacer"/>
-
+                                <td style={cellStyle} className="electrifiedFormLabel">{t`Randomize MAC address(es)`}:</td>
+                                <td style={{...cellStyle, whiteSpace: "nowrap"}}>
+                                    <input type="checkbox" {...bind(state.randomizeMacAddresses)}/>&#160;<span style={iconFixStyle as any}><RememberChoiceButton currentValue={state.randomizeMacAddresses} storageBind={binding(fastCloneUserConfig.randomizeMacAddresses)}/></span>
+                                </td>
+                                <td style={cellStyle}>
+                                    {(state.withRamPossible && state.withRam && origGuest.isRunning())&& <div><span className={"fa fa-exclamation-triangle"}/> {t`This won't affect your cloned **running** state, so you might still have address conflicts until you stop and re-start the clone.`}</div>}
+                                </td>
                             </tr>
                             {origGuest.type === "qemu" &&
                                 <tr>
                                     {/* Randomize vmgenId: */}
                                     <td className="electrifiedFormLabel">{t`Randomize VM gen id`}:</td>
-                                    <td colSpan={99}>
+                                    <td style={{...cellStyle, whiteSpace: "nowrap"}}>
                                         <input type="checkbox" {...bind(state.randomizeVmGenId)}/>&#160;<span style={iconFixStyle as any}><RememberChoiceButton currentValue={state.randomizeVmGenId} storageBind={binding(fastCloneUserConfig.randomizeVmGenId)}/></span>
                                     </td>
-
                                 </tr>
                             }
                             <tr>
                                 {/* Start guest: */}
                                 <td className="electrifiedFormLabel"><span className="fa fa-play"/> {t`Start guest`}:</td>
-                                <td><input type="checkbox" {...bind(state.start)}/>&#160;<span style={iconFixStyle as any}><RememberChoiceButton currentValue={state.start} storageBind={state.withRam?binding(fastCloneUserConfig.start_withRam):binding(fastCloneUserConfig.start)} tooltip={state.withRam?t`Set as default for this dialog for when cloning **With RAM**`:t`Set as default for this dialog when cloning **without RAM**`}/></span></td>
-
-                                <td className="electrifiedDialogSpacer"/>
-                                <td className="electrifiedFormLabel"></td>
-                                <td></td>
-
+                                <td style={{...cellStyle, whiteSpace: "nowrap"}}><input type="checkbox" {...bind(state.start)}/>&#160;<span style={iconFixStyle as any}><RememberChoiceButton currentValue={state.start} storageBind={state.withRam?binding(fastCloneUserConfig.start_withRam):binding(fastCloneUserConfig.start)} tooltip={state.withRam?t`Set as default for this dialog for when cloning **With RAM**`:t`Set as default for this dialog when cloning **without RAM**`}/></span></td>
                             </tr>
                         </tbody>
                     </table>
