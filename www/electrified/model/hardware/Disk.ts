@@ -7,7 +7,7 @@ export class Disk extends Hardware {
     /**
      * ... mp = lxc mount point
      */
-    type!: "ide" | "sata" | "scsi" | "virtio" | "efidisk" | "tpmstate" | "rootfs" | "mp" | "unused";
+    type!: "ide" | "sata" | "scsi" | "virtio" | "efidisk" | "tpmstate" | "rootfs" | "mp" | "vmstate" | "unused";
     static diskTypes = ["ide", "sata", "scsi", "virtio", "efidisk", "tpmstate", "rootfs", "mp", "vmstate", "unused"];
     static isDisk = true;
 

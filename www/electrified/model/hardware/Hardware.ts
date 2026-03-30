@@ -11,6 +11,10 @@ export class Hardware extends AsyncConstructableClass implements NotificationTar
      * This is set in subclasses when there there can be multiple items in the config. I.e. for disks: scsi0, scsi1, ...
      */
     index?: number;
+
+    /**
+     * i.e. "ide"
+     */
     type!: string;
 
     parent!: Guest

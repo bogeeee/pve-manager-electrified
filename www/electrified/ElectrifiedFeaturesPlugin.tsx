@@ -576,7 +576,8 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
                     return true;
                 }
 
-                return (this.snapshot as Qemu).vmstate !== undefined;
+                const snapshot = this.snapshot;
+                return snapshot instanceof Qemu && snapshot.vmstate?.storage?.type === "zfspool";
             }
 
             get isOlderSnapshot() {
@@ -767,8 +768,24 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
 
         app.datacenter.hasQuorum || throwError("Cannot clone. Datacenter has no quorum."); // Check quorum
         const origGuest = param_origGuest;
+        const withRam = result.withRamPossible && result.withRam;
 
-
+        // Exec zfs clone command(s)
+        const destroyDataset = async (dataSetOrSnapshot: string) => {
+            while (true) {
+                try {
+                    await node.execCommand`zfs destroy ${dataSetOrSnapshot}`;
+                    return;
+                }
+                catch (e) {
+                    if((e as Error)?.message?.indexOf("dataset is busy") >= 0) {
+                        await sleep(200);
+                        continue; // try again
+                    }
+                    throw e;
+                }
+            }
+        }
 
         const rollbackFns: (() => Promise<void>)[] = [];
         const finallyFns: (() => Promise<void>)[] = [];
@@ -777,7 +794,7 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
                 let sourceSnapshotName = result.snapshot.snapshotName;
                 if(sourceSnapshotName === undefined) {
                     sourceSnapshotName =getUniqueName(`fork_${result.id}_${result.name}`, new Set(origGuest.snapshotRoot.snapshots.keys()));
-                    const sourceSnapshot = await origGuest.createSnapshot(sourceSnapshotName, t`Guest ${result.id} ${result.name} was forked/cloned from here using ZFS cloning (copy-on-write)`, false);
+                    const sourceSnapshot = await origGuest.createSnapshot(sourceSnapshotName, t`Guest ${result.id} ${result.name} was forked/cloned from here using ZFS cloning (copy-on-write)`, withRam);
                     rollbackFns.push(async () => await sourceSnapshot.deleteSnapshot());
                 }
 
@@ -811,6 +828,9 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
                 for(const disk of clone.disks) {
                     if(disk.media === "cdrom") {
                         continue;
+                    }
+                    if(disk.type === "vmstate") {
+                        continue; // Will be handled, see below
                     }
                     (disk.storage && disk.storage?.status === "available" || disk.storage?.status === "unknown" /* Strange behaviour: despite beeing available, it is reported as unknwon  */) || throwError(`Storage ${disk.storageName} is not available`);
                     if(disk.storage === undefined) throwError("not available");
@@ -877,6 +897,11 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
                 return app.datacenter.getGuest(result.id) || throwError(new RetryableError("Guest not found after clone"));
             },{maxTime: 30000});
 
+            // Minor: Add rollback fn:
+            if(result.fastClonePossible() !== true) {
+                rollbackFns.push(async () => await clone.delete());
+            }
+
             if(result.randomizeMacAddresses) {
                 clone.net.forEach(networkInterface => networkInterface.randomizeMacAddress())
             }
@@ -887,6 +912,53 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
 
             // Write config:
             await retsync2promise(() => clone._writeConfig(), {checkSaved: false});
+
+
+            if(result.createInitialSnapshot) {
+                // Take initial snapshot named "cloned":
+                const initialSnapshot = await clone.createSnapshot("cloned", t`Cloned from ${origGuest.id} ${origGuest.name}${result.snapshot.isSnapshot() ? `@${result.snapshot.snapshotName}` : ""}`, false)
+                rollbackFns.push(async () => await initialSnapshot.delete());
+
+                if (withRam) {
+                    // Copy running state fields:
+                    const initialSnapshotConfigRecord = initialSnapshot._configRecord;
+                    for(const key of result.snapshot._configRecord.keys()) {
+                        if(key.startsWith("running") || key.startsWith("vmstate")) {
+                            const value = result.snapshot._configRecord.get(key)!;
+                            initialSnapshotConfigRecord.set(key, value)
+                        }
+                    }
+                    await initialSnapshot._applyConfigValues(initialSnapshotConfigRecord); // Re-apply the plain record. this will i.e. initialize the vmstate disk
+                    await retsync2promise(() => initialSnapshot._writeConfig(), {checkSaved: false});
+
+                    const sourceVmStateDisk = (result.snapshot as Qemu).vmstate!;
+                    const datasetFilePath = await sourceVmStateDisk.zfsGetDatasetFilePath();
+                    const filePathMatch = /^(.*)\/(.*)-([0-9]+)-state-(.*)$/.exec(datasetFilePath) || throwError(`Dataset file of disk ${sourceVmStateDisk} has invalid format: ${datasetFilePath}`);
+                    const clonedDatasetFilePath = `${filePathMatch[1]}/${filePathMatch[2]}-${clone.id}-state-cloned`;
+                    // Create snapshot for cloning:
+                    const tempSnapshotName = `_forCloning`
+                    try {
+                        await node.execCommand`zfs list ${datasetFilePath}@${tempSnapshotName}`; // Check if snapshot exists. This may be left from a previous clone
+                    } catch (e) { // Snapshot does not exist?
+                        await node.execCommand`zfs snapshot ${datasetFilePath}@${tempSnapshotName}` // Create
+                        rollbackFns.push(async () => destroyDataset(`${datasetFilePath}@${tempSnapshotName}`));
+                    }
+                    // Clone vmstate volume:
+                    //finallyFns.push(async () => destroyDataset(`${datasetFilePath}@${tempSnapshotName}`)); // Cannot destroy snapshot //TODO: add it to diagnosis to be able to clean it up later
+                    await node.execCommand`zfs clone ${datasetFilePath}@${tempSnapshotName} ${clonedDatasetFilePath}`
+                    rollbackFns.push(async () => destroyDataset(clonedDatasetFilePath));
+
+                    const fileIdMatch = /^(.*)-([0-9]+)-state-(.*)$/.exec(sourceVmStateDisk.fileId) || throwError(`FileId of disk ${sourceVmStateDisk} has invalid format: ${sourceVmStateDisk.fileId}`);
+                    (initialSnapshot as Qemu).vmstate!.fileId = `${fileIdMatch[1]}-${clone.id}-state-cloned`;
+
+                    await retsync2promise(() => initialSnapshot._writeConfig(), {checkSaved: false}); // Write config
+                }
+            }
+
+            if(!result.withRam && clone instanceof Qemu) {
+                await clone.deleteRunningState();
+            }
+
 
             if(result.start) {
                 await clone.start();

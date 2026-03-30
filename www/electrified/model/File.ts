@@ -404,6 +404,10 @@ export class File {
             this.watchesForChanges = false;
         }
     }
+
+    toString() {
+        return `${this.path}`
+    }
 }
 
 /**
