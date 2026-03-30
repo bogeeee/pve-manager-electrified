@@ -102,15 +102,42 @@ export class File {
 
         }
         else {
-            this.setStringContent_writeOperation = {
+            const thisWriteOperation = this.setStringContent_writeOperation = {
                 newValue: newValue,
                 encoding: encoding,
                 promise: (async () => {
                     await this.ensureWatchesForChangesOnDisk();
                     await this.checkWriteAllowed();
+
+
+
+                    const operationConfirmedByOnChangeEventPromise = new Promise<void>((resolve, reject) => {
+                        let debug_numberOfChangeEvents = 0;
+                        const onChangeListener = ()=> {
+                            debug_numberOfChangeEvents++;
+                            if(this.setStringContent_writeOperation !== thisWriteOperation) { // Another write operation was started in the meanwhile?
+                                this.offChange(onChangeListener); // unregister;
+                                reject(new Error(`Write operation to file ${this} failed. There was another one started before the onchange event fired`))
+                                return;
+                            }
+                            if(this.cache_stringContent.get(encoding) === newValue) {
+                                this.offChange(onChangeListener); // unregister;
+                                resolve();
+                            }
+                        }
+                        this.onChange(onChangeListener);
+                        setTimeout(() => {
+                            this.offChange(onChangeListener); // unregister;
+                            reject(new Error(`Write operation timed out. Did not receive a change event with the content that was written. Debug: Got ${debug_numberOfChangeEvents} change events.`))
+                        }, 5000);
+                    });
+
                     await this.node.electrifiedApi.setFileContent(this.path, newValue, encoding);
                     this.cache_stringContent.clear(); // Clear values for other encodings
                     this.cache_stringContent.set(encoding, newValue);
+
+                    await operationConfirmedByOnChangeEventPromise;
+
                     this.setStringContent_writeOperation = undefined; // We dont' need it anymore, so let's clear the memory which holds a big string
                 })()
             }
