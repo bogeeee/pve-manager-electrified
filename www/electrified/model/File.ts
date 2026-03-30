@@ -23,6 +23,10 @@ export class File {
      *
      */
     public static CALM_DOWN_TIME_BEFORE_WRITES = 500;
+    /**
+     * How long to wait for a change event that confirms/reflects the file write
+     */
+    public static WRITE_CONFIRM_TIMEOUT = 30000;
 
     node: Node
 
@@ -140,7 +144,7 @@ export class File {
 
                             setTimeout(() => {
                                 this.fileChangeConfirmedPromise.reject(new Error(`Write operation timed out. Did not receive a change event with the content that was written. Debug: Got ${this.debug_numberOfChangeEvents} change events.`))
-                            }, 5000);
+                            }, File.WRITE_CONFIRM_TIMEOUT);
 
                             await this.fileChangeConfirmedPromise;
                         }
