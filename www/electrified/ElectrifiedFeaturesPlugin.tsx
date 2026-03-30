@@ -817,17 +817,18 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
         const rollbackFns: (() => Promise<void>)[] = [];
         const finallyFns: (() => Promise<void>)[] = [];
         try {
+            let sourceSnapshot: Guest = result.snapshot;
             if(result.fastClonePossible() === true) {
                 let sourceSnapshotName = result.snapshot.snapshotName;
                 if(sourceSnapshotName === undefined) {
                     sourceSnapshotName =getUniqueName(`fork_${result.id}_${result.name}`, new Set(origGuest.snapshotRoot.snapshots.keys()));
-                    const sourceSnapshot = await origGuest.createSnapshot(sourceSnapshotName, t`Guest ${result.id} ${result.name} was forked/cloned from here using ZFS cloning (copy-on-write)`, withRam);
-                    rollbackFns.push(async () => await sourceSnapshot.deleteSnapshot());
+                    sourceSnapshot = await origGuest.createSnapshot(sourceSnapshotName, t`Guest ${result.id} ${result.name} was forked/cloned from here using ZFS cloning (copy-on-write)`, withRam);
+                    rollbackFns.push(async () => await sourceSnapshot!.deleteSnapshot());
                 }
 
                 let clone = await Guest._fromConfig(origGuest.configFile, origGuest.constructor as any); // Construct clone in memory. Like in the Guest#_reReadFromConfig:
 
-                clone = clone.snapshotRoot.snapshots.get(sourceSnapshotName) || throwError(`Object not found for snapshotname: ${result.snapshot.snapshotName}`); // Use the specified snapshot as root
+                clone = clone.snapshotRoot.snapshots.get(sourceSnapshotName) || throwError(`Object not found for snapshotname: ${sourceSnapshotName}`); // Use the specified snapshot as root
 
                 clone.name = result.name;
 
@@ -895,7 +896,7 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
                     newid: result.id
                 };
 
-                if (result.snapshot) {
+                if (result.snapshot.isSnapshot()) {
                     params.snapname = result.snapshot.snapshotName;
                 }
 
@@ -943,22 +944,22 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
             let initialSnapshot: Guest | undefined = undefined;
             if(result.createInitialSnapshot) {
                 // Take initial snapshot named "cloned":
-                initialSnapshot = await clone.createSnapshot("cloned", t`Cloned from ${origGuest.id} ${origGuest.name}${result.snapshot.isSnapshot() ? `@${result.snapshot.snapshotName}` : ""}`, false)
+                initialSnapshot = await clone.createSnapshot("cloned", t`Cloned from ${origGuest.id} ${origGuest.name}${sourceSnapshot.isSnapshot() ? `@${sourceSnapshot.snapshotName}` : ""}`, false)
                 rollbackFns.push(async () => await initialSnapshot!.delete());
 
                 if (withRam) {
                     // Copy running state fields:
                     const initialSnapshotConfigRecord = initialSnapshot._configRecord;
-                    for(const key of result.snapshot._configRecord.keys()) {
+                    for(const key of sourceSnapshot._configRecord.keys()) {
                         if(key.startsWith("running") || key.startsWith("vmstate")) {
-                            const value = result.snapshot._configRecord.get(key)!;
+                            const value = sourceSnapshot._configRecord.get(key)!;
                             initialSnapshotConfigRecord.set(key, value)
                         }
                     }
                     await initialSnapshot._applyConfigValues(initialSnapshotConfigRecord); // Re-apply the plain record. this will i.e. initialize the vmstate disk
                     await retsync2promise(() => initialSnapshot!._writeConfig(), {checkSaved: false});
 
-                    const sourceVmStateDisk = (result.snapshot as Qemu).vmstate!;
+                    const sourceVmStateDisk = (sourceSnapshot as Qemu).vmstate!;
                     const datasetFilePath = await sourceVmStateDisk.zfsGetDatasetFilePath();
                     const filePathMatch = /^(.*)\/(.*)-([0-9]+)-state-(.*)$/.exec(datasetFilePath) || throwError(`Dataset file of disk ${sourceVmStateDisk} has invalid format: ${datasetFilePath}`);
                     const clonedDatasetFilePath = `${filePathMatch[1]}/${filePathMatch[2]}-${clone.id}-state-cloned`;
