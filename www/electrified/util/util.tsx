@@ -1281,3 +1281,71 @@ export function capitalize(value: string) {
     }
     return value.charAt(0).toUpperCase() + value.slice(1);
 }
+
+/**
+ * Exposes the resolve and reject methods to the outside
+ */
+export class ExternalPromise<T> implements Promise<T> {
+    private promise: Promise<T>;
+    resolve!: (value: T | PromiseLike<T>) => void;
+    reject!: (reason?: any) => void;
+
+    diagnosis_creatorCallStack?: Error["stack"]
+    static diagnosis_recordCallstacks = false;
+
+    constructor() {
+        if(ExternalPromise.diagnosis_recordCallstacks) {
+            this.diagnosis_creatorCallStack = new Error("Dummy error, to record creator stack").stack;
+        }
+        const thisExternalPromise = this;
+
+        this.promise = new Promise<T>((resolve, reject) => {
+            this.resolve = resolve;
+            // this.reject = reject, but with more diagnosis:
+            this.reject = (reason?: any) => {
+                let creatorStack = thisExternalPromise.diagnosis_creatorCallStack
+                if(creatorStack) {
+                    // Fix creatorStack:
+                    creatorStack = creatorStack.replace(/^.*Dummy error, to record creator stack.*?\n/, ""); // remove that confusing line
+
+                    if (reason instanceof Error) {
+                        reason.stack = `${reason.stack}\n*** creator stack: ***\n${creatorStack}`
+                    } else {
+                        reason = fixErrorForJest(new Error(`Promise was rejected.\n${creatorStack}\n*** ignore this following stack and skip to 'reason' ****`, {cause: reason}));
+                    }
+                }
+                else {
+                    // Add hint:
+                    const hint = `Hint: if you want to see the creator- (mostly the awaiter) call stack for this error, do: import {ExternalPromise} from 'restfuncs-common'; ExternalPromise.diagnosis_recordCallstacks=true;`
+                    if (reason instanceof Error) {
+                        reason.message+="\n" +  hint;
+                    } else {
+                        reason = fixErrorForJest(new Error(`Promise was rejected. ${hint}`, {cause: reason}));
+                    }
+                }
+
+                reject(reason);
+            }
+
+        });
+    }
+
+    then<TResult1 = T, TResult2 = never>(
+        onFulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | null,
+        onRejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | null
+    ): Promise<TResult1 | TResult2> {
+        return this.promise.then(onFulfilled, onRejected);
+    }
+
+    catch<TResult = never>(
+        onRejected?: ((reason: any) => TResult | PromiseLike<TResult>) | null
+    ): Promise<T | TResult> {
+        return this.promise.catch(onRejected);
+    }
+
+    finally(onFinally?: (() => void) | null): Promise<T> {
+        return this.promise.finally(onFinally);
+    }
+
+    readonly [Symbol.toStringTag]: string = "WrappedPromise"; // Must offer this when implementing Promise. Hopefully this is a proper value
+}

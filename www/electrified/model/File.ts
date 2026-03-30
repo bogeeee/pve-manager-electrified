@@ -9,7 +9,7 @@ import {
 } from "proxy-facades/retsync";
 import {FileStats} from "pveme-nodejsserver/ElectrifiedSession";
 import _ from "underscore";
-import {spawnWithErrorHandling} from "../util/util";
+import {ExternalPromise, spawnWithErrorHandling} from "../util/util";
 import {WatchedProxyFacade} from "proxy-facades";
 import {BufferEncoding, getElectrifiedApp} from "../globals";
 
@@ -65,7 +65,8 @@ export class File {
         }, this.cache_stringContent, `getStringContent_${encoding}`);
     }
 
-    protected setStringContent_writeOperation?: {newValue: string, encoding: BufferEncoding, promise: Promise<void>};
+    protected setStringContent_writeOperation?: {newValue: string, encoding: BufferEncoding, promise: Promise<void>, onFileChangedHandler: () => boolean};
+
 
     /**
      * @returns the string content (interpreted as utf8)
@@ -87,6 +88,7 @@ export class File {
     protected removeOperation?: Promise<void>
 
     setStringContent(newValue:string, encoding: BufferEncoding) {
+        const thisFile = this;
         // Validity check:
         if(newValue === undefined) {
             throw new Error("Illegal argument: undefined");
@@ -102,44 +104,50 @@ export class File {
 
         }
         else {
-            const thisWriteOperation = this.setStringContent_writeOperation = {
-                newValue: newValue,
-                encoding: encoding,
-                promise: (async () => {
-                    await this.ensureWatchesForChangesOnDisk();
-                    await this.checkWriteAllowed();
+            if(this.setStringContent_writeOperation) {
+                throw new Error(`Another file write operation to file ${this} is currently running. Please sync all write operations manually.`);
+            }
+
+            this.setStringContent_writeOperation = new class {
+                newValue= newValue;
+                encoding= encoding;
+                fileChangeConfirmedPromise= new ExternalPromise<void>();
+                promise: Promise<void>;
+                constructor() {
+                    this.promise = (async () => {
+                        try {
 
 
+                            await thisFile.ensureWatchesForChangesOnDisk();
+                            await thisFile.checkWriteAllowed();
 
-                    const operationConfirmedByOnChangeEventPromise = new Promise<void>((resolve, reject) => {
-                        let debug_numberOfChangeEvents = 0;
-                        const onChangeListener = ()=> {
-                            debug_numberOfChangeEvents++;
-                            if(this.setStringContent_writeOperation !== thisWriteOperation) { // Another write operation was started in the meanwhile?
-                                this.offChange(onChangeListener); // unregister;
-                                reject(new Error(`Write operation to file ${this} failed. There was another one started before the onchange event fired`))
-                                return;
-                            }
-                            if(this.cache_stringContent.get(encoding) === newValue) {
-                                this.offChange(onChangeListener); // unregister;
-                                resolve();
-                            }
+                            await thisFile.node.electrifiedApi.setFileContent(thisFile.path, newValue, encoding);
+                            thisFile.cache_stringContent.clear(); // Clear values for other encodings
+                            thisFile.cache_stringContent.set(encoding, newValue);
+
+
+                            setTimeout(() => {
+                                this.fileChangeConfirmedPromise.reject(new Error(`Write operation timed out. Did not receive a change event with the content that was written. Debug: Got ${this.debug_numberOfChangeEvents} change events.`))
+                            }, 5000);
+
+                            await this.fileChangeConfirmedPromise;
                         }
-                        this.onChange(onChangeListener);
-                        setTimeout(() => {
-                            this.offChange(onChangeListener); // unregister;
-                            reject(new Error(`Write operation timed out. Did not receive a change event with the content that was written. Debug: Got ${debug_numberOfChangeEvents} change events.`))
-                        }, 5000);
-                    });
+                        finally {
+                            thisFile.setStringContent_writeOperation = undefined; // We dont' need it anymore, so let's clear the memory which holds a big string
+                        }
+                    })();
+                }
 
-                    await this.node.electrifiedApi.setFileContent(this.path, newValue, encoding);
-                    this.cache_stringContent.clear(); // Clear values for other encodings
-                    this.cache_stringContent.set(encoding, newValue);
+                debug_numberOfChangeEvents = 0;
 
-                    await operationConfirmedByOnChangeEventPromise;
-
-                    this.setStringContent_writeOperation = undefined; // We dont' need it anymore, so let's clear the memory which holds a big string
-                })()
+                onFileChangedHandler() {
+                    this.debug_numberOfChangeEvents++;
+                    if(thisFile.cache_stringContent.get(encoding) === newValue) { // Value written as expected?
+                        this.fileChangeConfirmedPromise.resolve(undefined);
+                        return true; // Success
+                    }
+                    return false;
+                }
             }
         }
 
@@ -212,6 +220,14 @@ export class File {
         this.cache_stat = new_stats;
         this.cache_stringContent = new_cache_stringContents;  // this will also make asyncResource2retsync do a fresh fetch. In case of file was deleted or file was re-added
         this.cache_dirContent = new_cache_dirContent;
+
+        if(this.setStringContent_writeOperation) {
+            const writeOperationSucceeded = this.setStringContent_writeOperation.onFileChangedHandler(); // call this handler first
+            if(!writeOperationSucceeded) {
+                console.warn(`File write operation to ${this} is still ongoing. Skipping listeners`);
+                return; // Skip listeners. It was observed that these change the content (or so, seen through ElectrifiedFeaturesPlugin.tsx line 915) and invalidate this.setStringContent_writeOperation, so it is tried again and runs endlessly
+            }
+        }
 
         // Inform listeners:
         this.changeListeners.forEach(l => {
