@@ -680,7 +680,7 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
 
             return <div>
                 <div className={Classes.DIALOG_BODY} >
-                    <i>This is the preview version. Everything should be working already, except: <ul><li>Cloning with ram is not yet implemented.</li> <li>taking initial snapshots in the new clone is not yet implemented (minor handy feature)</li><li>Guest comments get lost.</li> </ul></i>
+                    <i>This is the preview version. Everything should be working already, except: <ul><li>Guest comments get lost.</li> </ul></i>
                     <table>
                         <tbody>
                             <tr>
@@ -735,7 +735,7 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
                             }
                             <tr>
                                 {/* Take initial snapshot: */}
-                                <td className="electrifiedFormLabel">{t`Take an initial snapshot in the new clone, named "cloned"`}:</td>
+                                <td className="electrifiedFormLabel">{t`Take an initial snapshot, named "cloned"`}:</td>
                                 <td style={{...cellStyle, whiteSpace: "nowrap"}}><input type="checkbox" {...bind(state.createInitialSnapshot)} disabled={state.withRam && state.withRamPossible}/>&#160;<span style={iconFixStyle as any}><RememberChoiceButton currentValue={state.createInitialSnapshot} storageBind={binding(fastCloneUserConfig.createInitialSnapshot)} disabled={state.withRam && state.withRamPossible}/></span></td>
                             </tr>
                             <tr>
