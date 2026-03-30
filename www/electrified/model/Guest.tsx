@@ -630,13 +630,15 @@ export abstract class Guest extends ModelBase implements NotificationTarget {
     }
 
     /**
-     * Rolls back to this snapshot
-     * @param start Whether the VM should get started after rolling back successfully. (Note: VMs will be automatically started if the snapshot includes RAM.)
+     * Rolls back to this snapshot.
+     * @param start Whether the VM should get started after rolling back successfully. (Note: VMs will be automatically started if the snapshot includes RAM.). Does not wait, if this is set.
      */
     async rollBack(start: boolean) {
         this.isSnapshot() || throwError(`rollBack not called on a snapshot`)
         const taskId = await this.node.api2fetch("POST", `/${this.type}/${this.id}/snapshot/${this.snapshotName}/rollback`, {start}) as string;
-        await this.node.awaitTask(taskId);
+        if(!start) {
+            await this.node.awaitTask(taskId);
+        }
     }
 
     async deleteSnapshot() {
