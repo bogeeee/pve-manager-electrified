@@ -230,10 +230,10 @@ export class File {
     protected async ensureWatchesForChangesOnDisk() {
         // Subscribe for file changes:
         if(!this.watchesForChanges) { // not yet already watching?
+            this.watchesForChanges = true;
             await this.node.electrifiedClient.withReconnect(async () => {
                 await this.node.electrifiedApi.onFileChanged(this.path, this.changeOnDiskHandler);
             })
-            this.watchesForChanges = true;
         }
     }
 
