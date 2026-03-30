@@ -1234,13 +1234,15 @@ export function getUniqueName(initialName: string, existingNames: Set<string | u
 }
 export class RetryableError extends Error {}
 
+export type RetryTilSuccessOptions = { initialRetryDelay?: number, maxTime?: number };
+
 /**
  * Usage
  * <code>await retryTilSuccess( async() => {do some stuff and evetually throw new RetryableError("message) })) </code>
  *
  * @param executer
  */
-export async function retryTilSuccess<T>(executer: () => Promise<T>, options?: {initialRetryDelay?: number, maxTime?: number}) {
+export async function retryTilSuccess<T>(executer: () => Promise<T>, options?: RetryTilSuccessOptions) {
     let retryDelay = options?.initialRetryDelay || 20;
     let triesDone = 0;
     const startTime = new  Date().getTime();

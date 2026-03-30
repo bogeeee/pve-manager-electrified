@@ -3,7 +3,14 @@ import {getElectrifiedApp, MeteredValue, t} from "../globals";
 import {ModelBase} from "./ModelBase";
 import {preserve} from "react-deepwatch";
 import type {Node} from "./Node"
-import {isDeepEqual, RetryableError, retryTilSuccess, spawnAsync, throwError} from "../util/util";
+import {
+    isDeepEqual,
+    RetryableError,
+    retryTilSuccess,
+    RetryTilSuccessOptions,
+    spawnAsync,
+    throwError
+} from "../util/util";
 import {Disk} from "./hardware/Disk";
 import {File} from "./File";
 import {newDefaultMap} from "../util/util";
@@ -86,7 +93,7 @@ export abstract class Guest extends ModelBase implements NotificationTarget {
     /**
      * The guest's current config lock
      */
-    lock!: string
+    lock: string = "";
     /**
      * Number of available CPUs
      */
@@ -544,7 +551,7 @@ export abstract class Guest extends ModelBase implements NotificationTarget {
      * @param fields fields from resource store (classic pve)
      */
     _updateFieldsFromResourceStore(fields: any) {
-        const fieldsToCopy: (keyof this)[] = ["cpu","disk","diskread", "diskwrite", "hastate", "lock", "maxcpu", "maxdisk", "maxmem", "mem", "netin", "netout", "status", "uptime"];
+        const fieldsToCopy: (keyof this)[] = ["cpu","disk","diskread", "diskwrite", "hastate", "maxcpu", "maxdisk", "maxmem", "mem", "netin", "netout", "status", "uptime"];
         for(const key of fieldsToCopy) {
             //@ts-ignore
             this[key] = fields[key];
@@ -583,6 +590,12 @@ export abstract class Guest extends ModelBase implements NotificationTarget {
         }
     }
 
+    isLocked() {
+        return this.lock !== undefined && this.lock !== "";
+    }
+
+
+
     toString() {
         let id = `<unknown id>${this.snapshotName?`/[${this.snapshotName}]`:""}`;
         try {
@@ -599,7 +612,7 @@ export abstract class Guest extends ModelBase implements NotificationTarget {
      * @param description
      * @param vmstate Saves the vmstate = with memory
      */
-    async createSnapshot(snapname: string, description:string, vmstate: boolean) {
+    async createSnapshot(snapname: string, description:string, vmstate: boolean, options: RetryTilSuccessOptions = {}) {
         const taskId = await this.node.api2fetch("POST", `/${this.type}/${this.id}/snapshot`, {
             snapname,
             description,
@@ -608,8 +621,9 @@ export abstract class Guest extends ModelBase implements NotificationTarget {
         await this.node.awaitTask(taskId);
         return await retryTilSuccess( async() => {
             await this._reReadFromConfig();
+            !this.isLocked() || throwError(new RetryableError(`Guest is locked`));
             return this.snapshotRoot.snapshots.get(snapname) || throwError(new RetryableError(`Snapshot does not exist`));
-        });
+        }, {maxTime: Number.POSITIVE_INFINITY, ...options});
 
     }
 
