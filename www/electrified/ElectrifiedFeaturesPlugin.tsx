@@ -880,6 +880,10 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
                     disk.fileId = `${fileIdMatch[1]}-${clone.id}-${fileIdMatch[3]}`;
                 }
 
+                if(clone instanceof Qemu) {
+                    await clone._deleteRunningState();
+                }
+
                 // Write config:
                 await retsync2promise(() => clone._writeConfig(), {checkSaved: false});
             }
@@ -971,13 +975,17 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
                     const fileIdMatch = /^(.*)-([0-9]+)-state-(.*)$/.exec(sourceVmStateDisk.fileId) || throwError(`FileId of disk ${sourceVmStateDisk} has invalid format: ${sourceVmStateDisk.fileId}`);
                     (initialSnapshot as Qemu).vmstate!.fileId = `${fileIdMatch[1]}-${clone.id}-state-cloned`;
 
-                    await retsync2promise(() => initialSnapshot!._writeConfig(), {checkSaved: false}); // Write config
+
                 }
+                else {
+                    if(clone instanceof Qemu) {
+                        await (initialSnapshot as Qemu)._deleteRunningState();
+                    }
+                }
+                await retsync2promise(() => initialSnapshot!._writeConfig(), {checkSaved: false}); // Write config
             }
 
-            if(!result.withRam && clone instanceof Qemu) {
-                await clone.deleteRunningState();
-            }
+            await retsync2promise(() => initialSnapshot!._writeConfig(), {checkSaved: false}); // Write config
 
             await app.datacenter.ensureUp2Date();
             await app.refreshResourceTree();

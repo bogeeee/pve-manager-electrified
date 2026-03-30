@@ -114,8 +114,18 @@ export class Qemu extends Guest{
         this._rawConfigRecord.set("vmgenid", newVmGenId);
     }
 
-    async deleteRunningState() {
+    /**
+     * ..., does not physically delete the disks (not implemented)
+     */
+    async _deleteRunningState() {
+        // Delete keys starting with "running"
+        for(const key of [...this._rawConfigRecord.keys()]) {
+            if(key.startsWith("running")) {
+                this._rawConfigRecord.delete(key);
+            }
+        }
 
+        this.vmstate = undefined;
     }
 
 }
