@@ -938,11 +938,11 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
             // Write config:
             await retsync2promise(() => clone._writeConfig(), {checkSaved: false});
 
-
+            let initialSnapshot: Guest | undefined = undefined;
             if(result.createInitialSnapshot) {
                 // Take initial snapshot named "cloned":
-                const initialSnapshot = await clone.createSnapshot("cloned", t`Cloned from ${origGuest.id} ${origGuest.name}${result.snapshot.isSnapshot() ? `@${result.snapshot.snapshotName}` : ""}`, false)
-                rollbackFns.push(async () => await initialSnapshot.delete());
+                initialSnapshot = await clone.createSnapshot("cloned", t`Cloned from ${origGuest.id} ${origGuest.name}${result.snapshot.isSnapshot() ? `@${result.snapshot.snapshotName}` : ""}`, false)
+                rollbackFns.push(async () => await initialSnapshot!.delete());
 
                 if (withRam) {
                     // Copy running state fields:
@@ -954,7 +954,7 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
                         }
                     }
                     await initialSnapshot._applyConfigValues(initialSnapshotConfigRecord); // Re-apply the plain record. this will i.e. initialize the vmstate disk
-                    await retsync2promise(() => initialSnapshot._writeConfig(), {checkSaved: false});
+                    await retsync2promise(() => initialSnapshot!._writeConfig(), {checkSaved: false});
 
                     const sourceVmStateDisk = (result.snapshot as Qemu).vmstate!;
                     const datasetFilePath = await sourceVmStateDisk.zfsGetDatasetFilePath();
@@ -976,7 +976,7 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
                     const fileIdMatch = /^(.*)-([0-9]+)-state-(.*)$/.exec(sourceVmStateDisk.fileId) || throwError(`FileId of disk ${sourceVmStateDisk} has invalid format: ${sourceVmStateDisk.fileId}`);
                     (initialSnapshot as Qemu).vmstate!.fileId = `${fileIdMatch[1]}-${clone.id}-state-cloned`;
 
-                    await retsync2promise(() => initialSnapshot._writeConfig(), {checkSaved: false}); // Write config
+                    await retsync2promise(() => initialSnapshot!._writeConfig(), {checkSaved: false}); // Write config
                 }
             }
 
@@ -984,18 +984,20 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
                 await clone.deleteRunningState();
             }
 
-
-            if(result.start) {
-                await clone.start();
-            }
-
             await app.datacenter.ensureUp2Date();
             await app.refreshResourceTree();
-
             if(result.fastClonePossible() === true) { // Used fast clone / it didn't take long, so we can do jumpy stuff on the screen without disturbing the user?
                 app.workspace.down('pveResourceTree').selectById(`${clone.type}/${clone.id}`); // Select clone in tree
             }
 
+            if(result.start) {
+                if(withRam) {
+                    await initialSnapshot!.rollBack(true);
+                }
+                else {
+                    await clone.start();
+                }
+            }
         }
         catch (e) {
             // Roll back everything:
