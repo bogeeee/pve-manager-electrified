@@ -1,6 +1,6 @@
 import {ConfigTab, ContextMenuItem, Plugin} from "./Plugin"
 import React, {CSSProperties, ReactNode} from "react";
-import {bind, binding, useWatchedState, ValueOnObject, watched} from "react-deepwatch"
+import {bind, binding, load, READS_INSIDE_LOADER_FN, useWatchedState, ValueOnObject, watched} from "react-deepwatch"
 import {
     Button,
     ButtonGroup, Checkbox,
@@ -691,7 +691,7 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
 
                                 {/* Snapshot: */}
                                 <td className="electrifiedFormLabel">{t`Snapshot`}:</td>
-                                <td><ObjectHTMLSelect binding={binding(state.snapshot)} items={[origGuest, ...[...origGuest.snapshotRoot.snapshots.values()].reverse().filter(g => g !== origGuest) /* bring them into the correct order*/].map(snap => {return {value: snap, content: snap.isSnapshot()?snap.snapshotName:t`Current`}})} fill={true} /></td>
+                                <td><ObjectHTMLSelect binding={binding(state.snapshot)} items={[...load(() => origGuest.snapshotRoot.getSnapshotsSorted(),{preserve: false, deps: [READS_INSIDE_LOADER_FN], fallback: []})].reverse().map(snap => {return {value: snap, content: snap.isSnapshot()?snap.snapshotName:t`Current`}})} fill={true} /></td>
                             </tr>
                             <tr>
                                 {/* Guest Id: */}

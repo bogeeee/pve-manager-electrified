@@ -677,4 +677,29 @@ export abstract class Guest extends ModelBase implements NotificationTarget {
 
 class SnapshotRoot {
     snapshots = new Map<string | undefined, Guest>();
+
+    get liveGuest() {
+        return this.snapshots.get(undefined) || throwError("No live guest");
+    }
+
+    /**
+     * ..., resource expensive / no caching.
+     */
+    async getSnapshotsSorted() {
+        const guest = this.liveGuest;
+        const snapList = (await guest.node.api2fetch("GET", `/${guest.type}/${guest.id}/snapshot`, {})) as any[];
+        const snapNames_timestamp = new Map<string, number>(snapList.map(e => [e.name, e.snaptime]));
+
+        const now = new Date().getTime();
+
+        const result = [...this.snapshots.values()]
+        result.sort((a, b) => {
+            const getTime = (g: Guest): number => {
+                return g.snapshotName?(snapNames_timestamp.get(g.snapshotName) || now) : now;
+            }
+            return getTime(a) - getTime(b);
+        });
+
+        return result;
+    }
 }
