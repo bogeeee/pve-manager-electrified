@@ -886,6 +886,8 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
 
                 // Write config:
                 await retsync2promise(() => clone._writeConfig(), {checkSaved: false});
+
+                await result.pool?.addGuest(clone); // add to pool
             }
             else {
                 const params: Record<string, unknown> = {

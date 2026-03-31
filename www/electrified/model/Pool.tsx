@@ -1,6 +1,7 @@
 import {Guest} from "./Guest";
 import {GuestsContainerBase} from "./GuestsContainerBase";
 import {preserve} from "react-deepwatch";
+import {getElectrifiedApp} from "../globals";
 
 export class Pool extends GuestsContainerBase{
     name!: string;
@@ -24,6 +25,33 @@ export class Pool extends GuestsContainerBase{
 
     get type(): "pool" {
         return "pool";
+    }
+
+    async addGuest(guest: Guest) {
+        if(this.getGuest(guest.id)) { // Already added?
+            return;
+        }
+
+        await getElectrifiedApp().api2fetch("PUT", `/pools/`, {
+            poolid: this.name,
+            vms: String(guest.id)
+        })
+
+        this._guests.set(guest.id, guest); // Update model
+    }
+
+    async removeGuest(guest: Guest) {
+        if(!this.getGuest(guest.id)) { // already removed ?
+            return;
+        }
+
+        await getElectrifiedApp().api2fetch("PUT", `/pools/`, {
+            poolid: this.name,
+            delete: true,
+            vms: String(guest.id)
+        })
+
+        this._guests.delete(guest.id); // Update model
     }
 
     /**
