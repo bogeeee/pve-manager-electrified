@@ -7,6 +7,7 @@ import {ModelBase} from "./ModelBase";
 import {ExternalPromise} from "restfuncs-common";
 import {Pool} from "./Pool";
 import {Storage} from "./Storage"
+import _ from "underscore"
 
 import {Notification, NotificationTarget} from "../Notification";
 
@@ -363,6 +364,86 @@ export class Datacenter extends ModelBase implements NotificationTarget{
                 reject(e);
             }
         });
+    }
+
+    async _getBackupJobs() {
+        return ((await getElectrifiedApp().api2fetch("GET", "/cluster/backup")) as any[]).map(cfg => new class {
+            id!:string;
+            pool?: string;
+            /**
+             * Comma separated list of vm ids
+             */
+            exclude?: string;
+
+            /**
+             * Comma separated list of vm ids
+             */
+            vmid?: string;
+
+            constructor(cfg: any) {
+                _.extend(this, cfg);
+            }
+
+            /**
+             * Explicitly included guests
+             */
+            get excludedGuests() {
+                return this._idsToGuests(this.exclude);
+            }
+
+            /**
+             * Explicitly included guests
+             */
+            get includedGuests() {
+                return this._idsToGuests(this.vmid);
+            }
+
+            _idsToGuests(ids: string | undefined): Guest[] {
+                if(!ids) {
+                    return [];
+                }
+                const result: Guest[] = [];
+                for(const id of ids.split(",")) {
+                    const guest = getElectrifiedApp().datacenter.getGuest(Number(id));
+                    if(guest) {
+                        result.push(guest);
+                    }
+                }
+                return result;
+            }
+
+            get pools(): Pool[] {
+                if(!this.pool) {
+                    return [];
+                }
+                const result: Pool[] = [];
+                for(const name of this.pool.split(",")) {
+                    const pool = getElectrifiedApp().datacenter.getPool(name);
+                    if(pool) {
+                        result.push(pool);
+                    }
+                }
+                return result;
+            }
+
+            _hasPool(pool: Pool | undefined) {
+                if(!pool) {
+                    return false;
+                }
+                return this.pools.some(p => p.name === pool.name)
+            }
+
+            async updateIncludedGuests(guests: Guest[]) {
+                await getElectrifiedApp().api2fetch("PUT", `/cluster/backup/${this.id}`, {
+                    vmid: guests.map(g => String(g.id)).join(","),
+                });
+            }
+            async updateExcludedGuests(guests: Guest[]) {
+                await getElectrifiedApp().api2fetch("PUT", `/cluster/backup/${this.id}`, {
+                    exclude: guests.map(g => String(g.id)).join(","),
+                });
+            }
+        }(cfg))
     }
 
     /**

@@ -99,6 +99,7 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
             createInitialSnapshot: true,
             randomizeMacAddresses: true,
             randomizeVmGenId: true,
+            listInBackupJobs: true,
         }
 
         notificationSettings: {
@@ -517,6 +518,10 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
         const app = this.app;
         const node = param_origGuest.node;
 
+        const backupJobs = (await app.datacenter._getBackupJobs());
+        const affectedIncludeBackupJobs = backupJobs.filter(b => b.includedGuests.some(g => g === param_origGuest));
+        const affectedExcludeBackupJobs = backupJobs.filter(b => b.excludedGuests.some(g => g === param_origGuest));
+
         /**
          * @returns string like "orig_name_2"
          */
@@ -542,6 +547,7 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
             randomizeMacAddresses!:boolean;
             randomizeVmGenId!:boolean;
             pauseOld!:boolean;
+            listInBackupJobs!:boolean;
 
             fastClonePossible() {
                 if (this.targetNode !== this.origGuest.node) {
@@ -631,6 +637,7 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
                 randomizeMacAddresses = fastCloneUserConfig.randomizeMacAddresses !== undefined?fastCloneUserConfig.randomizeMacAddresses:true;
                 randomizeVmGenId = fastCloneUserConfig.randomizeVmGenId !== undefined?fastCloneUserConfig.randomizeVmGenId:true;
                 pauseOld = false;
+                listInBackupJobs = (affectedExcludeBackupJobs.length > 0 || affectedIncludeBackupJobs.length > 0) && fastCloneUserConfig.listInBackupJobs !== undefined?fastCloneUserConfig.listInBackupJobs:true;
 
                 constructor() {
                     super();
@@ -718,11 +725,11 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
                             </tr>
                             <tr><td colSpan={99}><hr/></td></tr>
                             </tbody></table>
-                            <table><tbody>
+                            <table style={{width: "100%"}}><tbody>
                             {origGuest instanceof Qemu &&
                                 <tr>
                                     {/* With RAM: */}
-                                    <td className="electrifiedFormLabel">{t`With RAM`}:</td>
+                                    <td className="electrifiedFormLabel"><span className="fa pve-itype-icon-memory" style={{width: "14px", height: "8px", position: "relative", left: "-4px"}}/>  {t`With RAM`}:</td>
                                     <td style={{...cellStyle, whiteSpace: "nowrap"}}><input type="checkbox" {...bind(state.withRam)} disabled={!state.withRamPossible}/>&#160;<span
                                         style={iconFixStyle as any}><RememberChoiceButton
                                         currentValue={state.withRam}
@@ -734,12 +741,13 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
                             }
                             <tr>
                                 {/* Take initial snapshot: */}
-                                <td className="electrifiedFormLabel">{t`Take an initial snapshot, named "cloned"`}:</td>
+                                <td className="electrifiedFormLabel"><span className="fa fa-history"/> {t`Take an initial snapshot, named "cloned"`}:</td>
                                 <td style={{...cellStyle, whiteSpace: "nowrap"}}><input type="checkbox" {...bind(state.createInitialSnapshot)} disabled={state.withRam && state.withRamPossible}/>&#160;<span style={iconFixStyle as any}><RememberChoiceButton currentValue={state.createInitialSnapshot} storageBind={binding(fastCloneUserConfig.createInitialSnapshot)} disabled={state.withRam && state.withRamPossible}/></span></td>
+                                <td width="100%"></td>
                             </tr>
                             <tr>
                                 {/* Randomize mac addresses: */}
-                                <td style={cellStyle} className="electrifiedFormLabel">{t`Randomize MAC address(es)`}:</td>
+                                <td style={cellStyle} className="electrifiedFormLabel"><span className="fa fa-random"/> {t`Randomize MAC address(es)`}:</td>
                                 <td style={{...cellStyle, whiteSpace: "nowrap"}}>
                                     <input type="checkbox" {...bind(state.randomizeMacAddresses)}/>&#160;<span style={iconFixStyle as any}><RememberChoiceButton currentValue={state.randomizeMacAddresses} storageBind={binding(fastCloneUserConfig.randomizeMacAddresses)}/></span>
                                 </td>
@@ -750,7 +758,7 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
                             {origGuest.type === "qemu" &&
                                 <tr>
                                     {/* Randomize vmgenId: */}
-                                    <td className="electrifiedFormLabel">{t`Randomize VM gen id`}:</td>
+                                    <td className="electrifiedFormLabel"><span className="fa fa-random"/> {t`Randomize VM gen id`}:</td>
                                     <td style={{...cellStyle, whiteSpace: "nowrap"}}>
                                         <input type="checkbox" {...bind(state.randomizeVmGenId)}/>&#160;<span style={iconFixStyle as any}><RememberChoiceButton currentValue={state.randomizeVmGenId} storageBind={binding(fastCloneUserConfig.randomizeVmGenId)}/></span>
                                     </td>
@@ -760,6 +768,22 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
                                 {/* Start guest: */}
                                 <td className="electrifiedFormLabel"><span className="fa fa-play"/> {t`Start guest`}:</td>
                                 <td style={{...cellStyle, whiteSpace: "nowrap"}}><input type="checkbox" {...bind(state.start)}/>&#160;<span style={iconFixStyle as any}><RememberChoiceButton currentValue={state.start} storageBind={state.withRam?binding(fastCloneUserConfig.start_withRam):binding(fastCloneUserConfig.start)} tooltip={state.withRam?t`Set as default for this dialog for when cloning **With RAM**`:t`Set as default for this dialog when cloning **without RAM**`}/></span></td>
+                            </tr>
+                            <tr>
+                                {/* Include in same backups as source */}
+                                <td className="electrifiedFormLabel" style={{...cellStyle, maxWidth: "200px"}}><span className="fa fa-save"/> {t`List in same backup jobs as source`}:</td>
+                                <td style={{...cellStyle, whiteSpace: "nowrap"}}><input type="checkbox" {...bind(state.listInBackupJobs)} disabled={affectedIncludeBackupJobs.length === 0 && affectedExcludeBackupJobs.length === 0} />&#160;<span style={iconFixStyle as any}><RememberChoiceButton currentValue={state.listInBackupJobs} storageBind={binding(fastCloneUserConfig.listInBackupJobs)} disabled={affectedIncludeBackupJobs.length === 0 && affectedExcludeBackupJobs.length === 0}/></span></td>
+                            </tr>
+                            <tr>
+                                <td colSpan={99} className="electrifiedFormLabel" style={{...cellStyle, maxWidth: "200px"}}>
+                                    <div style={{paddingLeft: "24px", whiteSpace: "initial", position:"relative", top: "-4px"}}><i>
+                                        {affectedIncludeBackupJobs.length > 0 && <div>{t`${affectedIncludeBackupJobs.length} job(s) include ${origGuest.id}`} → <span style={{textDecoration: state.listInBackupJobs?undefined:"line-through"}}>{t`This will include the clone as well.`}</span></div>}
+                                        {affectedExcludeBackupJobs.length > 0 && <div>{t`${affectedExcludeBackupJobs.length} job(s) exclude ${origGuest.id}`} → <span style={{textDecoration: state.listInBackupJobs?undefined:"line-through"}}>{t`This will exclude the clone as well.`}</span></div>}
+                                        {origGuest.pool && origGuest.pool.name === state.pool?.name && backupJobs.some(b => b._hasPool(origGuest.pool)) && <div>{t`${backupJobs.filter(b => b._hasPool(origGuest.pool)).length} job(s) cover the pool: ${origGuest.pool.name} → No action necessary.`}</div>}
+                                        {origGuest.pool && origGuest.pool.name !== state.pool?.name && backupJobs.some(b => b._hasPool(origGuest.pool)) && <div><span className={"fa fa-exclamation-triangle"}/> {t`${backupJobs.filter(b => b._hasPool(origGuest.pool)).length} job(s) cover the pool: ${origGuest.pool.name} → The clone will not be covered by these job(s). Please check the datacenter backup jobs manually.`}</div>}
+                                    </i>
+                                    </div>
+                                </td>
                             </tr>
                         </tbody>
                     </table>
@@ -988,6 +1012,18 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
             }
 
             await retsync2promise(() => initialSnapshot!._writeConfig(), {checkSaved: false}); // Write config
+
+            // List in backups:
+            {
+                // Re-retrieve list (to be surely up2date if the dialog took a while):
+                const backupJobs = (await app.datacenter._getBackupJobs());
+                const affectedIncludeBackupJobs = backupJobs.filter(b => b.includedGuests.some(g => g === param_origGuest));
+                const affectedExcludeBackupJobs = backupJobs.filter(b => b.excludedGuests.some(g => g === param_origGuest));
+
+                affectedIncludeBackupJobs.forEach(b => b.updateIncludedGuests([...b.includedGuests, clone]));
+                affectedExcludeBackupJobs.forEach(b => b.updateExcludedGuests([...b.excludedGuests, clone]));
+            }
+
 
             await app.datacenter.ensureUp2Date();
             await app.refreshResourceTree();
