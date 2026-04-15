@@ -370,6 +370,8 @@ export class Datacenter extends ModelBase implements NotificationTarget{
         return ((await getElectrifiedApp().api2fetch("GET", "/cluster/backup")) as any[]).map(cfg => new class {
             id!:string;
             pool?: string;
+            all: boolean;
+
             /**
              * Comma separated list of vm ids
              */
@@ -382,6 +384,7 @@ export class Datacenter extends ModelBase implements NotificationTarget{
 
             constructor(cfg: any) {
                 _.extend(this, cfg);
+                this.all = cfg.all?true:false;
             }
 
             /**
