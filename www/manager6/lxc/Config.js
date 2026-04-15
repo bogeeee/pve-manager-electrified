@@ -122,7 +122,7 @@ Ext.define('PVE.lxc.Config', {
                         iconCls: 'fa fa-fw fa-clone',
                         hidden: !caps.vms['VM.Clone'],
                         handler: function () {
-                            PVE.window.Clone.wrap(nodename, vmid, vm.name, template, 'lxc');
+                            window.electrifiedApp._showCloneDialog(vmid);
                         },
                     },
                     {

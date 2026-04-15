@@ -742,6 +742,11 @@ export class Application extends AsyncConstructableClass{
         return Result;
     }
 
+    _showCloneDialog(guestId: number) {
+        const guest = this.datacenter.getGuest(guestId) || throwError("Guest does not exist");
+        spawnWithErrorHandling(async () => await this._electrifiedFeaturesPlugin.showFastCloneDialog(guest));
+    }
+
     get _electrifiedFeaturesPlugin(): ElectrifiedFeaturesPlugin {
         return this.getPluginByClass(ElectrifiedFeaturesPlugin)  as ElectrifiedFeaturesPlugin || throwError("Not yet initialized / constructor has not been called yet");
     }

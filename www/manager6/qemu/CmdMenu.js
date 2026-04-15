@@ -144,7 +144,7 @@ Ext.define('PVE.qemu.CmdMenu', {
                 iconCls: 'fa fa-fw fa-clone',
                 hidden: !caps.vms['VM.Clone'],
                 handler: () =>
-                    PVE.window.Clone.wrap(info.node, info.vmid, info.name, me.isTemplate, 'qemu'),
+                    window.electrifiedApp._showCloneDialog(info.vmid),
             },
             {
                 text: gettext('Convert to template'),

@@ -1097,15 +1097,7 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
 
     getGuestMenuItems(guest: Guest): (ContextMenuItem | "menuseparator")[] {
         return [
-            "menuseparator",
-            // Fast clone
-            {
-                text: t`Fast clone (preview version)`,
-                iconCls: 'fa fa-fw fa-clone',
-                handler: async () => {
-                    await this.showFastCloneDialog(guest);
-                }
-            },
+
         ]
     }
 

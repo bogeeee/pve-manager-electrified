@@ -96,7 +96,7 @@ Ext.define('PVE.lxc.CmdMenu', {
                 iconCls: 'fa fa-fw fa-clone',
                 hidden: !caps.vms['VM.Clone'],
                 handler: () =>
-                    PVE.window.Clone.wrap(info.node, info.vmid, info.name, me.isTemplate, 'lxc'),
+                    window.electrifiedApp._showCloneDialog(info.vmid),
             },
             {
                 text: gettext('Migrate'),
