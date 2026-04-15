@@ -15,7 +15,7 @@ import {
 } from "@blueprintjs/core";
 import "@blueprintjs/core/lib/css/blueprint.css";
 import "@blueprintjs/icons/lib/css/blueprint-icons.css";
-import {t} from "./globals";
+import {getElectrifiedApp, t} from "./globals";
 import "./styles.css"
 import {Guest} from "./model/Guest";
 import {Node} from "./model/Node";
@@ -522,18 +522,6 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
         const affectedIncludeBackupJobs = backupJobs.filter(b => b.includedGuests.some(g => g === param_origGuest));
         const affectedExcludeBackupJobs = backupJobs.filter(b => b.excludedGuests.some(g => g === param_origGuest));
 
-        /**
-         * @returns string like "orig_name_2"
-         */
-        const getInitialSuggestedName = () => {
-            const idx2name = (idx: number) => `${param_origGuest.name}-${idx}`;
-            let idx = 2;
-            while(this.app.datacenter.nodes.some(node => node.guests.some(g => g.name === idx2name(idx)))) {
-                idx++;
-            }
-            return idx2name(idx)
-        }
-
         class DialogResult {
             targetNode!: Node;
             pool!: Pool | undefined;
@@ -616,6 +604,27 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
             get origGuest() {
                 return this.snapshot.liveGuest;
             }
+
+            /**
+             * @returns string Initial value for the name field, like "orig_name-2"
+             */
+            getSuggestedName() {
+                const exists = (name: string) => getElectrifiedApp().datacenter.nodes.some(node => node.guests.some(g => g.name === name))
+                let startName = this.origGuest.name;
+                const idx2name = (idx: number) => `${startName}-${idx}`;
+                if(this.snapshot.isSnapshot()) {
+                    startName = `${this.origGuest.name}-${this.snapshot.snapshotName}`
+                    if(!exists(startName)) {
+                        return startName;
+                    }
+                }
+
+                let idx = 2;
+                while(exists(idx2name(idx))) {
+                    idx++;
+                }
+                return idx2name(idx)
+            }
         }
 
         const result = await showBlueprintDialog<DialogResult>({title: t`Clone ${param_origGuest.name} (${param_origGuest.id})`, style: {minWidth: "750px"}},(props) => {
@@ -627,7 +636,6 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
                 pool = origGuest.pool;
                 _snapshot = origGuest;
                 id = app.datacenter.getFreeGuestId(origGuest.id);
-                name = getInitialSuggestedName();
 
                 /**
                  * Undefined = same as source
@@ -642,6 +650,7 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
                 constructor() {
                     super();
                     this.withRam = this.withRamPossible && (origGuest instanceof Qemu?(fastCloneUserConfig.withRam_forCurrent !== undefined?fastCloneUserConfig.withRam_forCurrent:false):false);
+                    this.name = this.getSuggestedName();
                 }
 
                 get snapshot(): Guest {
@@ -649,6 +658,8 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
                 }
 
                 set snapshot(value: Guest) {
+                    const nameFieldWasChangedByUser = this.getSuggestedName() !== this.name;
+
                     if(this.snapshot === origGuest && value !== origGuest) { // Flank to older snapshot?
                         this._withRam = fastCloneUserConfig.withRam_forOlderSnapshots;
                     }
@@ -656,6 +667,11 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
                         this._withRam = this.origGuest.isRunning() && fastCloneUserConfig.withRam_forCurrent;
                     }
                     this._snapshot = value;
+
+                    if(!nameFieldWasChangedByUser) {
+                        this.name = this.getSuggestedName();
+                    }
+
                 }
 
                 get withRam(): boolean {
