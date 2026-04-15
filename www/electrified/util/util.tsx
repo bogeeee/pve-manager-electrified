@@ -1219,12 +1219,17 @@ export function isDeepEqual<T>(a: T, b:T) {
  * @param existingNames
  * @returns unique name with `-[number]` suffix if needed,
  */
-export function getUniqueName(initialName: string, existingNames: Set<string | undefined>) {
+export function getUniqueName(initialName: string, existingNames: Set<string | undefined>, maxLength?: number) {
+    const limitLength = (value: string) => maxLength?value.slice(0, maxLength):value;
+    initialName = limitLength(initialName);
     if(!existingNames.has(initialName)) {
         return initialName;
     }
 
-    const idx2name = (idx: number) => `${initialName}-${idx}`;
+    const idx2name = (idx: number) => {
+        const suffix = `-${idx}`
+        return `${maxLength?initialName.slice(0, maxLength - suffix.length):initialName}${suffix}`;
+    }
     let idx = 2;
     while(existingNames.has(idx2name(idx))) {
         idx++;

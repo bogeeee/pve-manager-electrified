@@ -853,7 +853,7 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
             if(result.fastClonePossible() === true) {
                 let sourceSnapshotName = result.snapshot.snapshotName;
                 if(sourceSnapshotName === undefined) {
-                    sourceSnapshotName =getUniqueName(`fork_${result.id}_${result.name}`, new Set(origGuest.snapshotRoot.snapshots.keys()));
+                    sourceSnapshotName =getUniqueName(`fork_${result.id}_${result.name}`, new Set(origGuest.snapshotRoot.snapshots.keys()), 40);
                     sourceSnapshot = await origGuest.createSnapshot(sourceSnapshotName, t`Guest ${result.id} ${result.name} was forked/cloned from here using ZFS cloning (copy-on-write)`, withRam);
                     rollbackFns.push(async () => await sourceSnapshot!.deleteSnapshot());
                 }
