@@ -60,6 +60,7 @@ import _ from "underscore"
 import {Notification}  from "./Notification";
 import {showNotificationSettings} from "./ui/NotificationSettings";
 import {ToasterWrapper} from "./ui/ToasterWrapper";
+import {showCloneDialog} from "./ui/CloneDialog";
 
 ExternalPromise.diagnosis_recordCallstacks=true; // For debugging "socket connection has been closed" TODO: remove this line
 
@@ -747,7 +748,7 @@ export class Application extends AsyncConstructableClass{
         if(sourceSnapshotName) {
             guest = guest.snapshotRoot.snapshots.get(sourceSnapshotName) || throwError("Snapshot does not exist");
         }
-        spawnWithErrorHandling(async () => await this._electrifiedFeaturesPlugin.showFastCloneDialog(guest));
+        spawnWithErrorHandling(async () => await showCloneDialog(guest));
     }
     _CONVERT_TEMPLATE_NOTE() {
         return t`<br/>Note: In PVE-electrified, better use the clone button. It uses the same ZFS copy-on-write mechanism like with templates (instant, no disk space consumed) and comes without it's limitations: Templates are read-only and replication is not working.`;
