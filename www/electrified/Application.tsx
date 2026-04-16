@@ -60,7 +60,7 @@ import _ from "underscore"
 import {Notification}  from "./Notification";
 import {showNotificationSettings} from "./ui/NotificationSettings";
 import {ToasterWrapper} from "./ui/ToasterWrapper";
-import {showCloneDialog} from "./ui/CloneDialog";
+import {CloneDialogResult, showCloneDialog} from "./ui/CloneDialog";
 
 ExternalPromise.diagnosis_recordCallstacks=true; // For debugging "socket connection has been closed" TODO: remove this line
 
@@ -152,6 +152,7 @@ export class Application extends AsyncConstructableClass{
         },
         Plugin,
         Notification,
+        CloneDialogResult,
     }
 
     util = {
