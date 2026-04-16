@@ -742,8 +742,11 @@ export class Application extends AsyncConstructableClass{
         return Result;
     }
 
-    _showCloneDialog(guestId: number) {
-        const guest = this.datacenter.getGuest(guestId) || throwError("Guest does not exist");
+    _showCloneDialog(guestId: number, sourceSnapshotName?: string) {
+        let guest = this.datacenter.getGuest(guestId) || throwError("Guest does not exist");
+        if(sourceSnapshotName) {
+            guest = guest.snapshotRoot.snapshots.get(sourceSnapshotName) || throwError("Snapshot does not exist");
+        }
         spawnWithErrorHandling(async () => await this._electrifiedFeaturesPlugin.showFastCloneDialog(guest));
     }
     _CONVERT_TEMPLATE_NOTE() {

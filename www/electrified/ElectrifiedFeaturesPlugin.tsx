@@ -514,7 +514,9 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
             }]
     }
 
-    async showFastCloneDialog(param_origGuest: Guest) {
+    async showFastCloneDialog(param_source: Guest) {
+        const param_origGuest = param_source.liveGuest; // TODO: Remove redundant const / clarify the name.
+
         const app = this.app;
         const node = param_origGuest.node;
 
@@ -634,7 +636,7 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
             const state = useWatchedState(new class extends DialogResult {
                 targetNode = origGuest.node;
                 pool = origGuest.pool;
-                _snapshot = origGuest;
+                _snapshot = watched(param_source);
                 id = app.datacenter.getFreeGuestId(origGuest.id);
 
                 /**

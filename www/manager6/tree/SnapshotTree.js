@@ -24,6 +24,7 @@ Ext.define('PVE.guest.SnapshotTree', {
             canRollback: (get) => get('rollbackAllowed') && get('isSnapshot'),
             canRemove: (get) => get('snapshotAllowed') && get('isSnapshot'),
             isSnapshot: (get) => get('selected') && get('selected') !== 'current',
+            canClone: (get) => !!get('selected'),
             buttonText: (get) => (get('snapshotAllowed') ? gettext('Edit') : gettext('View')),
             showMemory: (get) => get('type') === 'qemu',
         },
@@ -98,6 +99,16 @@ Ext.define('PVE.guest.SnapshotTree', {
 
         rollback: function () {
             this.snapshotAction('rollback', 'POST');
+        },
+        cloneToNewGuest: function () {
+            const me = this;
+            let vm = me.getViewModel();
+            let snapname = vm.get('selected');
+            if(snapname === "current") {
+                snapname = undefined;
+            }
+            let vmid = vm.get('vmid');
+            window.electrifiedApp._showCloneDialog(vmid, snapname);
         },
         remove: function () {
             this.snapshotAction('', 'DELETE');
@@ -288,6 +299,14 @@ Ext.define('PVE.guest.SnapshotTree', {
             disabled: true,
             edit: true,
             handler: 'editSnapshot',
+        },
+        {
+            xtype: 'proxmoxButton',
+            text: gettext('Clone to new guest'),
+            bind: {
+                disabled: '{!canClone}',
+            },
+            handler: 'cloneToNewGuest',
         },
         {
             xtype: 'proxmoxButton',
