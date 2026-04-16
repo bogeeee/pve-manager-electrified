@@ -676,7 +676,7 @@ export abstract class Guest extends ModelBase implements NotificationTarget {
      * @param cloneParams Params like you see them in the UI dialog. See {@link Application#classes.CloneDialogResult}
      * @param selectCloneInTree ..., only when fast clone was used.
      */
-    async clone(cloneParams: CloneDialogResult, selectCloneInTree=true) {
+    async clone(cloneParams: CloneDialogResult, selectCloneInTree=false) {
         const app = getElectrifiedApp();
         const node = this.node;
         const origGuest = this.liveGuest;

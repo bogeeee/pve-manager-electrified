@@ -338,7 +338,7 @@ export async function showCloneDialog(param_source: Guest) {
     if(!result) {
         return;
     }
-    await param_origGuest.clone(result);
+    await param_origGuest.clone(result, true);
 }
 
 //@ts-ignore
