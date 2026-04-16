@@ -26,7 +26,7 @@ export class File {
     /**
      * How long to wait for a change event that confirms/reflects the file write
      */
-    public static WRITE_CONFIRM_TIMEOUT = 30000;
+    public static WRITE_CONFIRM_TIMEOUT = 15000;
 
     node: Node
 
