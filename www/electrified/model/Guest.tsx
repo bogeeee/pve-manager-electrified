@@ -888,8 +888,6 @@ export abstract class Guest extends ModelBase implements NotificationTarget {
                 await retsync2promise(() => initialSnapshot!._writeConfig(), {checkSaved: false}); // Write config
             }
 
-            await retsync2promise(() => initialSnapshot!._writeConfig(), {checkSaved: false}); // Write config
-
             // List in backups:
             {
                 // Re-retrieve list (to be surely up2date if the dialog took a while):
