@@ -746,6 +746,9 @@ export class Application extends AsyncConstructableClass{
         const guest = this.datacenter.getGuest(guestId) || throwError("Guest does not exist");
         spawnWithErrorHandling(async () => await this._electrifiedFeaturesPlugin.showFastCloneDialog(guest));
     }
+    _CONVERT_TEMPLATE_NOTE() {
+        return t`<br/>Note: In PVE-electrified, better use the clone button. It uses the same ZFS copy-on-write mechanism like with templates (instant, no disk space consumed) and comes without it's limitations: Templates are read-only and replication is not working.`;
+    }
 
     get _electrifiedFeaturesPlugin(): ElectrifiedFeaturesPlugin {
         return this.getPluginByClass(ElectrifiedFeaturesPlugin)  as ElectrifiedFeaturesPlugin || throwError("Not yet initialized / constructor has not been called yet");

@@ -147,7 +147,7 @@ Ext.define('PVE.qemu.CmdMenu', {
                     window.electrifiedApp._showCloneDialog(info.vmid),
             },
             {
-                text: gettext('Convert to template'),
+                text: `<span style="text-decoration: line-through">${gettext('Convert to template')}</span>`,
                 iconCls: 'fa fa-fw fa-file-o',
                 hidden: !caps.vms['VM.Allocate'],
                 handler: function () {
@@ -155,7 +155,7 @@ Ext.define('PVE.qemu.CmdMenu', {
                         'qmtemplate',
                         info.vmid,
                         info.name,
-                    );
+                    ) + `<br/>${electrifiedApp._CONVERT_TEMPLATE_NOTE()}`;
                     Ext.Msg.confirm(gettext('Confirm'), msg, (btn) => {
                         if (btn === 'yes') {
                             Proxmox.Utils.API2Request({

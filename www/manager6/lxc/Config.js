@@ -126,7 +126,7 @@ Ext.define('PVE.lxc.Config', {
                         },
                     },
                     {
-                        text: gettext('Convert to template'),
+                        text: `<span style="text-decoration: line-through">${gettext('Convert to template')}</span>`,
                         disabled: template,
                         xtype: 'pveMenuItem',
                         iconCls: 'fa fa-fw fa-file-o',
@@ -135,7 +135,7 @@ Ext.define('PVE.lxc.Config', {
                             'vztemplate',
                             vmid,
                             vm.name,
-                        ),
+                        ) + `<br/>${electrifiedApp._CONVERT_TEMPLATE_NOTE()}`,
                         handler: function () {
                             Proxmox.Utils.API2Request({
                                 url: base_url + '/template',
