@@ -633,8 +633,8 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
 let debug_renderCounter = 0;
 
 //@ts-ignore
-export var Ext = window.Ext;
+var Ext = window.Ext;
 //@ts-ignore
-export var PVE = window.PVE;
+var PVE = window.PVE;
 //@ts-ignore
-export var Proxmox = window.Proxmox;
+var Proxmox = window.Proxmox;
