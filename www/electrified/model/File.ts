@@ -22,7 +22,7 @@ export class File {
      * The server's onChange events may fire a but fuzzy some time **after** the real change. We don't want to interrupt them the **next** write operation so we wait this much ms when an onChange event was seen.
      *
      */
-    public static CALM_DOWN_TIME_BEFORE_WRITES = 500;
+    public static CALM_DOWN_TIME_BEFORE_WRITES = 300;
     /**
      * How long to wait for a change event that confirms/reflects the file write
      */
