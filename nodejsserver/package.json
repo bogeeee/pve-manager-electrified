@@ -11,7 +11,9 @@
     "check": "tspc --noemit",
     "start": "cross-env NODE_ENV=production node --enable-source-maps server.js",
     "prepublish": "npm run check",
+    "###": "#Either use login or auth token",
     "publish:npmlogin": "npm login",
+    "publish:npm_set_auth_token": "read -p \"Enter auth token that you have generaed with i.e. [Bypass 2FA, Packages: read-write, Organisations: no access, validity: 90 days]: \" NPM_AUTH_TOKEN; npm config set //registry.npmjs.org/:_authToken=$NPM_AUTH_TOKEN; npm whoami",
     "publish:publish_to_npm": "npm run prepublish && npm publish"
   },
   "dependencies": {
