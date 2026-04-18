@@ -8,6 +8,7 @@ Ext.define('pmx-users', {
         'comment',
         { type: 'boolean', name: 'enable' },
         { type: 'date', dateFormat: 'timestamp', name: 'expire' },
+        { type: 'string', name: 'keys' },
     ],
     proxy: {
         type: 'proxmox',

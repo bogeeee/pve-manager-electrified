@@ -133,7 +133,7 @@ install: $(SCRIPTS) $(LIBEXECCLITOOLS) $(CLI_MANS) $(SERVICE_MANS) $(BASH_COMPLE
 
 .PHONY: clean
 clean:
-	rm -f *.xml.tmp *.1 *.5 *.8 *{synopsis,opts}.adoc docinfo.xml *.tmp
-	rm -f *~ *.tmp $(CLI_MANS) $(SERVICE_MANS) *.1.pod *.8.pod
+	$(MAKE) cleanup-docgen
+	rm -f *~ *.tmp *.1.pod *.8.pod
 	rm -f *.bash-completion *.service-bash-completion *.zsh-completion *.service-zsh-completion
 	rm -f *.api-verified *.service-api-verified

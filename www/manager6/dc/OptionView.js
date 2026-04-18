@@ -180,37 +180,14 @@ Ext.define('PVE.dc.OptionView', {
                 },
             ],
         });
-        me.add_inputpanel_row('crs', gettext('Cluster Resource Scheduling'), {
+        me.rows.crs = {
+            required: true,
             renderer: PVE.Utils.render_as_property_string,
-            width: 450,
-            labelWidth: 120,
-            url: '/api2/extjs/cluster/options',
-            onlineHelp: 'ha_manager_crs',
-            items: [
-                {
-                    xtype: 'proxmoxKVComboBox',
-                    name: 'ha',
-                    fieldLabel: gettext('HA Scheduling'),
-                    deleteEmpty: false,
-                    value: '__default__',
-                    comboItems: [
-                        ['__default__', Proxmox.Utils.defaultText + ' (basic)'],
-                        ['basic', 'Basic (Resource Count)'],
-                        ['static', 'Static Load'],
-                    ],
-                    defaultValue: '__default__',
-                },
-                {
-                    xtype: 'proxmoxcheckbox',
-                    name: 'ha-rebalance-on-start',
-                    fieldLabel: gettext('Rebalance on Start'),
-                    boxLabel: gettext(
-                        'Use CRS to select the least loaded node when starting an HA service',
-                    ),
-                    value: 0,
-                },
-            ],
-        });
+            header: gettext('Cluster Resource Scheduling'),
+            editor: {
+                xtype: 'pveCRSOptions',
+            },
+        };
         me.add_inputpanel_row('u2f', gettext('U2F Settings'), {
             renderer: (v) =>
                 !v ? Proxmox.Utils.NoneText : Ext.htmlEncode(PVE.Parser.printPropertyString(v)),

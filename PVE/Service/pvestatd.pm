@@ -284,7 +284,7 @@ sub update_node_status {
     broadcast_static_node_info($maxcpu, $meminfo->{memtotal});
 }
 
-sub auto_balloning {
+sub auto_ballooning {
     my ($vmstatus) = @_;
 
     my $log = sub { $opt_debug and printf @_ };
@@ -322,7 +322,7 @@ sub update_qemu_status {
     my $ctime = time();
     my $vmstatus = PVE::QemuServer::vmstatus(undef, 1);
 
-    eval { auto_balloning($vmstatus); };
+    eval { auto_ballooning($vmstatus); };
     syslog('err', "auto ballooning error: $@") if $@;
 
     my $transactions = PVE::ExtMetric::transactions_start($status_cfg);

@@ -285,9 +285,9 @@ Ext.define('PVE.window.Settings', {
                     stateId: 'guest-notes-collapse',
                     reference: 'guestNotesCollapse',
                     comboItems: [
-                        ['never', 'Show by default'],
-                        ['always', 'Collapse by default'],
-                        ['auto', 'auto (Collapse if empty)'],
+                        ['never', gettext('Show by default')],
+                        ['always', gettext('Collapse by default')],
+                        ['auto', gettext('auto (Collapse if empty)')],
                     ],
                 },
                 {

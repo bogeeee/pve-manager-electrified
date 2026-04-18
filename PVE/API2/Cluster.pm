@@ -428,6 +428,11 @@ __PACKAGE__->register_method({
                     format => 'pve-storage-content-list',
                     optional => 1,
                 },
+                shared => {
+                    description => "Determines whether the storage is shared",
+                    type => 'boolean',
+                    optional => 1,
+                },
                 plugintype => {
                     description => "More specific type, if available.",
                     type => 'string',

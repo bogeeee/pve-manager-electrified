@@ -405,10 +405,8 @@ __PACKAGE__->register_method({
         my $ceph_bootstrap_osd_keyring =
             PVE::Ceph::Tools::get_config('ceph_bootstrap_osd_keyring');
 
-        if (
-            !-f $ceph_bootstrap_osd_keyring
-            && $ceph_conf->{global}->{auth_client_required} eq 'cephx'
-        ) {
+        my $auth_client_required = $ceph_conf->{global}->{auth_client_required} // 'cephx';
+        if (!-f $ceph_bootstrap_osd_keyring && $auth_client_required ne 'none') {
             my $bindata = $rados->mon_command({
                 prefix => 'auth get-or-create',
                 entity => 'client.bootstrap-osd',

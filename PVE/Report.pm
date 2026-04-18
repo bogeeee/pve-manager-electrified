@@ -147,7 +147,7 @@ my $init_report_cmds = sub {
             'zpool status',
             'zpool list -v',
             'zfs list',
-            'arcstat',
+            'zarcstat',
             ;
     }
 

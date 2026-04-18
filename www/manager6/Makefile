@@ -27,6 +27,7 @@ JSSRC= 							\
 	form/BridgeSelector.js				\
 	form/BusTypeSelector.js				\
 	form/CPUModelSelector.js			\
+	form/CRSOptions.js				\
 	form/CacheTypeSelector.js			\
 	form/CalendarEvent.js				\
 	form/CephPoolSelector.js			\

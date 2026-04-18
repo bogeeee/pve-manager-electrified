@@ -7,7 +7,7 @@ Ext.define('PVE.form.AgentFeatureSelector', {
     items: [
         {
             xtype: 'proxmoxcheckbox',
-            boxLabel: Ext.String.format(gettext('Use {0}'), 'QEMU Guest Agent'),
+            boxLabel: gettext('Use QEMU Guest Agent'),
             name: 'enabled',
             reference: 'enabled',
             uncheckedValue: 0,
@@ -23,9 +23,11 @@ Ext.define('PVE.form.AgentFeatureSelector', {
         },
         {
             xtype: 'proxmoxcheckbox',
-            boxLabel: gettext('Freeze/thaw guest filesystems on backup for consistency'),
-            name: 'freeze-fs-on-backup',
-            reference: 'freeze_fs_on_backup',
+            boxLabel: gettext(
+                'Freeze/thaw guest filesystems during certain operations for consistency',
+            ),
+            name: 'freeze-fs',
+            reference: 'freeze_fs',
             bind: {
                 disabled: '{!enabled.checked}',
             },
@@ -37,10 +39,10 @@ Ext.define('PVE.form.AgentFeatureSelector', {
             xtype: 'displayfield',
             userCls: 'pmx-hint',
             value: gettext(
-                'Freeze/thaw for guest filesystems disabled. This can lead to inconsistent disk backups.',
+                'Freeze/thaw for guest filesystems disabled. This can lead to inconsistent disk images during snapshots, backups, and similar operations.',
             ),
             bind: {
-                hidden: '{freeze_fs_on_backup.checked}',
+                hidden: '{freeze_fs.checked}',
             },
         },
         {
@@ -69,8 +71,8 @@ Ext.define('PVE.form.AgentFeatureSelector', {
     ],
 
     onGetValues: function (values) {
-        if (PVE.Parser.parseBoolean(values['freeze-fs-on-backup'])) {
-            delete values['freeze-fs-on-backup'];
+        if (PVE.Parser.parseBoolean(values['freeze-fs'])) {
+            delete values['freeze-fs'];
         }
 
         const agentstr = PVE.Parser.printPropertyString(values, 'enabled');
@@ -79,8 +81,14 @@ Ext.define('PVE.form.AgentFeatureSelector', {
 
     setValues: function (values) {
         let res = PVE.Parser.parsePropertyString(values.agent, 'enabled');
-        if (!Ext.isDefined(res['freeze-fs-on-backup'])) {
-            res['freeze-fs-on-backup'] = 1;
+        // cope with older backends that still return the previous name
+        if (Ext.isDefined(res['freeze-fs-on-backup']) && !Ext.isDefined(res['freeze-fs'])) {
+            res['freeze-fs'] = res['freeze-fs-on-backup'];
+        }
+        delete res['freeze-fs-on-backup'];
+
+        if (!Ext.isDefined(res['freeze-fs'])) {
+            res['freeze-fs'] = 1;
         }
 
         this.callParent([res]);

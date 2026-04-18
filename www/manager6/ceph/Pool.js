@@ -457,6 +457,8 @@ Ext.define(
                     nodename: nodename,
                     pool_name: rec.data.pool_name,
                     isErasure: rec.data.type === 'erasure',
+                    defaultSize: rec.data.size,
+                    defaultMinSize: rec.data.min_size,
                     autoShow: true,
                     listeners: {
                         destroy: () => rstore.load(),

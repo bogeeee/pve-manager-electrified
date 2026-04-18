@@ -50,6 +50,11 @@ Ext.define('PVE.Workspace', {
                 handler: function (data) {
                     me.login = null;
                     me.updateLoginData(data);
+                    let deeplink = sessionStorage.getItem('openid-deeplink');
+                    if (deeplink) {
+                        sessionStorage.removeItem('openid-deeplink');
+                        Ext.History.add(deeplink);
+                    }
                     //Proxmox.Utils.checked_command(Ext.emptyFn); // display subscription status
                 },
             });

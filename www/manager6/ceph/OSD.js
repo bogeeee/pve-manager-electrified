@@ -860,6 +860,7 @@ Ext.define('PVE.node.CephOsdTree', {
     ],
 
     tbar: {
+        overflowHandler: 'scroller',
         items: [
             {
                 text: gettext('Reload'),

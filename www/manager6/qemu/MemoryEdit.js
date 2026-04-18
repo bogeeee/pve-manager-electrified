@@ -65,7 +65,7 @@ Ext.define('PVE.qemu.MemoryInputPanel', {
         }
 
         if (deleteSet.size > 0) {
-            res.delete = deleteSet.keys().toArray().join(',');
+            res.delete = Array.from(deleteSet.keys()).join(',');
         }
 
         return res;

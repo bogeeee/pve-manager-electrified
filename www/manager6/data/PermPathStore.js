@@ -22,7 +22,7 @@ Ext.define('PVE.data.PermPathStore', {
     ],
 
     constructor: function (config) {
-        var me = this;
+        let me = this;
 
         config = config || {};
 
@@ -35,6 +35,9 @@ Ext.define('PVE.data.PermPathStore', {
             switch (record.get('type')) {
                 case 'node':
                     path = '/nodes/' + record.get('text');
+                    break;
+                case 'network':
+                    path = '/sdn/' + record.get('network-type') + 's/' + record.get('network');
                     break;
                 case 'qemu':
                     path = '/vms/' + record.get('vmid');

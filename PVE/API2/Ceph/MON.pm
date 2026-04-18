@@ -428,6 +428,15 @@ __PACKAGE__->register_method({
                             $mon_keyring,
                         ]);
                         run_command(['chown', 'ceph:ceph', '-R', $mondir]);
+
+                        eval {
+                            # fix-up initial log file from freshly created monitor here, as currently
+                            # we cannot instruct ceph-mon to create it with the correct ownership without
+                            # losing access to the mon keyring inside pmxcfs.
+                            run_command(
+                                ['chown', 'ceph:ceph', "/var/log/ceph/ceph-mon.$monid.log"]);
+                        };
+                        warn "$@" if $@;
                     };
                     my $err = $@;
                     unlink $monmap;

@@ -50,6 +50,7 @@ Ext.define('PVE.window.LoginWindow', {
 
             if (this.getViewModel().data.openid === true) {
                 const redirectURL = location.origin;
+                sessionStorage.setItem('openid-deeplink', window.location.hash);
                 Proxmox.Utils.API2Request({
                     url: '/api2/extjs/access/openid/auth-url',
                     params: {

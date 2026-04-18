@@ -489,6 +489,8 @@ Ext.define('PVE.Utils', {
                     displayText = map[value] || Proxmox.Utils.unknownText;
                 } else if (key === 'freeze-fs-on-backup' && PVE.Parser.parseBoolean(value)) {
                     continue;
+                } else if (key === 'freeze-fs' && PVE.Parser.parseBoolean(value)) {
+                    continue;
                 } else if (PVE.Parser.parseBoolean(value)) {
                     displayText = Proxmox.Utils.enabledText;
                 }
@@ -1361,6 +1363,31 @@ Ext.define('PVE.Utils', {
                 retVal += `${i[1]}: ${i[2]}:${i[3]}<br>`;
             }
             return retVal.length < 1 ? value : retVal;
+        },
+
+        render_tfa: function (v, _mD, record) {
+            let tfa_type = PVE.Parser.parseTfaType(v);
+            if (tfa_type === undefined) {
+                return Proxmox.Utils.noText;
+            }
+
+            if (tfa_type !== 1) {
+                return tfa_type;
+            }
+
+            let locked_until = record.data['tfa-locked-until'];
+            if (locked_until !== undefined) {
+                let now = new Date().getTime() / 1000;
+                if (locked_until > now) {
+                    return gettext('Locked');
+                }
+            }
+
+            if (record.data['totp-locked']) {
+                return gettext('TOTP Locked');
+            }
+
+            return Proxmox.Utils.yesText;
         },
 
         windowHostname: function () {

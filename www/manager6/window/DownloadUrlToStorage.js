@@ -165,6 +165,9 @@ Ext.define('PVE.window.DownloadUrlToStorage', {
                     allowBlank: false,
                     fieldLabel: gettext('File name'),
                     emptyText: gettext('Please (re-)query URL to get meta information'),
+                    getSubmitValue: function () {
+                        return this.processRawValue(this.getRawValue())?.trim();
+                    },
                 },
             ],
             column1: [
