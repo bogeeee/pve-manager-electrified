@@ -1,3 +1,9 @@
+pve-manager-electrified (9.6.0) trixie; urgency=medium
+  * Finished fast clone feature
+  * Minor: Bugfix: Errors from Plugin#onUiReady not handled
+
+ -- PVE-electrified crew <crew@pve-electrified.net>  Sun, 19 Apr 2026 00:00:05 +0200
+
 pve-manager-electrified (9.5.1) trixie; urgency=medium
   * Bugfix: Allow old storage configs for lxcs. I.e. /rpool/subvol-150-disk-1/some/path
 
