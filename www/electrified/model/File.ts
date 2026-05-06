@@ -215,46 +215,48 @@ export class File {
         return this.getStats() !== false
     }
 
-    protected changeOnDiskHandler = (async(new_stats: FileStats | false ) => {
-        this.lastChangeEventTime = new Date();
+    protected changeOnDiskHandler = ((new_stats: FileStats | false ) => {
+        spawnWithErrorHandling(async () => { // spawn async **here**, cause changeOnDiskHandler must not be async, cause the API expects a sync callback.
+            this.lastChangeEventTime = new Date();
 
-        // *** Re-populate whole cache content ***:
-        // Retrieve cache_stringContents:
-        const new_cache_stringContents = new Map<BufferEncoding, string>();
-        if(new_stats !== false) { // File exists?
-            for (const encoding of this.cache_stringContent.keys()) {
-                try {
-                    new_cache_stringContents.set(encoding, await this.node.electrifiedApi.getFileContent(this.path, encoding));
-                } catch (e) { // I.e. the file was deleted (race condition)
+            // *** Re-populate whole cache content ***:
+            // Retrieve cache_stringContents:
+            const new_cache_stringContents = new Map<BufferEncoding, string>();
+            if(new_stats !== false) { // File exists?
+                for (const encoding of this.cache_stringContent.keys()) {
+                    try {
+                        new_cache_stringContents.set(encoding, await this.node.electrifiedApi.getFileContent(this.path, encoding));
+                    } catch (e) { // I.e. the file was deleted (race condition)
+                    }
                 }
             }
-        }
-        // Retrieve cache_dirContents
-        let new_cache_dirContent: File["cache_dirContent"] = undefined;
-        if(new_stats !== false && this.cache_dirContent !== undefined) { // File exists and cache exists?
-            new_cache_dirContent = (await this.node.electrifiedApi.getDirectoryContents(this.path)).map((fileName) => this.node.getFile(`${this.path}/${fileName}`));
-        }
-        // Atomically flip fields at once:
-        this.cache_stat = new_stats;
-        this.cache_stringContent = new_cache_stringContents;  // this will also make asyncResource2retsync do a fresh fetch. In case of file was deleted or file was re-added
-        this.cache_dirContent = new_cache_dirContent;
-
-        if(this.setStringContent_writeOperation) {
-            const writeOperationSucceeded = this.setStringContent_writeOperation.onFileChangedHandler(); // call this handler first
-            if(!writeOperationSucceeded) {
-                console.warn(`File write operation to ${this} is still ongoing. Skipping listeners`);
-                return; // Skip listeners. It was observed that these change the content (or so, seen through ElectrifiedFeaturesPlugin.tsx line 915) and invalidate this.setStringContent_writeOperation, so it is tried again and runs endlessly
+            // Retrieve cache_dirContents
+            let new_cache_dirContent: File["cache_dirContent"] = undefined;
+            if(new_stats !== false && this.cache_dirContent !== undefined) { // File exists and cache exists?
+                new_cache_dirContent = (await this.node.electrifiedApi.getDirectoryContents(this.path)).map((fileName) => this.node.getFile(`${this.path}/${fileName}`));
             }
-        }
+            // Atomically flip fields at once:
+            this.cache_stat = new_stats;
+            this.cache_stringContent = new_cache_stringContents;  // this will also make asyncResource2retsync do a fresh fetch. In case of file was deleted or file was re-added
+            this.cache_dirContent = new_cache_dirContent;
 
-        // Inform listeners:
-        this.changeListeners.forEach(l => {
-            try {
-                l();
-            } catch (e) {
-                console.error(e);
+            if(this.setStringContent_writeOperation) {
+                const writeOperationSucceeded = this.setStringContent_writeOperation.onFileChangedHandler(); // call this handler first
+                if(!writeOperationSucceeded) {
+                    console.warn(`File write operation to ${this} is still ongoing. Skipping listeners`);
+                    return; // Skip listeners. It was observed that these change the content (or so, seen through ElectrifiedFeaturesPlugin.tsx line 915) and invalidate this.setStringContent_writeOperation, so it is tried again and runs endlessly
+                }
             }
-        });
+
+            // Inform listeners:
+            this.changeListeners.forEach(l => {
+                try {
+                    l();
+                } catch (e) {
+                    console.error(e);
+                }
+            });
+        })
     }).bind(this);
 
     /**
