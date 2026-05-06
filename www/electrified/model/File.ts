@@ -126,13 +126,7 @@ export class File {
                 constructor() {
                     this.promise = (async () => {
                         try {
-                            // Calm down (wait some time) after onChange events:
-                            if(thisFile.lastChangeEventTime) {
-                                const toWait = File.CALM_DOWN_TIME_BEFORE_WRITES - (new Date().getTime() - thisFile.lastChangeEventTime.getTime());
-                                if(toWait > 0) {
-                                    await sleep(toWait);
-                                }
-                            }
+                            await thisFile._calmDownAfterChangeEvent(); // Calm down (wait some time) after last onChange events, so that there is not
 
                             await thisFile.ensureWatchesForChangesOnDisk();
                             await thisFile.checkWriteAllowed();
@@ -168,6 +162,21 @@ export class File {
         }
 
         promise2retsync(this.setStringContent_writeOperation.promise);
+    }
+
+    /**
+     * Makes sure, some time is waited after the last onChange event from the server.
+     * Cause after a change, multiple such events (i.e. with a half written content) might fire in a fuzzy way.
+     * @see File#CALM_DOWN_TIME_BEFORE_WRITES
+     * @private
+     */
+    async _calmDownAfterChangeEvent() {
+        if (this.lastChangeEventTime) {
+            const toWait = File.CALM_DOWN_TIME_BEFORE_WRITES - (new Date().getTime() - this.lastChangeEventTime.getTime());
+            if (toWait > 0) {
+                await sleep(toWait);
+            }
+        }
     }
 
     remove() {

@@ -630,6 +630,8 @@ export abstract class Guest extends ModelBase implements NotificationTarget {
      * @param vmstate Saves the vmstate = with memory
      */
     async createSnapshot(snapname: string, description:string, vmstate: boolean, options: RetryTilSuccessOptions = {}) {
+        await this.configFile._calmDownAfterChangeEvent(); // Cause it was observed that calling createSnapshot after a config write sometimes caused missing change events
+
         const taskId = await this.node.api2fetch("POST", `/${this.type}/${this.id}/snapshot`, {
             snapname,
             description,
