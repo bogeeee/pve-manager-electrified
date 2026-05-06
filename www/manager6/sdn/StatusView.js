@@ -69,6 +69,14 @@ Ext.define(
                             });
                         },
                     },
+                    {
+                        text: gettext('Dry-Run'),
+                        handler: function () {
+                            Ext.create('PVE.sdn.SdnDiffView', {
+                                autoShow: true,
+                            });
+                        },
+                    },
                 ],
                 viewConfig: {
                     trackOver: false,

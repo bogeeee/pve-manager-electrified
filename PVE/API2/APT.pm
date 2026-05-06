@@ -874,7 +874,7 @@ __PACKAGE__->register_method({
             libpve-common-perl
             libpve-guest-common-perl
             libpve-http-server-perl
-            livpve-notify-perl
+            libpve-notify-perl
             libpve-rs-perl
             libpve-storage-perl
             libqb0

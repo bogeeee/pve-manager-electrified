@@ -74,6 +74,7 @@ Ext.define(
         xtype: 'pveNodeCephFSPanel',
         mixins: ['Proxmox.Mixin.CBind'],
 
+        scrollable: 'y',
         title: gettext('CephFS'),
         onlineHelp: 'pveceph_fs',
 

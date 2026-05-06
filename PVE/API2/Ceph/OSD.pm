@@ -1018,11 +1018,17 @@ __PACKAGE__->register_method({
 
             print "Remove the $osdsection authentication key.\n";
             $rados->mon_command({
-                prefix => "auth del", entity => $osdsection, format => 'plain' });
+                prefix => "auth del",
+                entity => $osdsection,
+                format => 'plain',
+            });
 
             print "Remove OSD $osdsection\n";
             $rados->mon_command({
-                prefix => "osd rm", ids => [$osdsection], format => 'plain' });
+                prefix => "osd rm",
+                ids => [$osdsection],
+                format => 'plain',
+            });
 
             print "Remove $osdsection mclock max capacity iops settings from config\n";
             $rados->mon_command(

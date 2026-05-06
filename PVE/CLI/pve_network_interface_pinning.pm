@@ -451,9 +451,9 @@ __PACKAGE__->register_method({
                 my $b_name = $altnames->{$b} // $b;
 
                 $ip_links->{$a_name}->{ifindex} <=> $ip_links->{$b_name}->{ifindex};
-            } grep {
-                $ip_links->{$_}
-            } keys $mapping->%*;
+                } grep {
+                    $ip_links->{$_}
+                } keys $mapping->%*;
 
             for my $old_name (@sorted_links) {
                 my $altname_string = '';

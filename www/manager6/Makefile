@@ -287,6 +287,7 @@ JSSRC= 							\
 	sdn/ControllerView.js				\
 	sdn/Status.js					\
 	sdn/StatusView.js				\
+	sdn/SdnDiffView.js				\
 	sdn/VnetEdit.js					\
 	sdn/VnetView.js					\
 	sdn/VnetACLView.js				\

@@ -446,7 +446,8 @@ sub check_cluster_corosync {
     } else {
         if (grep { $conf_nodelist->{$_}->{quorum_votes} != 1 } keys %$conf_nodelist) {
             log_warn("non-default quorum_votes distribution detected!");
-        } map {
+        }
+        map {
             $node_votes += $conf_nodelist->{$_}->{quorum_votes} // 0
         } keys %$conf_nodelist;
     }

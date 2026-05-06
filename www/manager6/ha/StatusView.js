@@ -8,9 +8,10 @@ Ext.define(
 
         sortPriority: {
             quorum: 1,
-            master: 2,
-            lrm: 3,
-            service: 4,
+            fencing: 2,
+            master: 3,
+            lrm: 4,
+            service: 5,
         },
 
         initComponent: function () {

@@ -56,6 +56,20 @@ sha512sum: d6835836b59888d8bb3971668820483a246cfa46e992f62209464b6faabd6a223f413
 Infopage: https://linuxcontainers.org
 Description: LXC default image for alpine 3.23 (20260116)
 
+Package: archlinux-base
+Version: 20260420-1
+Type: lxc
+OS: archlinux
+Section: system
+Maintainer: Proxmox Support Team <support@proxmox.com>
+Architecture: amd64
+Location: system/archlinux-base_20260420-1_amd64.tar.zst
+md5sum: 5f7cd1c61dd0a9a546f6c2d3e9ccdc78
+sha512sum: a6af26c3760f5683ea17140aae9398e3a793f17e3c1586edcec56fb0ed1ba780722ce4c20eafdb5843899fa229cfe859a381c36b6c754b7e381f8337f2334352
+Infopage: https://www.archlinux.org
+Description: ArchLinux base image.
+ ArchLinux template with the 'base' group and the 'openssh' package installed.
+
 Package: centos-9-stream-default
 Version: 20240828
 Type: lxc
