@@ -3,7 +3,15 @@ import {remote} from "restfuncs-server";
 import {ServerSessionOptions} from "restfuncs-server";
 import {appServer} from "./server.js";
 import WebBuildProgress, {BuildOptions} from "./WebBuilder.js";
-import {axiosExt, deleteDir, errorToHtml, spawnAsync, newDefaultMap, fileExists} from "./util/util.js";
+import {
+    axiosExt,
+    deleteDir,
+    errorToHtml,
+    spawnAsync,
+    newDefaultMap,
+    fileExists,
+    topLevel_withErrorHandling
+} from "./util/util.js";
 import {rmSync} from "fs";
 import fs from "node:fs";
 import path from "node:path";
@@ -359,8 +367,41 @@ export class ElectrifiedSession extends ServerSession {
         if(!await fileExists(parentDir)) {
             await fsPromises.mkdir(parentDir, {recursive: true}); // Create parent dir
         }
-        return await fsPromises.writeFile(filePath, newContent,{encoding});
+        await fsPromises.writeFile(filePath, newContent,{encoding});
+        ElectrifiedSession.bugfix_watchWrittenFile(filePath);
     }
+
+    /**
+     * Bug: After this process once wrote to a file, the chokidar watcher won't receive any more change events
+     * This polls them still and informs the listeners
+     * @param filePath
+     * @protected
+     */
+    protected static bugfix_watchWrittenFile(filePath: string) {
+        const state = ElectrifiedSession.bugfix_writtenFile_watchers.get(filePath);
+        setInterval(() => spawnAsync(async () => await state.pollForChanges(), false), 100);
+    }
+
+    /**
+     * @see bugfix_watchWrittenFile
+     * @protected
+     */
+    protected static bugfix_writtenFile_watchers = newDefaultMap((path: string) => new class {
+        lastSeenContent = fs.readFileSync(path);
+
+        async pollForChanges() {
+            if(!await fileExists(path)) {
+                return;
+            }
+            const currentContent = await fsPromises.readFile(path);
+            if(!currentContent.equals(this.lastSeenContent)) { // Changed?
+                this.lastSeenContent = currentContent;
+                const fileStat = await ElectrifiedSession.getFileStat(path);
+                //console.log("change event by bugfix_writtenFile_watchers#pollForChanges. Path: " + path + "; trigger_path:" + path + ", stat: " + JSON.stringify(fileStat));
+                ElectrifiedSession.fileWatchers.get(path).call(fileStat); // call callbacks
+            }
+        }
+    }) as (Map<string, any> /* typescript-rtti somehow gets this type wrong*/);
 
     @remote async removeFile(path: string) {
         await fsPromises.rm(path, {recursive: true})
@@ -399,8 +440,16 @@ export class ElectrifiedSession extends ServerSession {
         ['add','change', 'unlink','addDir', 'unlinkDir'].forEach(async (eventName) => {
             (watcher as any).on(eventName, async (trigger_path?: any) => {
                 const fileStat = await ElectrifiedSession.getFileStat(path);
-                //console.log("changeevent path: " + path + "; trigger_path:" + trigger_path + ": " + eventName + " stat: " + JSON.stringify(fileStat));
-                clientCallbacks.call(fileStat);
+                //console.log("change event. Path: " + path + "; trigger_path:" + trigger_path + ": " + eventName + " stat: " + JSON.stringify(fileStat));
+
+                // Inform listeners:
+                if(eventName === "change" && ElectrifiedSession.bugfix_writtenFile_watchers.has(path)) { // in bugfix mode?
+                    await ElectrifiedSession.bugfix_writtenFile_watchers.get(path).pollForChanges(); // use this method to inform clientCallbacks only once
+                }
+                else {
+                    clientCallbacks.call(fileStat);
+                }
+
             });
         });
 
