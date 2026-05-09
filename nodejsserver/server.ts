@@ -33,6 +33,7 @@ import {IncomingMessage} from "node:http";
 import {ExpressMemoryStoreExt} from "./util/ExpressMemoryStoreExt.js";
 import {ElectrifiedJsonConfig} from "./Common.js";
 import {GuestCpuMeters} from "./GuestCpuMeters.js";
+import  gracefulFs from "graceful-fs";
 
 
 // Enable these for better error diagnosis during development:
@@ -105,6 +106,8 @@ class AppServer {
     constructor() {
         const thisServer = this;
         spawnAsync(async () => {
+
+            gracefulFs.gracefulify(fs); // Use graceful fs to prevent resource exhaustion. Theoretically.
 
             await this.cleanUpIfInstallHung();
 
