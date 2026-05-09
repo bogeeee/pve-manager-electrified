@@ -1,3 +1,8 @@
+pve-manager-electrified (9.6.4) trixie; urgency=medium
+  * Bugfix: chokidar's file watcher sometimes misses events - fast clone fails + improve file watching
+
+ -- PVE-electrified crew <crew@pve-electrified.net>  Fri, 08 May 2026 00:00:05 +0200
+
 pve-manager-electrified (9.6.2) trixie; urgency=medium
   * Bugfix: Clone operation hangs sometimes after creating the initial snapshot.
 
