@@ -132,6 +132,7 @@ export async function showNotificationSettings() {
                                     </TableCell>
                                 </TableRow>
                             })}
+                            {items.length === 0 && <TableRow key="noEntries"><TableCell colSpan={99} style={{textAlign: "center"}}><i>{isFiltered?t`No entries, matching filter`:t`No entries`}</i></TableCell></TableRow>}
                         </TableBody>
                     </Table>
                 </TableContainer>
