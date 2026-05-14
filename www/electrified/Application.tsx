@@ -1,4 +1,4 @@
-import {RestfuncsClient, ServerError} from "restfuncs-client";
+import {ClientSocketConnection, RestfuncsClient, ServerError} from "restfuncs-client";
 import {createRoot} from "react-dom/client";
 import React from "react";
 
@@ -859,4 +859,15 @@ export type UserCapabilities = {
  */
 function t(englishTextTokens: TemplateStringsArray, ...values: any[]) {
     return app!.getTranslatedTextWithTags(englishTextTokens, ...values);
+}
+
+
+// Debug: Log ClientSocketConnection close events. Wondering why the happen on my live machine with firefox
+//@ts-ignore
+const orig_handleClose = ClientSocketConnection.prototype.handleClose;
+//@ts-ignore
+ClientSocketConnection.prototype.handleClose= function() {
+    console.log(`Debug: ${new Date()} ClientSocketConnection closed: ${this.fatalError?errorToString(this.fatalError):""}`)
+    //@ts-ignore
+    orig_handleClose.apply(this, []);
 }
