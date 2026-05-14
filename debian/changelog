@@ -1,3 +1,10 @@
+pve-manager-electrified (9.6.5) trixie; urgency=medium
+  * Show a dialog on conflicting hardware resources (i.e. usb, gpu) when starting a guest. Useful when switching between guests with one exclusive GPU.
+  * Bugfix: bugfix_writtenFile_watchers. pollForChanges() occasionally errors and crashes server
+  * Bugfix: Clone: Mac addresses not randomized / stale values in config when clon
+
+ -- PVE-electrified crew <crew@pve-electrified.net>  Fri, 15 May 2026 00:00:05 +0200
+
 pve-manager-electrified (9.6.4) trixie; urgency=medium
   * Bugfix: chokidar's file watcher sometimes misses events - fast clone fails + improve file watching
 
