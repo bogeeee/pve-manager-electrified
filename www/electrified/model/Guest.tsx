@@ -844,6 +844,9 @@ export abstract class Guest extends ModelBase implements NotificationTarget {
 
             let initialSnapshot: Guest | undefined = undefined;
             if(cloneParams.createInitialSnapshot) {
+                await clone.configFile._calmDownAfterChangeEvent(); // Wait til the file is really written
+                await sleep(500); // Sometimes the pve's commands don't see the written version and still use their cached content. I'm sorry that this is a very dirty hack. TODO: implmenent some commit method
+
                 // Take initial snapshot named "cloned":
                 initialSnapshot = await clone.createSnapshot("cloned", t`Cloned from ${origGuest.id} ${origGuest.name}${sourceSnapshot.isSnapshot() ? `@${sourceSnapshot.snapshotName}` : ""}`, false)
                 rollbackFns.push(async () => await initialSnapshot!.delete());
