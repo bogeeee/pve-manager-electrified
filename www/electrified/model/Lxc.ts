@@ -1,6 +1,8 @@
 import {Guest} from "./Guest";
 import {Disk} from "./hardware/Disk";
 import {t} from "../globals";
+import {Hardware} from "./hardware/Hardware";
+import {DeviceFilePassthrough} from "./hardware/DeviceFilePassthrough";
 
 /**
  * A lxc guest
@@ -26,6 +28,8 @@ export class Lxc extends Guest {
      * </p>
      */
     mp:Disk[] = [];
+
+    dev: DeviceFilePassthrough[] = []
 
     get type(): "lxc" {
         return "lxc";

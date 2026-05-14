@@ -4,6 +4,9 @@ import {throwError} from "../../util/util";
 import {Notification, NotificationTarget} from "../../Notification";
 import {t} from "../../globals";
 
+/**
+ * ...also used for generic hardware when there is no subclass for it
+ */
 export class Hardware extends AsyncConstructableClass implements NotificationTarget {
 
     /**
@@ -62,8 +65,21 @@ export class Hardware extends AsyncConstructableClass implements NotificationTar
 
     faIcon = "desktop"; // Implemented in subclass
 
+    get iconClass() {
+        return `fa-${this.faIcon}`;
+    }
+
     /**
      * TODO: keep content when preserving
      */
     notifications = new Map<string, Notification>();
+
+    /**
+     *
+     * @param other
+     * @returns true or a string with the reason on conflict
+     */
+    conflictsWith_whenGuestIsRunning(other: this): boolean | string {
+        return false;
+    }
 }

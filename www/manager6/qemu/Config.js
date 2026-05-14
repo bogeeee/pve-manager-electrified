@@ -59,7 +59,7 @@ Ext.define('PVE.qemu.Config', {
             disabled: !caps.vms['VM.PowerMgmt'] || running,
             hidden: template,
             handler: function () {
-                vm_command('start');
+                window.electrifiedApp._startGuestInteractively(nodename, "qemu", vmid);
             },
             iconCls: 'fa fa-play',
         });

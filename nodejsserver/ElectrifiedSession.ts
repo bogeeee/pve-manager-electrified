@@ -10,7 +10,7 @@ import {
     spawnAsync,
     newDefaultMap,
     fileExists,
-    topLevel_withErrorHandling
+    topLevel_withErrorHandling, throwError, sleep
 } from "./util/util.js";
 import {rmSync} from "fs";
 import fs from "node:fs";
@@ -595,6 +595,55 @@ export class ElectrifiedSession extends ServerSession {
         browserWindow.isFocused = browserWindowIsFocused;
         browserWindow.needsCpuUsage = needsCpuUsage;
         return appServer.guestCpuMeters.getUsage();
+    }
+
+    /**
+     * Called from the start dialog when there are hardware conflicts, to allow to shut down conflicting guests firsts
+     */
+    @remote powerOffConflictingGuestsThenStartGuest(guestsToPowerOff: {id: number, type: "lxc" | "qemu"}[],  forceStop: boolean, forceStopAfterSeconds: number, alternatingMode: boolean, guestToStart: {id: number, type: "lxc" | "qemu"}) {
+        spawnAsync(async () => {
+            // Shut down guestsToPowerOff:
+            const shutDownPromises = guestsToPowerOff.map(guest => {
+                const cmd = guest.type === "lxc"?"pct":"qm";
+                const args = ["shutdown", String(guest.id)];
+                if(forceStop) {
+                    args.push("--forceStop");
+                    args.push("--timeout");
+                    args.push(String(forceStopAfterSeconds));
+                }
+                return execa(cmd, args) as (Promise<any> /* Bug workaround: Cast to any, otherwise typescript-rtti compiler gets it wrong */)
+            })
+
+            await Promise.all(shutDownPromises);
+
+            await startGuest(guestToStart);
+
+            if(alternatingMode) {
+                const isStopped = async() => {
+                    const cmd = guestToStart.type === "lxc"?"pct":"qm";
+                    const result = (await execa(cmd, ["status", String(guestToStart.id)], {encoding: "utf8"})).stdout as string;
+                    return result === "status: stopped";
+                }
+
+                // Poll till stopped:
+                while (!await isStopped()) {
+                    await sleep(1000);
+                }
+
+                // Start guestsToPowerOff
+                for(const guest of guestsToPowerOff) {
+                    spawnAsync(() => startGuest(guest), false)
+                }
+            }
+        }, false)
+
+
+        async function startGuest(guest: {id: number, type: "lxc"|"qemu"}) {
+            const cmd = guest.type === "lxc"?"pct":"qm";
+            const args = ["start", String(guest.id)];
+            await execa(cmd, args)
+        }
+
     }
 
     /**

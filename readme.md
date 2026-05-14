@@ -34,6 +34,7 @@ Also, open source does not develop it's self. Developers need motivation, so wri
   ![](docs/images/Screenshot_fastclone.png)
     
   The mentioned clone features work with ZFS only.
+- Dialog on conflicting hardware resources (i.e. usb, gpu) when starting a guest. Useful when switching between guests with one exclusive GPU.  
 - PLANNED: Show real thin **disk usage** in the tree.
 - PLANNED: **Docker support**.
 - PLANNED: **Assistants for several small optimizations for home-lab usage:** Gpu passthrough; Dynamic ip; Prevent ssd wear-down; Install microcode update packages; Fix zfs memory settings; Fix disk stalling; Warn on simultaneous USB device use; Show password prompts for encrypted disks;

@@ -1,14 +1,15 @@
 import {AsyncConstructableClass} from "../util/AsyncConstructableClass";
 import {getElectrifiedApp, MeteredValue, t} from "../globals";
 import {ModelBase} from "./ModelBase";
-import {preserve} from "react-deepwatch";
+import {bind, binding, preserve, useWatchedState, watched} from "react-deepwatch";
 import type {Node} from "./Node"
 import {
+    capitalize,
     getUniqueName,
-    isDeepEqual,
+    isDeepEqual, RememberChoiceButton,
     RetryableError,
     retryTilSuccess,
-    RetryTilSuccessOptions, sleep,
+    RetryTilSuccessOptions, showBlueprintDialog, sleep,
     spawnAsync,
     throwError, toError
 } from "../util/util";
@@ -19,10 +20,15 @@ import {retsync2promise} from "proxy-facades/retsync";
 import {Hardware} from "./hardware/Hardware";
 import {NetworkInterface} from "./hardware/NetworkInterface";
 import {stringify as brilloutJsonStringify} from "@brillout/json-serializer/stringify"
-import {instanceOf} from "prop-types";
+import {bool, instanceOf} from "prop-types";
 import {NotificationTarget, Notification} from "../Notification";
 import {CloneDialogResult} from "../ui/CloneDialog";
 import {Qemu} from "./Qemu";
+import * as React from "react";
+import {Button, ButtonGroup, Checkbox, Classes, InputGroup, Intent} from "@blueprintjs/core";
+import {DeviceFilePassthrough} from "./hardware/DeviceFilePassthrough";
+import {Usb} from "./hardware/Usb";
+import {HostPci} from "./hardware/HostPci";
 
 export abstract class Guest extends ModelBase implements NotificationTarget {
     //@ts-ignore
@@ -181,6 +187,7 @@ export abstract class Guest extends ModelBase implements NotificationTarget {
         // LXC:
         rootfs: {clazz: Disk}, // LXC root fs
         mp: {clazz: Disk}, // LXC mountpoint
+        dev: {clazz: DeviceFilePassthrough},
 
         // Qemu:
         ide: {clazz: Disk},
@@ -191,6 +198,8 @@ export abstract class Guest extends ModelBase implements NotificationTarget {
         tpmstate: {clazz: Disk},
         unused: {clazz: Disk},
         vmstate: {clazz: Disk},
+        usb: {clazz: Usb},
+        hostpci: {clazz: HostPci},
     }
 
     static NAME_CONFIGURATION_KEY: string = "name";
@@ -298,6 +307,7 @@ export abstract class Guest extends ModelBase implements NotificationTarget {
                 const clazz = Guest.hardwareKeys2Classes[key]?.clazz || Hardware;
                 const fields = {
                     parent: this,
+                    type: key,
                     rawConfigString,
                     ...(index !== undefined)?{index}:{},
                     ...clazz.isDisk?{type: key}:{}
@@ -555,6 +565,28 @@ export abstract class Guest extends ModelBase implements NotificationTarget {
             }
             else {
                 result.push(diskOrDisks);
+            }
+        }
+        return result;
+    }
+
+    /**
+     * Hardware of all kinds
+     */
+    get hardware(): Hardware[] {
+        const result: Hardware[] = [];
+        for(const key of Object.keys(this)) {
+            //@ts-ignore
+            const val = this[key];
+            if(Array.isArray(val)) {
+                val.forEach(val => {
+                    if(val !== null && val instanceof Hardware) {
+                        result.push(val);
+                    }
+                })
+            }
+            else if(val !== null && val instanceof Hardware) {
+                result.push(val);
             }
         }
         return result;
@@ -919,7 +951,7 @@ export abstract class Guest extends ModelBase implements NotificationTarget {
                     await initialSnapshot!.rollBack(true);
                 }
                 else {
-                    await clone.start();
+                    await clone.startInteractively();
                 }
             }
         }
@@ -963,6 +995,80 @@ export abstract class Guest extends ModelBase implements NotificationTarget {
 
     async start() {
         getElectrifiedApp().currentNode.execCommand`${this.manageCmd} start ${this.id}`;
+    }
+
+    /**
+     * ... displays a Dialog when there are resource conflicts (or not enough resources) before actually starting it.
+     */
+    async startInteractively() {
+        try {
+            // TODO: Show a dialog when there's not enough ram to start guest.
+
+            // Determine conflicts:
+            const conflictingPairsGroupedByOtherGuest = newDefaultMap<Guest, {thisHw: Hardware, otherHw: Hardware}[]>(() => [])
+            for(const otherGuest of this.node.guests) {
+                if(!otherGuest.isRunning()) {
+                    continue;
+                }
+                this.hardware.forEach(thisHw => {
+                    otherGuest.hardware.forEach(otherHw => {
+                        if(otherHw.constructor === thisHw.constructor && thisHw.conflictsWith_whenGuestIsRunning(otherHw)) {
+                            conflictingPairsGroupedByOtherGuest.get(otherGuest).push({thisHw, otherHw});
+                        }
+                    })
+                })
+            }
+
+            if(conflictingPairsGroupedByOtherGuest.size > 0) { // Has conflicts ?
+                const result = await showBlueprintDialog<boolean>({title: t`Hardware conflict`, style: {width: "800px"}}, (props) => {
+                    const userConfig = watched(getElectrifiedApp().userConfig)
+                    const state = useWatchedState({
+                        forceStop: userConfig.startWithResourceConflictOptions?.forceStop === true,
+                        forceStopAfterSeconds: userConfig.startWithResourceConflictOptions?.forceStopAfterSeconds || 60,
+                        alternatingMode: userConfig.startWithResourceConflictOptions?.alternatingMode === true,
+                    }); // contentComponentFn was wrapped for you in a watchedComponent, so you can use watchedComponent features (see react-deepwatch)
+                    return <div>
+                        <div className={Classes.DIALOG_BODY}>
+                            {t`These running guests use the same/conflicting hardware resources:`}<br/><br/>
+                            {[...conflictingPairsGroupedByOtherGuest.keys()].map(otherGuest => <div key={otherGuest.id}>
+                                <span className={`fa fa-${otherGuest.faIcon}`}/> {otherGuest.id} ({otherGuest.name})
+                                {conflictingPairsGroupedByOtherGuest.get(otherGuest).map(conflictPair => {
+                                    const reason = conflictPair.thisHw.conflictsWith_whenGuestIsRunning(conflictPair.otherHw);
+                                    return <div key={conflictPair.otherHw.id} style={{paddingLeft: "16px"}}>
+                                        <span className={`fa fa-fw pmx-icon ${conflictPair.otherHw.iconClass}`}/> {capitalize(conflictPair.otherHw.ui_type)} {conflictPair.otherHw.toString()}{typeof reason === "string"?<span>: {reason}</span>:undefined}
+                                </div>})}
+                            </div>)}
+                        </div>
+                        <hr/>
+                        <div className={Classes.DIALOG_FOOTER}>
+                            <div className={Classes.DIALOG_FOOTER_ACTIONS}>
+                                <ButtonGroup style={{flexDirection: "column", gap: "8px", width: "100%"}}>
+                                    <div>
+                                        <Button onClick={() => {this.node.electrifiedApi.powerOffConflictingGuestsThenStartGuest([...conflictingPairsGroupedByOtherGuest.keys()].map(g => {return {id: g.id, type: g.type}}), state.forceStop, state.forceStopAfterSeconds, state.alternatingMode, {id: this.id, type: this.type}); props.close()}} intent={Intent.PRIMARY} fill={true}>{t`Power off conflicting guests first. Then start ${this.id} (${this.name})`}</Button>
+                                        <div style={{padding: "8px", paddingTop: "4px", paddingLeft: "12px", paddingBottom: 0}}>
+                                            <div style={{display: "flex", alignItems: "center"}}><span>↳</span><Checkbox {...bind(state.forceStop)} style={{position: "relative", top: "4px"}}/><RememberChoiceButton currentValue={state.forceStop} storageBind={binding(userConfig.startWithResourceConflictOptions.forceStop)}/><div style={{paddingLeft: "6px"}}>{t`Force shut down after `}&#160;</div> <InputGroup {...bind(state.forceStopAfterSeconds)} style={{width: "42px", marginRight: "4px"}}/><RememberChoiceButton currentValue={state.forceStopAfterSeconds} storageBind={binding(userConfig.startWithResourceConflictOptions.forceStopAfterSeconds)}/><div>&#160;{t`seconds`}.</div></div>
+                                            <div style={{display: "flex"}}><span>↳</span><Checkbox {...bind(state.alternatingMode)}/><RememberChoiceButton currentValue={state.alternatingMode} storageBind={binding(userConfig.startWithResourceConflictOptions.alternatingMode)}/><div style={{paddingLeft: "6px"}}><strong>{t`Alternating mode`}:</strong> {t`Power conflicting guests back on when ${this.id} (${this.name})'s session has finished (= when it gets powered off).`}</div></div>
+                                        </div>
+                                    </div>
+                                    <Button onClick={() => {this.start(); props.close()}} intent={Intent.PRIMARY}>{t`Start ${this.id} (${this.name}), ignore conflicts`}</Button>
+
+                                    <Button onClick={() => props.close()}>Cancel</Button>
+
+                                </ButtonGroup>
+                            </div>
+                        </div>
+                    </div>;
+                });
+            }
+            else {
+                await this.start();
+            }
+
+        }
+        catch (e) {
+            await this.start(); // Start anyway
+            throw e;
+        }
     }
 
     abstract get manageCmd(): string;

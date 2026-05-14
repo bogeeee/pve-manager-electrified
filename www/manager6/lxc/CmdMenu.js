@@ -56,7 +56,7 @@ Ext.define('PVE.lxc.CmdMenu', {
                 text: gettext('Start'),
                 iconCls: 'fa fa-fw fa-play',
                 disabled: running,
-                handler: () => vm_command('start'),
+                handler: () => window.electrifiedApp._startGuestInteractively(info.node, info.type, info.vmid),
             },
             {
                 text: gettext('Shutdown'),

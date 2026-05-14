@@ -110,6 +110,12 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
          * Never show notifications as popup.<p>They are still shown in the resource tree and under the "warnings" configuration tab.</p>
          */
         hideNotificationPopups = false;
+
+        startWithResourceConflictOptions = {
+            forceStop: false,
+            forceStopAfterSeconds: 60,
+            alternatingMode: false,
+        }
     }
 
     /**

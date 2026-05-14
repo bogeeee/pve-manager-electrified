@@ -62,7 +62,7 @@ Ext.define('PVE.qemu.CmdMenu', {
                 iconCls: 'fa fa-fw fa-play',
                 hidden: running || suspended,
                 disabled: running || suspended,
-                handler: () => vm_command('start'),
+                handler: () => window.electrifiedApp._startGuestInteractively(info.node, info.type, info.vmid),
             },
             {
                 text: gettext('Pause'),

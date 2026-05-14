@@ -755,6 +755,23 @@ export class Application extends AsyncConstructableClass{
         return t`<br/>Note: In PVE-electrified, better use the clone button. It uses the same ZFS copy-on-write mechanism like with templates (instant, no disk space consumed) and comes without it's limitations: Templates are read-only and replication is not working.`;
     }
 
+    /**
+     * ... displays a Dialog when there are resource conflicts (or not enough resources) before actually starting it.
+     */
+    _startGuestInteractively(nodeName: string, type: string, guestId: number) {
+        spawnWithErrorHandling(async () => {
+
+            if(!this._datacenter) { // Not yet initialized
+                // Just start the guest:
+                await this.api2fetch("POST",`/nodes/${nodeName}/${type}/${guestId}/status/start`);
+                return;
+            }
+
+            const guest = this.datacenter.getGuest(guestId) || throwError("Guest does not exist");
+            await guest.startInteractively();
+        })
+    }
+
     get _electrifiedFeaturesPlugin(): ElectrifiedFeaturesPlugin {
         return this.getPluginByClass(ElectrifiedFeaturesPlugin)  as ElectrifiedFeaturesPlugin || throwError("Not yet initialized / constructor has not been called yet");
     }

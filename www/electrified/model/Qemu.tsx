@@ -1,6 +1,8 @@
 import {Guest} from "./Guest";
 import {Disk} from "./hardware/Disk";
 import {t} from "../globals";
+import {Usb} from "./hardware/Usb";
+import {HostPci} from "./hardware/HostPci";
 
 /**
  * A qemu virtual machine guest.
@@ -59,6 +61,22 @@ export class Qemu extends Guest{
      * </p>
      */
     tpmstate: Disk[] = [];
+
+    /**
+     * Usb devices
+     * <p>
+     *  Array can have gaps, i.e. when the config file says: "usb0: ... , usb2: ..."
+     * </p>
+     */
+    usb: Usb[] = [];
+
+    /**
+     * PCI passthrough devices
+     * <p>
+     *  Array can have gaps, i.e. when the config file says: "hostpci0: ... , hostpci2: ..."
+     * </p>
+     */
+    hostpci: HostPci[] = [];
 
     vmstate?: Disk
 

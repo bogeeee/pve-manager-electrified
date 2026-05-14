@@ -50,7 +50,7 @@ Ext.define('PVE.lxc.Config', {
             disabled: !caps.vms['VM.PowerMgmt'] || running,
             hidden: template,
             handler: function () {
-                vm_command('start');
+                window.electrifiedApp._startGuestInteractively(nodename, "lxc", vmid);
             },
             iconCls: 'fa fa-play',
         });

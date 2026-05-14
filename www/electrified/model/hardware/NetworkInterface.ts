@@ -45,4 +45,41 @@ export class NetworkInterface extends Hardware {
 
     faIcon = "hdd-o"; // Implemented in subclass
 
+    get macAddress() {
+        const tokens = this.rawConfigString.split(",");
+
+        if(this.parent.type === "lxc") {
+            const configRecord = new Map<string, string>();
+            tokens.forEach(t => {
+                const v = t.split("=");
+                if (v.length !== 2) {
+                    return; // ignore
+                }
+                configRecord.set(v[0], v[1]);
+            })
+
+            return configRecord.get("hwaddr");
+        }
+        else if(this.parent.type === "qemu"){
+            // return ignoredKey=<mac address> from the first token:
+            const t = tokens[0];
+            const v = t.split("=");
+            if (v.length !== 2) {
+                return undefined; // ignore
+            }
+            return v[1];
+        }
+        else {
+            throwError("Unsupported guest")
+        }
+    }
+
+    conflictsWith_whenGuestIsRunning(other: this) {
+        if (this.macAddress && this.macAddress === other.macAddress) {
+            return t`Mac address: ${this.macAddress}`
+        }
+
+        return false;
+    }
+
 }
