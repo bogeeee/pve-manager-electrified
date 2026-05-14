@@ -389,11 +389,14 @@ export class ElectrifiedSession extends ServerSession {
     protected static bugfix_writtenFile_watchers = newDefaultMap((path: string) => new class {
         lastSeenContent = fs.readFileSync(path);
 
+        /**
+         * ... Note: Can occasionally  error
+         */
         async pollForChanges() {
             if(!await fileExists(path)) {
                 return;
             }
-            const currentContent = await fsPromises.readFile(path);
+            const currentContent = await fsPromises.readFile(path); // The file still not existing was often observed
             if(!currentContent.equals(this.lastSeenContent)) { // Changed?
                 this.lastSeenContent = currentContent;
                 const fileStat = await ElectrifiedSession.getFileStat(path);
@@ -444,7 +447,7 @@ export class ElectrifiedSession extends ServerSession {
 
                 // Inform listeners:
                 if(eventName === "change" && ElectrifiedSession.bugfix_writtenFile_watchers.has(path)) { // in bugfix mode?
-                    await ElectrifiedSession.bugfix_writtenFile_watchers.get(path).pollForChanges(); // use this method to inform clientCallbacks only once
+                    spawnAsync(() => ElectrifiedSession.bugfix_writtenFile_watchers.get(path).pollForChanges(), false); // use this method to inform clientCallbacks only once
                 }
                 else {
                     clientCallbacks.call(fileStat);
