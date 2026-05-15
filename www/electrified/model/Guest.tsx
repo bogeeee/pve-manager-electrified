@@ -1058,6 +1058,9 @@ export abstract class Guest extends ModelBase implements NotificationTarget {
                 if(!otherGuest.isRunning()) {
                     continue;
                 }
+                if(otherGuest === this) {
+                    continue; // Fix: When clicking stop and start fast, this guest could still be reported as  running
+                }
                 this.hardware.forEach(thisHw => {
                     otherGuest.hardware.forEach(otherHw => {
                         if(otherHw.constructor === thisHw.constructor && thisHw.conflictsWith_whenGuestIsRunning(otherHw)) {
