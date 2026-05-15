@@ -5,8 +5,8 @@ import {bind, binding, preserve, useWatchedState, watched} from "react-deepwatch
 import type {Node} from "./Node"
 import {
     capitalize,
-    getUniqueName,
-    isDeepEqual, RememberChoiceButton,
+    getUniqueName, guestConfigEntry2Record,
+    isDeepEqual, record2guestConfigEntry, RememberChoiceButton,
     RetryableError,
     retryTilSuccess,
     RetryTilSuccessOptions, showBlueprintDialog, sleep,
@@ -153,6 +153,11 @@ export abstract class Guest extends ModelBase implements NotificationTarget {
      * Uptime in seconds
      */
     uptime!:number
+
+    /**
+     * Some meta-information about this guest. Raw config string in the form key1=value1, key2=value2
+     */
+    meta!: Map<string, string>;
 
     /**
      * Undefined if the guest is not running
@@ -363,6 +368,7 @@ export abstract class Guest extends ModelBase implements NotificationTarget {
         }
 
         this.name = popConfigValue( this.clazz.NAME_CONFIGURATION_KEY) as string;
+        this.meta = guestConfigEntry2Record(popConfigValue("meta") as string || "");
     }
 
     /**
@@ -431,6 +437,16 @@ export abstract class Guest extends ModelBase implements NotificationTarget {
                 result.set(key, value.rawConfigString);
             }
         }
+
+        // Set meta:
+        if(this.meta.size > 0) {
+            result.set("meta", record2guestConfigEntry(this.meta!))
+        }
+        else {
+            result.delete("meta");
+        }
+
+
         return result;
     }
 

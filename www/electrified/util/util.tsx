@@ -1356,3 +1356,38 @@ export class ExternalPromise<T> implements Promise<T> {
 
     readonly [Symbol.toStringTag]: string = "WrappedPromise"; // Must offer this when implementing Promise. Hopefully this is a proper value
 }
+
+
+/**
+ * For parsing key1=value1,key2=value2 entries from a guest config file
+ * @param rawConfigString
+ */
+export function guestConfigEntry2Record(rawConfigString: string) {
+    const tokens = rawConfigString.split(",");
+
+    const result = new Map<string, string>();
+    if(!rawConfigString) {
+        return result;
+    }
+
+    tokens.forEach(t => {
+        const v = t.split("=");
+        if (v.length === 1) {
+            result.set("main", v[0]);
+        }
+        else if (v.length === 2) {
+            result.set(v[0], v[1]);
+        }
+        else {
+            throwError(`Illegal config token in ${rawConfigString}`);
+        }
+    })
+
+    record2guestConfigEntry(result) === rawConfigString || throwError(`Raw config string does not serialize back to the exact same result. Original:\n${rawConfigString}\nRe-serialized:\n${record2guestConfigEntry(result)}`)
+
+    return result;
+}
+
+export function record2guestConfigEntry(record: Map<string, string>) {
+    return [...record.keys()].map(key => `${key==="main"?"":`${key}=`}${record.get(key)!}`).join(",");
+}
