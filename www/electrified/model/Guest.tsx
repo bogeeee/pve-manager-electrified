@@ -67,6 +67,12 @@ export abstract class Guest extends ModelBase implements NotificationTarget {
     _parentSnapshotName?: string
     childSnapshots: Guest[] = [];
 
+    /**
+     * True if there were hardware changes throught the classic pve gui while this guest is running, so they will be affective next time the guest is started.
+     * These changes are not reflected in this object!
+     */
+    hasPendingChanges!: boolean;
+
     // *** Hardware ***
 
     net: NetworkInterface[] = [];
@@ -236,6 +242,9 @@ export abstract class Guest extends ModelBase implements NotificationTarget {
             throw new Error("Config parsing/serializing functions do not deliver consistent result for " + configFile.path + ". Reserialized output:\n" + Guest._sections2Record_to_configString(section2record));
         }
 
+        const hasPending = sections2record.has("PENDING"); // Pending changes are saved in a [PENDING] section. We will ignore them and just flag that fact
+        sections2record.delete("PENDING");
+
         // Create guest instances and add them to snapshotRoot:
         const snapshotRoot = new SnapshotRoot();
         for(const sectionName of section2record.keys()) {
@@ -271,6 +280,7 @@ export abstract class Guest extends ModelBase implements NotificationTarget {
         }
 
         const liveGuest = snapshotRoot.snapshots.get(undefined)!;
+        liveGuest.hasPendingChanges = hasPending;
         return liveGuest;
     }
 
@@ -378,6 +388,9 @@ export abstract class Guest extends ModelBase implements NotificationTarget {
      * Writes this._rawConfigRecord back to the config file
      */
     _writeConfig() {
+        if(this.hasPendingChanges) {
+            throw new Error(`Cannot make changes to the guest ${this} because it has pending hardware changes. Please stop the guest manually and try again.`);
+        }
         const configObj = new Map( [...this.snapshotRoot.snapshots.entries()].map(([section, guest]) => [section, guest._configRecord]) );
         const configContent = Guest._sections2Record_to_configString(configObj as any);
         this.configFile.content = configContent;
