@@ -100,6 +100,15 @@ clean:
 	rm -rf $(BUILDDIR)
 	rm -f index.html
 
+.PHONY: IDE_clean
+IDE_clean:
+	# Taken from clean target but removed the stuff that does not work on the IDE machine
+	set -e && for i in $(filter-out bin,$(SUBDIRS)); do $(MAKE) -C $$i clean; done
+	rm -f $(PACKAGE)*.tar* *.deb *.dsc *.build *.buildinfo *.changes
+	rm -rf dest $(PACKAGE)-[0-9]*/
+	rm -rf $(BUILDDIR).tmp
+	rm -rf $(BUILDDIR)
+	rm -f index.html
 
 .PHONY: dinstall
 dinstall: $(DEB)
@@ -178,7 +187,7 @@ IDE_rsync_project_to_targt_pve_host: local.config.mk
 	@sshpass -p "$(TARGT_PVE_HOST_ROOTPASSWORD)" rsync -a $(RSYNC_PARAMS) --exclude="**/node_modules" --exclude="local.config.mk" . root@$(TARGT_PVE_HOST):/root/proxmox/pve-manager-electrified/
 
 .PHONY: IDE_publish_docs_to_website
-IDE_publish_docs_to_website: local.config.mk clean index.html ui-plugin-example.zip /usr/bin/sshpass
+IDE_publish_docs_to_website: local.config.mk IDE_clean index.html ui-plugin-example.zip /usr/bin/sshpass
 	@sshpass -p "$(REPO_SERVER_PASSWORD)" rsync  -a index.html pubkey.asc ui-plugin-example.zip docs www/images/favicon.ico pve-electrified.net@pve-electrified.net:httpdocs
 	rm ui-plugin-example.zip
 
