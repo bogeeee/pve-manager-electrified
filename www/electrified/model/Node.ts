@@ -107,6 +107,7 @@ export class Node extends GuestsContainerBase implements NotificationTarget {
 
         if(!this.isCurrentNode) {
             throw new Error("Using the electrified client is currently only possible for the current node (where you currently access the web interface). It's planned for the future, to route the api through.");
+            // TODO when implementing: See Guest#configFile. Eventually assign it from the **guest's** node (not current node) and file operations will go through there
         }
 
         this._electrifiedClient = new ElectrifiedRestfuncsClient<ElectrifiedSession>("/electrifiedAPI", {/* options */});

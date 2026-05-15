@@ -587,7 +587,7 @@ export abstract class Guest extends ModelBase implements NotificationTarget {
     }
 
     get configFile(): File {
-        return this.node.getFile(`/etc/pve/nodes/${this.node.name}/${this.type === "lxc"?"lxc":(this.type === "qemu"?"qemu-server":throwError("unsupported type"))}/${this.id}.conf`);
+        return getElectrifiedApp().currentNode.getFile(`/etc/pve/nodes/${this.node.name}/${this.type === "lxc"?"lxc":(this.type === "qemu"?"qemu-server":throwError("unsupported type"))}/${this.id}.conf`);
     }
 
     get pool() {
