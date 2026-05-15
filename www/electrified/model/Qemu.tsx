@@ -113,11 +113,6 @@ export class Qemu extends Guest{
      * You need to call writeConfig() afterwards
      */
     async randomizeVmGenId() {
-        if(!this.isSnapshot()) {
-            await this.node.execCommand`qm set ${this.id} -vmgenid 1`;
-            return;
-        }
-
         const digit = () => Math.floor(Math.random() * 16).toString(16);
         const digits = (repeat: number) => {
             let result = "";

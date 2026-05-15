@@ -795,6 +795,7 @@ export abstract class Guest extends ModelBase implements NotificationTarget {
         const finallyFns: (() => Promise<void>)[] = [];
         try {
             let sourceSnapshot: Guest = cloneParams.snapshot;
+            let clone: Guest;
             if(cloneParams.fastClonePossible() === true) {
                 let sourceSnapshotName = cloneParams.snapshot.snapshotName;
                 if(sourceSnapshotName === undefined) {
@@ -803,7 +804,7 @@ export abstract class Guest extends ModelBase implements NotificationTarget {
                     rollbackFns.push(async () => await sourceSnapshot!.deleteSnapshot());
                 }
 
-                let clone = await Guest._fromConfig(origGuest.configFile, origGuest.constructor as any); // Construct clone in memory. Like in the Guest#_reReadFromConfig:
+                clone = await Guest._fromConfig(origGuest.configFile, origGuest.constructor as any); // Construct clone in memory. Like in the Guest#_reReadFromConfig:
 
                 clone = clone.snapshotRoot.snapshots.get(sourceSnapshotName) || throwError(`Object not found for snapshotname: ${sourceSnapshotName}`); // Use the specified snapshot as root
 
@@ -869,11 +870,6 @@ export abstract class Guest extends ModelBase implements NotificationTarget {
                 if(clone instanceof Qemu) {
                     await clone._deleteRunningState();
                 }
-
-                // Write config:
-                await retsync2promise(() => clone._writeConfig(), {checkSaved: false});
-
-                await cloneParams.pool?.addGuest(clone); // add to pool
             }
             else {
                 const params: Record<string, unknown> = {
@@ -901,13 +897,13 @@ export abstract class Guest extends ModelBase implements NotificationTarget {
                 }
 
                 await(app.currentNode.awaitTask(await node.api2fetch("POST", '/' + origGuest.type + '/' + origGuest.id + '/clone', params) as string));
-            }
 
-            // Freshly retrieve clone:
-            const clone = await retryTilSuccess(async () => {
-                await app.datacenter.ensureUp2Date();
-                return app.datacenter.getGuest(cloneParams.id) || throwError(new RetryableError("Guest not found after clone"));
-            },{maxTime: 30000});
+                // Freshly retrieve clone:
+                clone = await retryTilSuccess(async () => {
+                    await app.datacenter.ensureUp2Date();
+                    return app.datacenter.getGuest(cloneParams.id) || throwError(new RetryableError("Guest not found after clone"));
+                },{maxTime: 30000});
+            }
 
             // Minor: Add rollback fn:
             if(cloneParams.fastClonePossible() !== true) {
@@ -925,10 +921,11 @@ export abstract class Guest extends ModelBase implements NotificationTarget {
             // Write config:
             await retsync2promise(() => clone._writeConfig(), {checkSaved: false});
 
+            await cloneParams.pool?.addGuest(clone); // add to pool
+
             let initialSnapshot: Guest | undefined = undefined;
             if(cloneParams.createInitialSnapshot) {
-                await clone.configFile._calmDownAfterChangeEvent(); // Wait til the file is really written
-                await sleep(500); // Sometimes the pve's commands don't see the written version and still use their cached content. I'm sorry that this is a very dirty hack. TODO: implmenent some commit method
+                await clone.configFile._calmDownAfterChangeEvent();
 
                 // Take initial snapshot named "cloned":
                 initialSnapshot = await clone.createSnapshot("cloned", t`Cloned from ${origGuest.id} ${origGuest.name}${sourceSnapshot.isSnapshot() ? `@${sourceSnapshot.snapshotName}` : ""}`, false)
