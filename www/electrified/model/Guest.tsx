@@ -403,6 +403,28 @@ export abstract class Guest extends ModelBase implements NotificationTarget {
     }
 
     /**
+     * Call after {@link #_writeConfig} to make sure, proxmox's api also sees the current config
+     */
+    async _syncConfig() {
+        throw new Error("Not implemented");
+        /*
+        // This approach has no effect:
+        await this.configFile._calmDownAfterChangeEvent();
+        const cfgSyncNumber = String(Math.random() * Number.MAX_SAFE_INTEGER);
+        this.meta.set("cfgSyncNumber", cfgSyncNumber);
+        await retsync2promise(() => this._writeConfig(), {checkSaved: false});
+        await this.configFile._calmDownAfterChangeEvent(); // Wait til the file is really written
+        await retryTilSuccess( async() => {
+            const pveApiConfig = await this.node.api2fetch("GET", `/${this.type}/${this.id}/config`) as any;
+            if(cfgSyncNumber !== guestConfigEntry2Record(pveApiConfig.meta || "").get("cfgSyncNumber")) { // api does not yet return
+                console.log("not synced")
+                throw new RetryableError(`Error waiting for synced config. Did not receive the expected cfgSyncNumber from meta=... in the ${this}'s config file`);
+            }
+        },{maxTime: 60000});
+        */
+    }
+
+    /**
      * Reverse method of {@link _applyConfigValues}
      * @returns Config record to be written to disk.
      * @see _rawConfigRecord
