@@ -235,11 +235,11 @@ export abstract class Guest extends ModelBase implements NotificationTarget {
     static async _fromConfig(configFile: File, guestClazz: typeof Guest): Promise<Guest> {
         const cfgContent = await retsync2promise(() => configFile.content);
 
-        const section2record = Guest._configString_to_sections2Record(cfgContent, configFile.path);
+        const sections2record = Guest._configString_to_sections2Record(cfgContent, configFile.path);
 
         // Safety check if parser functions are consistent:
-        if(!isDeepEqual(section2record, Guest._configString_to_sections2Record(Guest._sections2Record_to_configString(section2record), configFile.path))) {
-            throw new Error("Config parsing/serializing functions do not deliver consistent result for " + configFile.path + ". Reserialized output:\n" + Guest._sections2Record_to_configString(section2record));
+        if(!isDeepEqual(sections2record, Guest._configString_to_sections2Record(Guest._sections2Record_to_configString(sections2record), configFile.path))) {
+            throw new Error("Config parsing/serializing functions do not deliver consistent result for " + configFile.path + ". Reserialized output:\n" + Guest._sections2Record_to_configString(sections2record));
         }
 
         const hasPending = sections2record.has("PENDING"); // Pending changes are saved in a [PENDING] section. We will ignore them and just flag that fact
@@ -247,8 +247,8 @@ export abstract class Guest extends ModelBase implements NotificationTarget {
 
         // Create guest instances and add them to snapshotRoot:
         const snapshotRoot = new SnapshotRoot();
-        for(const sectionName of section2record.keys()) {
-            const section = section2record.get(sectionName)!;
+        for(const sectionName of sections2record.keys()) {
+            const section = sections2record.get(sectionName)!;
             //@ts-ignore
             const guest: Guest = new guestClazz(); // use the non-async constructor
             guest.snapshotName = sectionName;
@@ -268,10 +268,10 @@ export abstract class Guest extends ModelBase implements NotificationTarget {
         }
 
         // Set guest.parentSnapshot for all entries:
-        for(const sectionName of section2record.keys()) {
+        for(const sectionName of sections2record.keys()) {
             const guest = snapshotRoot.snapshots.get(sectionName)! || throwError("Illegal state. Expected guest/sectionsnapshot to exist");
 
-            const section = section2record.get(sectionName)!;
+            const section = sections2record.get(sectionName)!;
             const parentName = section.get("parent") as string | undefined;
             if(parentName) {
                 guest._parentSnapshotName = parentName;
