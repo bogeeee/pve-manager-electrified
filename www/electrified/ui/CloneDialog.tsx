@@ -320,6 +320,7 @@ export async function showCloneDialog(param_source: Guest) {
                 </table>
                 <br/>
                 <div style={{textAlign: "right"}}>&#160;{state.fastClonePossible()!==true?<span><Icon icon={"issue"}/> {t`Fast clone not possible:`} {state.fastClonePossible()}</span>:undefined}</div>
+                {state.snapshot.hasPendingChanges && <div style={{textAlign: "right"}}>&#160;<Icon icon={"issue"}/> {t`The guest has pending hardware changes. These will not be taken into the clone. Please stop the guest first, to apply them.`}</div>}
             </div>
 
             <div className={Classes.DIALOG_FOOTER}>
