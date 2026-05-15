@@ -89,6 +89,11 @@ export class Datacenter extends ModelBase implements NotificationTarget{
                 if(e !== null && e instanceof FetchError && e.httpStatusCode === 401)  { // Failed because no ticket? (logged out in the meanwhile)
                     return; // Don't spam the log with messages
                 }
+                if(e !== null && e instanceof Error && e.message.startsWith("Socket connection has been closed"))  { // Socket connection closed in the middle of a call? Observed sometimes with firefox and in production mode (not ideal)
+                    // Just log (no error popup):
+                    console.error(e);
+                    return;
+                }
                 throw e;
             }
 
