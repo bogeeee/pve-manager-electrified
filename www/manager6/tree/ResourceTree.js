@@ -1,4 +1,3 @@
-
 let idGenerator = 0;
 /*
  * Left Treepanel, containing all the resources we manage in this datacenter: server nodes, server storages, VMs and Containers
@@ -55,6 +54,23 @@ Ext.define('PVE.tree.ResourceTree', {
     enableColumnHide: true,
     enableColumnMove: true,
 
+    /**
+     * ..., initialized later
+     */
+    reactRoot: undefined,
+
+    /**
+     * You can directly interact with the state here. Changes will be rendered
+     */
+    reactTreeState: undefined,
+
+    /**
+     * Bug workaround: getVisibleColumns() not usable from watched react component, cause it clones the columns and modifies a field while **getter** access should do read only things only
+     * So we keep track of them manually
+     */
+    visibleColumns: undefined,
+
+
     initTreeColumns( ){
         const me = this;
 
@@ -104,6 +120,7 @@ Ext.define('PVE.tree.ResourceTree', {
 
                 const columnId = `${plugin.name}-${pluginColumn.key}`;
                 return {
+                    columnId,
                     stateId: columnId,
                     renderer: function (val, meta, rec, rowIndex, colIndex, store, view) {
                         const meTree = view.up('treepanel');
@@ -143,6 +160,7 @@ Ext.define('PVE.tree.ResourceTree', {
                     },
                     ...pluginColumn,
                     text: `<div style="display: inline-block; z-index: 101" onmouseenter="if(${pluginColumn.showConfig !== undefined}) resourceTree_onMouseEnterColumnHeader(this, '${plugin.name}', '${pluginColumn.key}')">${pluginColumn.text}</div>`,
+                    electrifiedPluginColumn: pluginColumn, // For ReactResourceTree
                 }
             }
         )).flat(),
@@ -662,27 +680,13 @@ Ext.define('PVE.tree.ResourceTree', {
                     if (me.tip) {
                         return;
                     }
+
+                    me.initReactResourceTree();
+
                     let selectors = [
                         '.x-tree-node-text > span:not(.proxmox-tag-dark):not(.proxmox-tag-light)',
                         '.x-tree-icon',
                     ];
-                    me.tip = Ext.create('Ext.tip.ToolTip', {
-                        target: me.el,
-                        delegate: selectors.join(', '),
-                        trackMouse: true,
-                        renderTo: Ext.getBody(),
-                        listeners: {
-                            beforeshow: function (tip) {
-                                let rec = me.getView().getRecord(tip.triggerElement);
-                                let tipText = me.getToolTip(rec.data);
-                                if (tipText) {
-                                    tip.update(tipText);
-                                    return true;
-                                }
-                                return false;
-                            },
-                        },
-                    });
 
                     me.getView().on('refresh', function(view) {
                         setTimeout(() => me.handleDomUpdated());
@@ -692,6 +696,12 @@ Ext.define('PVE.tree.ResourceTree', {
                         setTimeout(() => me.handleDomUpdated());
                     });
                 },
+                columnhide() {
+                    me.visibleColumns = me.getVisibleColumns();
+                },
+                columnshow() {
+                    me.visibleColumns = me.getVisibleColumns();
+                }
             },
             setViewFilter: function (view) {
                 me.viewFilter = view;
@@ -710,32 +720,25 @@ Ext.define('PVE.tree.ResourceTree', {
                 rootnode.removeAll();
                 pdata.dataIndex = {};
                 me.getSelectionModel().deselectAll();
+                if(me.reactTreeState) {
+                    me.reactTreeState.selectedId = undefined;
+                    me.reactTreeState.expandedIds.clear();
+                }
+
             },
             refreshTree: function () {
                 me.clearTree();
                 updateTree();
             },
+            expand: function (node) {
+                if(node.parentNode) {
+                    me.expand(node.parentNode);
+                }
+                me.reactTreeState.expandedIds.add(node.id);
+            },
             selectExpand: function (node) {
-                let sm = me.getSelectionModel();
-                if (!sm.isSelected(node)) {
-                    sm.select(node);
-                    for (let iter = node; iter; iter = iter.parentNode) {
-                        if (!iter.isExpanded()) {
-                            iter.expand();
-                        }
-                    }
-                    me.getView().focusRow(node);
-                }
-
-                if(!me.selectExpandCalled) {
-                    // ** use this plaace as a kind of initialization hook**
-
-                    for(const t of [0,100, 500]) {
-                        setTimeout(() => {me.slapForDoubleRefresh()},t);
-                    }
-                    // Mind that each 3500ms comes a regular refresh, which will fix it anyway
-                }
-                me.selectExpandCalled = true;
+                me.expand(node);
+                me.reactTreeState.selectId(node.id, true);
             },
             selectById: function (nodeid) {
                 let rootnode = me.store.getRootNode();
@@ -777,6 +780,40 @@ Ext.define('PVE.tree.ResourceTree', {
                 },
             });
         });
+    },
+
+
+
+    /**
+     * Hides the old treeview dom element and renders a react component in its place. See ReactResourceTree.tsx
+     */
+    initReactResourceTree() {
+        const me = this;
+        const electrifiedApp = window.electrifiedApp;
+
+        me.visibleColumns = me.getVisibleColumns();
+
+        const origTreeViewEl = me.down("treeview").getEl().dom;
+        origTreeViewEl.style.display = "none"; // Hide
+
+        // Add reactRootDiv
+        const reactRootDiv = window.document.createElement("div");
+        reactRootDiv.style.height = "100%"; reactRootDiv.style.width = "100%"; // Make it span all space, so the scrollbar works properly
+        origTreeViewEl.parentNode.appendChild(reactRootDiv);
+
+        // Render into reactRootDiv:
+        const reactRoot = me.reactRoot = electrifiedApp._react.createRoot(reactRootDiv, {identifierPrefix: `resourceTreeRoot_${idGenerator++}`});
+        const props = {
+            classicResourceTree: me,
+            onNodeClick: (node) => {
+                me.getSelectionModel().select([node])
+            },
+            onNodeContextMenu: (node, event) => {
+                const extEvent = new Ext.EventObjectImpl(event);
+                PVE.Utils.createCmdMenu(undefined, node, undefined, undefined, extEvent)
+            }
+        }
+        reactRoot.render(electrifiedApp._react.createElement(electrifiedApp._ReactResourceTree, props));
     },
 
     applyState: function (state) {

@@ -1573,7 +1573,7 @@ Ext.define('PVE.Utils', {
 
         createCmdMenu: function (v, record, item, index, event) {
             event.stopEvent();
-            if (!(v instanceof Ext.tree.View)) {
+            if (v && !(v instanceof Ext.tree.View)) {
                 v.select(record);
             }
             let menu;

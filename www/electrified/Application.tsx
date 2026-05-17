@@ -61,6 +61,7 @@ import {Notification}  from "./Notification";
 import {showNotificationSettings} from "./ui/NotificationSettings";
 import {ToasterWrapper} from "./ui/ToasterWrapper";
 import {CloneDialogResult, showCloneDialog} from "./ui/CloneDialog";
+import {ReactResourceTree} from "./ui/ReactResourceTree";
 
 ExternalPromise.diagnosis_recordCallstacks=true; // For debugging "socket connection has been closed" TODO: remove this line
 
@@ -698,6 +699,11 @@ export class Application extends AsyncConstructableClass{
         createRoot, createElement
     };
 
+    /**
+     * Export to classic code
+     */
+    _ReactResourceTree = ReactResourceTree;
+
     _createResourceTreeCellComponent(treeColumn: TreeColumn) {
         const Component = watchedComponent(treeColumn.cellRenderFn, {fallback: t`loading...`})
         //const Component = treeColumn.cellRenderFn
@@ -711,7 +717,7 @@ export class Application extends AsyncConstructableClass{
             if(!this._datacenter) {
                 return t`Initializing...`
             }
-            const item = this.datacenter._getItemForResourceRecord(props.rawItemRecord);
+            const item = this.datacenter._getItemForResourceRecord((props.rawItemRecord /* todo: remove old */) || props.node.data);
             return <Component {...props} item={item}/>
         }
 
