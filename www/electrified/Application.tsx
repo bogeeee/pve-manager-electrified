@@ -455,7 +455,6 @@ export class Application extends AsyncConstructableClass{
     async refreshResourceTree() {
         const tree = this.workspace.down('pveResourceTree');
         tree.updateTree();
-        await tree.slapForDoubleRefresh();
     }
 
     /**
@@ -717,7 +716,7 @@ export class Application extends AsyncConstructableClass{
             if(!this._datacenter) {
                 return t`Initializing...`
             }
-            const item = this.datacenter._getItemForResourceRecord((props.rawItemRecord /* todo: remove old */) || props.node.data);
+            const item = this.datacenter._getItemForResourceRecord(props.node.data);
             return <Component {...props} item={item}/>
         }
 

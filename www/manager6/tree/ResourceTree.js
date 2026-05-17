@@ -122,42 +122,6 @@ Ext.define('PVE.tree.ResourceTree', {
                 return {
                     columnId,
                     stateId: columnId,
-                    renderer: function (val, meta, rec, rowIndex, colIndex, store, view) {
-                        const meTree = view.up('treepanel');
-                        const electrifiedApp = window.electrifiedApp;
-
-                        meTree.render_cleanupFns.forEach(f => f());
-                        meTree.afterUpdate_cleanupFns = []; // Make sure, they are cleaned up. There is no better hook for it.
-
-                        const rootElementId = `resourceTreeRoot_${idGenerator++}`;
-
-                        //Determine antiflicker_oldContent
-                        const cellKey = `resourceTreeCell_${colIndex}_${rec.data.id.replace(/[/ "']/g, "_")}`;
-                        let antiflicker_oldContent = meTree.antiflicker_oldComponentContent.get(cellKey);
-
-                        let info = rec.data;
-                        if (!meTree.muteReactComponents) {
-                            meTree.afterUpdateFns.push(() => {
-                                const div = document.getElementById(rootElementId);
-                                if (!div) {
-                                    return; // Sometimes this happens when a render become obsolete
-                                }
-                                const reactRoot = electrifiedApp._react.createRoot(div, {identifierPrefix: rootElementId});
-                                const props = {rawItemRecord: rec.data, rowIndex, colIndex}
-                                reactRoot.render(electrifiedApp._react.createElement(ReactComponent, props));
-                                meTree.render_cleanupFns.push(() => {
-                                    try {
-                                        meTree.antiflicker_oldComponentContent.set(cellKey, div.innerHTML);
-                                        reactRoot.unmount()
-                                    } catch (e) {
-                                        console.warn(e); // Only log.
-                                    }
-                                });
-                            });
-                        }
-
-                        return `<div id="${rootElementId}">${antiflicker_oldContent || ""}</div>`
-                    },
                     ...pluginColumn,
                     text: `<div style="display: inline-block; z-index: 101" onmouseenter="if(${pluginColumn.showConfig !== undefined}) resourceTree_onMouseEnterColumnHeader(this, '${plugin.name}', '${pluginColumn.key}')">${pluginColumn.text}</div>`,
                     electrifiedPluginColumn: pluginColumn, // For ReactResourceTree
@@ -168,22 +132,6 @@ Ext.define('PVE.tree.ResourceTree', {
     },
 
     useArrows: true,
-
-    lastUpdateTime: undefined,
-
-    muteReactComponents: true,
-
-    antiflicker_oldComponentContent: new Map(),
-
-    /**
-     * Called after the dom is updated, after a tree rerender
-     */
-    afterUpdateFns: [],
-
-    /**
-     * Called after the dom is updated, to clean up old stuff
-     */
-    render_cleanupFns: [],
 
     // private
     getTypeOrder: function (type) {
@@ -398,21 +346,6 @@ Ext.define('PVE.tree.ResourceTree', {
             }
         }
         return changed;
-    },
-
-    /**
-     * Called after each update of the tree
-     */
-    handleDomUpdated() {
-        const me = this;
-        //console.log("handleDomUpdated: render_cleanupFns" + me.render_cleanupFns.length + " afterUpdateFns: " + me.afterUpdateFns.length)
-
-        // Make sure to clean up things from previous render (like it is already done):
-        me.render_cleanupFns.forEach(f => f()); me.render_cleanupFns = [];
-
-        // Call handlers:
-        me.afterUpdateFns.forEach(f => f());
-        me.afterUpdateFns = [];
     },
 
     initComponent: function () {
@@ -644,25 +577,10 @@ Ext.define('PVE.tree.ResourceTree', {
             store: store,
             viewConfig: {
                 animate: false, // note: animate cause problems with applyState
-                listeners: {
-                    afteritemexpand: function () {
-                        me.slapForDoubleRefresh();
-                    },
-                    afteritemcollapse: function () {
-                        me.slapForDoubleRefresh();
-                    },
-                    beforerefresh: function () {
-                        me.render_cleanupFns.forEach(f => f()); me.render_cleanupFns = [];
-                    },
-                }
             },
             listeners: {
                 itemcontextmenu: PVE.Utils.createCmdMenu,
                 destroy: function () {
-                    // Call cleanup handlers:
-                    me.render_cleanupFns.forEach(f => f());
-                    me.render_cleanupFns = [];
-
                     rstore.un('load', updateTree);
                 },
                 beforecellmousedown: function (tree, td, cellIndex, record, tr, rowIndex, ev) {
@@ -688,13 +606,6 @@ Ext.define('PVE.tree.ResourceTree', {
                         '.x-tree-icon',
                     ];
 
-                    me.getView().on('refresh', function(view) {
-                        setTimeout(() => me.handleDomUpdated());
-                    });
-
-                    me.getView().on('afterrender', function(view) {
-                        setTimeout(() => me.handleDomUpdated());
-                    });
                 },
                 columnhide() {
                     me.visibleColumns = me.getVisibleColumns();
@@ -706,14 +617,8 @@ Ext.define('PVE.tree.ResourceTree', {
             setViewFilter: function (view) {
                 me.viewFilter = view;
                 me.refreshTree();
-                me.slapForDoubleRefresh();
             },
             clearTree: function () {
-
-                // Call cleanup handlers for react components:
-                me.render_cleanupFns.forEach(f => f());
-                me.render_cleanupFns = [];
-
                 pdata.updateCount = 0;
                 let rootnode = me.store.getRootNode();
                 rootnode.collapse();
@@ -825,31 +730,6 @@ Ext.define('PVE.tree.ResourceTree', {
         }
         me.callParent([state]);
     },
-
-    /**
-     * "Punshes this component" a few times and refreshes it to drive this component warm, or to eliminate quirks
-     */
-    async slapForDoubleRefresh() {
-        const me = this;
-
-        me.render_cleanupFns.forEach(f => f() ); me.render_cleanupFns = []; // Clean up
-
-        //me.muteReactComponents = true;
-        await sleep(1);
-        me.muteReactComponents = true;
-        me.updateTree();
-
-
-        await sleep(1);
-        me.muteReactComponents = false;
-        me.updateTree();
-
-        async function sleep(ms) {
-            return new Promise((resolve, reject) => {
-                setTimeout(resolve, ms);
-            })
-        }
-    }
 });
 
 var resourceTree_header_hover;
