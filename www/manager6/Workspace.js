@@ -355,7 +355,7 @@ Ext.define('PVE.StdWorkspace', {
                     margin: '2 0 2 5',
                     items: [
                         {
-                            html: `<div style="padding-right: 4px; padding-left: 2px"><img class="shakeMe" src="/pve2/images/pve-electrified_logo.png" height="30" style="position: relative; top:2px"></div>`,
+                            html: `<div style="padding-right: 4px; padding-left: 2px"><img class="shakeMe whenLight" src="/images/pve-electrified_logo.png" height="30" style="position: relative; top:2px"><img class="shakeMe whenDark" src="/images/pve-electrified_logo_dark.png" height="30" style="position: relative; top:2px"></div>`,
                         },
                         {
                             minWidth: 150,
@@ -366,16 +366,7 @@ Ext.define('PVE.StdWorkspace', {
                                 'line-height': '18px',
                             },
                         },
-                        {
-                            html: `Powered by`,
-                            style: {
-                                'font-size': '14px',
-                                'line-height': '18px',
-                            },
-                        },
-                        {
-                            html: `<div style="height:30px;padding-top: 7px; padding-left: 2px"><img id="proxmoxlogo-small-titlebar-img" src="/pve2/images/proxmox_logo.png" height="15"/></div>`,
-                        },
+
                         {
                             html: `<div style="width:8px;"/>`, // Some space
                         },

@@ -57,3 +57,19 @@
 .bp6-toast {
     max-width: 100% !important; /* remove limitation */
 }
+
+.whenLight {
+    display: initial;
+}
+.whenDark {
+    display: none;
+}
+
+@media (prefers-color-scheme: dark) {
+    .whenLight {
+        display: none;
+    }
+    .whenDark {
+        display: initial;
+    }
+}
