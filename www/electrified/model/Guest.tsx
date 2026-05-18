@@ -1089,8 +1089,8 @@ export abstract class Guest extends ModelBase implements NotificationTarget {
                                         <span className={`fa fa-fw pmx-icon ${conflictPair.otherHw.iconClass}`}/> {capitalize(conflictPair.otherHw.ui_type)} {conflictPair.otherHw.toString()}{typeof reason === "string"?<span>: {reason}</span>:undefined}
                                 </div>})}
                             </div>)}
+                            <hr style={{ width: "107%", position: "relative", left: "-16px"}} />
                         </div>
-                        <hr/>
                         <div className={Classes.DIALOG_FOOTER}>
                             <div className={Classes.DIALOG_FOOTER_ACTIONS}>
                                 <ButtonGroup style={{flexDirection: "column", gap: "8px", width: "100%"}}>

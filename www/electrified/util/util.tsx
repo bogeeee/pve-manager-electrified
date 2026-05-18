@@ -1,4 +1,4 @@
-import {CSSProperties, FunctionComponent, ReactNode, useEffect, useLayoutEffect, useState} from "react";
+import {CSSProperties, FunctionComponent, ReactNode, useEffect, useLayoutEffect, useRef, useState} from "react";
 import {stringify as brilloutJsonStringify} from "@brillout/json-serializer/stringify"
 
 import {
@@ -588,10 +588,10 @@ export const muiTheme = createTheme({
    ... code after dialog was closed...
  * </code></pre>
  * For a dialog with dragging and resizing, {@see showMuiDialog}
- * @param dialogProps
+ * @param dialogProps see the Blueprint dialog props. + The property electrify niceElectrifiedStyle (default: true)
  * @param contentComponentFn
  */
-export async function showBlueprintDialog<T>(dialogProps: Partial<BlueprintDialogProps>, contentComponentFn: FunctionComponent<{resolve: (result: T) => void, close: () => void}>) {
+export async function showBlueprintDialog<T>(dialogProps: Partial<BlueprintDialogProps & {niceElectrifiedStyle: boolean}>, contentComponentFn: FunctionComponent<{resolve: (result: T) => void, close: () => void}>) {
     return new Promise<T|undefined>((resolve) => {
         // We need some <div/> to render into
         const targetDiv = document.createElement("div");
@@ -613,16 +613,69 @@ export async function showBlueprintDialog<T>(dialogProps: Partial<BlueprintDialo
                 targetDiv.remove(); // clean up target div. A bit dirty but works
             }
 
-            return <BlueprintDialog className={isPVEDarkTheme()?"bp6-dark":undefined} usePortal={true} portalContainer={document.body} isOpen={open} {...dialogProps} onClose={() => {
+            // Set the cool background
+            const containerRef = useRef<HTMLElement>()
+            useEffect(() => {
+                if(dialogProps.niceElectrifiedStyle === false) {
+                    return;
+                }
+
+                let contentDiv: HTMLElement | undefined;
+                setTimeout(() => {
+                    contentDiv = containerRef.current?.querySelector(".electrifiedBlueprintDialogContent")!;
+                    if(!contentDiv) {
+                        return;
+                    }
+
+                    const sparkImageWidth = 486;
+                    const sparkImageHeight = 660;
+                    const topSpikeXPosition = 407; // so the headerbar can exactly be aligned
+                    const lowerSpikeXPosition = 250; // So the footer bar's right edge can be aligned to it
+                    const scaleFactor = contentDiv.offsetHeight / sparkImageHeight;
+                    const shiftSparkToTheLeft = 65;
+
+                    const enhancedContentWidthPx = (sparkImageWidth - shiftSparkToTheLeft) * scaleFactor;
+                    const dialog = contentDiv.parentElement!;
+                    const body = dialog!.querySelector(".bp6-dialog-body") as HTMLElement;
+                    const originalBodyOffsetWidth = body.offsetWidth;
+
+                    dialog.style.width = `${dialog.offsetWidth + enhancedContentWidthPx}px`;
+
+                    const margin = 16;
+                    body.style.width = `${originalBodyOffsetWidth - 2 * margin}px`
+
+
+
+                    //contentDiv.style.width = `${contentDiv.offsetWidth + enhancedContentWidthPx}px`; // Enhance widht of contentDiv
+
+                    // Align header:
+                    const headerDiv = dialog!.querySelector(".bp6-dialog-header") as HTMLElement;
+                    const origHeaderWidth = headerDiv.offsetWidth;
+                    headerDiv.style.width = `${origHeaderWidth + (-sparkImageWidth + topSpikeXPosition) * scaleFactor}px`
+
+                    // Align footer:
+                    const footerDiv = dialog!.querySelector(".bp6-dialog-footer") as HTMLElement;
+                    footerDiv.style.width = `${footerDiv.offsetWidth + (-sparkImageWidth + (footerDiv.offsetHeight < (170 * scaleFactor)?lowerSpikeXPosition:0)) * scaleFactor}px`
+
+                    dialog.style.backgroundColor = "initial";
+                    dialog.style.boxShadow = "initial";
+                    coolBackgroundMask(contentDiv!, "dialog");
+                },100)
+
+            })
+
+            return <BlueprintDialog containerRef={containerRef as any} className={isPVEDarkTheme()?"bp6-dark":undefined} usePortal={true} portalContainer={document.body} isOpen={open} {...dialogProps} onClose={() => {
                     close();
                     resolve(undefined);
                 }}>
                 <ThemeProvider theme={muiTheme}>
                     <ErrorBoundary fallbackRender={ErrorState}>
-                        <WatchedContentComponentFn close={close} resolve={(result) => {
-                            close();
-                            resolve(result);
-                        }}/>
+                        <div className={"electrifiedBlueprintDialogContent"} style={{width: "100%", height: "100%"}}>
+                            <WatchedContentComponentFn close={close} resolve={(result) => {
+                                close();
+                                resolve(result);
+                            }}/>
+                        </div>
                     </ErrorBoundary>
                 </ThemeProvider>
                 </BlueprintDialog>
@@ -726,7 +779,7 @@ export async function showMuiDialog<T>(title: string | React.ReactElement, dialo
  */
 export async function showResultText(value: string, title?: string, icon?: string) {
     //TODO: For more space and resizability, we should use showMuiDialog instead
-    await showBlueprintDialog({title, icon: icon as any, style:{width:`${window.document.documentElement.clientWidth - 20}px`, height: `${window.document.documentElement.clientHeight - 100}px`} }, (props) => {
+    await showBlueprintDialog({title, icon: icon as any, niceElectrifiedStyle: false, style:{width:`${window.document.documentElement.clientWidth - 20}px`, height: `${window.document.documentElement.clientHeight - 100}px`} }, (props) => {
         return <div style={{height: "100%", display: "flex", flexDirection: "column"}}>
             <div className={Classes.DIALOG_BODY} style={{flexGrow: 1, transform: "translate(0,0)"}}>
                 <div style={{position: "absolute", right:"24px", top:"8px"}}><Button icon={"duplicate"} onClick={() => copyStringToClipboard(value)}></Button></div>
@@ -1405,18 +1458,13 @@ export function coolBackgroundMask(el: HTMLElement, colorClass: string) {
     const maskImageRightWidth = 486;
     const maskImageLeftWidth = 0;
     const maskImagesHeight = 660;
+    const backgroundOverLap = 150; // Overlap the background into the mask images to prevent quirks sometins
 
     const cssValues: {}[] = []
 
     const scaleFactor = el.offsetHeight / maskImagesHeight;
 
-    // Pixels:
-    cssValues.push({
-        backgroundImage: `url(/images/cool_background_mask_pixel_${colorClass}_${isPVEDarkTheme()?"darkTheme":"lightTheme"}.png)`,
-        backgroundSize: `${el.offsetWidth - ((maskImageLeftWidth + maskImageRightWidth) * scaleFactor)}px ${el.offsetHeight}px`,
-        backgroundRepeat: "no-repeat",
-        backgroundPositionX: `${maskImageLeftWidth * scaleFactor}px`,
-    })
+
 
     /*
     // Left mask
@@ -1434,6 +1482,14 @@ export function coolBackgroundMask(el: HTMLElement, colorClass: string) {
         backgroundSize: `${maskImageRightWidth * scaleFactor}px ${el.offsetHeight}px`,
         backgroundRepeat: "no-repeat",
         backgroundPositionX: "right",
+    })
+
+    // Pixels:
+    cssValues.push({
+        backgroundImage: `url(/images/cool_background_mask_pixel_${colorClass}_${isPVEDarkTheme()?"darkTheme":"lightTheme"}.png)`,
+        backgroundSize: `${el.offsetWidth + ((-maskImageLeftWidth -maskImageRightWidth + backgroundOverLap) * scaleFactor)}px ${el.offsetHeight}px`,
+        backgroundRepeat: "no-repeat",
+        backgroundPositionX: `${maskImageLeftWidth * scaleFactor}px`,
     })
 
     // Apply cssValues
