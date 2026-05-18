@@ -533,8 +533,10 @@ Ext.define('PVE.tree.ResourceTree', {
                 }
             });
 
-            store.resumeEvents();
-            store.fireEvent('refresh', store);
+            if(false) { // Try to cut off rendering the old tree
+                store.resumeEvents();
+                store.fireEvent('refresh', store);
+            }
 
             let foundChild = findNode(rootnode, lastsel?.data.id);
 
