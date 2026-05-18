@@ -4,6 +4,8 @@ Ext.define('PVE.data.ResourceStore', {
 
     nodeCache: {},
 
+    interval: 500,
+
     findVMID: function (vmid) {
         let me = this;
         return me.findExact('vmid', parseInt(vmid, 10)) >= 0;
