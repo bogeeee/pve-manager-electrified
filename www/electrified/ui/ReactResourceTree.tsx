@@ -29,7 +29,7 @@ import ex = CSS.ex;
  * The Tree-Table body in the pve resource tree (=classicResourceTree)
  * plays together with it = controlled in both directions
  */
-export const ReactResourceTree = watchedComponent((props: {classicResourceTree: any, onNodeClick: (node: TreeDataNode) => void, onNodeContextMenu: (node: TreeDataNode, event: any) => void}) => {
+export const ReactResourceTree = watchedComponent((props: {classicResourceTree: any, onNodeClick: (node: TreeDataNode) => void, onNodeDoubleClick: (node: TreeDataNode, event: any) => void, onNodeContextMenu: (node: TreeDataNode, event: any) => void}) => {
 
     const classicResourceTree = props.classicResourceTree;
 
@@ -70,7 +70,7 @@ export const ReactResourceTree = watchedComponent((props: {classicResourceTree: 
 
     return <div className="x-tree-view x-fit-item x-tree-view-default x-unselectable x-scroller" role="rowgroup" tabIndex={0} style={{overflow: "hidden auto", margin: "0px", width: "100%", height: "100%"}}>
         <div className="x-grid-item-container" role="presentation" style={{width: "100%", transform: "translate3d(0px, 0px, 0px)"}}>
-            <TreeTable root={props.classicResourceTree.store.root} getIconCls={getIconCls} getToolTip={getToolTip} cols={cols} stateRef={treeStateRef} onNodeClick={props.onNodeClick} onNodeContextMenu={props.onNodeContextMenu}/>
+            <TreeTable root={props.classicResourceTree.store.root} getIconCls={getIconCls} getToolTip={getToolTip} cols={cols} stateRef={treeStateRef} onNodeClick={props.onNodeClick} onNodeDoubleClick={props.onNodeDoubleClick} onNodeContextMenu={props.onNodeContextMenu}/>
         </div>
         <div className="x-tab-guard x-tab-guard-after" tabIndex={-1} data-tabindex-value="0" data-tabindex-counter="1"/>
     </div>
@@ -135,7 +135,7 @@ class TreeDataNode {
  * Params:
  * stateRef: gets filled with the state. So this is a cheap way of controlling it from the non-react outside world
  */
-export const TreeTable = watchedComponent((props: {root: TreeDataNode, stateRef: MutableRefObject<any>, onNodeClick?: (node: TreeDataNode) => void, onNodeContextMenu?: (node: TreeDataNode, event: any) => void, getIconCls:(node:TreeDataNode) => string, getToolTip?: (node:TreeDataNode) => ReactNode, cols: {key: string, width: number, CellComponent: (props: {node: TreeDataNode}) => ReactNode}[] }) => {
+export const TreeTable = watchedComponent((props: {root: TreeDataNode, stateRef: MutableRefObject<any>, onNodeClick?: (node: TreeDataNode) => void, onNodeDoubleClick?: (node: TreeDataNode, event: any) => void, onNodeContextMenu?: (node: TreeDataNode, event: any) => void, getIconCls:(node:TreeDataNode) => string, getToolTip?: (node:TreeDataNode) => ReactNode, cols: {key: string, width: number, CellComponent: (props: {node: TreeDataNode}) => ReactNode}[] }) => {
     const state = useWatchedState(new class {
         expandedIds= new Set<string>();
         selectedId?: string = undefined;
@@ -206,7 +206,7 @@ export const TreeTable = watchedComponent((props: {root: TreeDataNode, stateRef:
                 const node = row.node;
                 const isRoot = row.level === 0;
                 const TreeCellComponent = props.cols[0].CellComponent;
-                return <table key={node.id} ref={isSelected(node)?selectedHtmlRowRef as any:undefined} role="presentation" data-recordindex="0" className={`x-grid-item`} cellPadding="0" cellSpacing="0" style={{ width:0}} onClick={() => {state.selectedId = node.id; setTimeout(() => {props.onNodeClick?.(node); state.selectId(node.id,false)})}} onContextMenu={(event) => {event.preventDefault(); props.onNodeContextMenu?.(node, event)}} onMouseEnter={(event) => !isSelected(node) && coolBackgroundMask(event.currentTarget, "hovered")} onMouseLeave={(event) => !isSelected(node) && coolBackgroundMask_remove(event.currentTarget)}>
+                return <table key={node.id} ref={isSelected(node)?selectedHtmlRowRef as any:undefined} role="presentation" data-recordindex="0" className={`x-grid-item`} cellPadding="0" cellSpacing="0" style={{ width:0}} onClick={() => {state.selectId(node.id,false); setTimeout(() => {props.onNodeClick?.(node); })}} onDoubleClick={(event) => {props.onNodeDoubleClick?.(node,event)}}  onContextMenu={(event) => {event.preventDefault(); props.onNodeContextMenu?.(node, event)}} onMouseEnter={(event) => !isSelected(node) && coolBackgroundMask(event.currentTarget, "hovered")} onMouseLeave={(event) => !isSelected(node) && coolBackgroundMask_remove(event.currentTarget)}>
                     <tbody>
                         <tr className={`x-grid-tree-node${isLeaf(node)?"-leaf":(isExpanded(node)?"-expanded":"")}  x-grid-row`} role="row" data-qtip="" data-qtitle="" aria-level={row.level+1} aria-expanded={isExpanded(row.node)}>
                             {/* Tree column */}

@@ -719,6 +719,10 @@ Ext.define('PVE.tree.ResourceTree', {
             onNodeClick: (node) => {
                 me.getSelectionModel().select([node])
             },
+            onNodeDoubleClick: (node, event) => {
+                const extEvent = new Ext.EventObjectImpl(event);
+                PVE.Utils.openTreeConsole(me, node, node.data, undefined, extEvent)
+            },
             onNodeContextMenu: (node, event) => {
                 const extEvent = new Ext.EventObjectImpl(event);
                 PVE.Utils.createCmdMenu(undefined, node, undefined, undefined, extEvent)
