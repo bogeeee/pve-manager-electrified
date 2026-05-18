@@ -646,6 +646,10 @@ Ext.define('PVE.tree.ResourceTree', {
             selectExpand: function (node) {
                 me.expand(node);
                 me.reactTreeState.selectId(node.id, true);
+                let sm = me.getSelectionModel();
+                if (!sm.isSelected(node)) {
+                    sm.select(node);
+                }
             },
             selectById: function (nodeid) {
                 let rootnode = me.store.getRootNode();
