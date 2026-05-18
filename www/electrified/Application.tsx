@@ -22,7 +22,13 @@ import {
     InfoTooltip,
     messageBox,
     getCookieByName,
-    checkForDuplicates, muiTheme, ErrorState, ObjectHTMLSelect, sleep
+    checkForDuplicates,
+    muiTheme,
+    ErrorState,
+    ObjectHTMLSelect,
+    sleep,
+    coolBackgroundMask,
+    coolBackgroundMask_remove
 } from "./util/util";
 import {generated_pluginList as pluginList} from "../_generated_pluginList";
 import {
@@ -775,6 +781,26 @@ export class Application extends AsyncConstructableClass{
             const guest = this.datacenter.getGuest(guestId) || throwError("Guest does not exist");
             await guest.startInteractively();
         })
+    }
+
+    _ui_autoInstallCoolBackgroundMask(rootNode: HTMLElement, cssSelector: string, colorClass: string) {
+        const activeElements = new Set<HTMLElement>();
+        const interval = setInterval(() => {
+            const matchingElements = new Set<HTMLElement>([...rootNode.querySelectorAll(cssSelector)].filter(el => el !== null && el instanceof HTMLElement) as any);
+            activeElements.forEach(el => {
+                if(!matchingElements.has(el)) { // it became inactive?
+                    coolBackgroundMask_remove(el);
+                    activeElements.delete(el);
+                }
+            })
+
+            matchingElements.forEach(el => {
+                coolBackgroundMask(el, colorClass);
+                activeElements.add(el);
+            })
+
+
+        }, 30)
     }
 
     get _electrifiedFeaturesPlugin(): ElectrifiedFeaturesPlugin {

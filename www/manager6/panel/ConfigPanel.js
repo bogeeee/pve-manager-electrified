@@ -69,6 +69,13 @@ Ext.define('PVE.panel.Config', {
                 singleExpand: false,
                 listeners: {
                     selectionchange: function (treeList, selection) {
+                        // afterRender does not get called and we have no hook for beeing initialized
+                        if(!this.isRendered_initialied) {
+                            // Initialize once code:
+                            window.electrifiedApp._ui_autoInstallCoolBackgroundMask(this.getEl().dom,".x-treelist-item-selected > .x-treelist-row", "selected")
+                            this.isRendered_initialied = true;
+                        }
+
                         if (!selection) {
                             return;
                         }
