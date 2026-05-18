@@ -581,33 +581,11 @@ Ext.define('PVE.tree.ResourceTree', {
                 animate: false, // note: animate cause problems with applyState
             },
             listeners: {
-                itemcontextmenu: PVE.Utils.createCmdMenu,
                 destroy: function () {
                     rstore.un('load', updateTree);
                 },
-                beforecellmousedown: function (tree, td, cellIndex, record, tr, rowIndex, ev) {
-                    let sm = me.getSelectionModel();
-                    // disable selection when right clicking except if the record is already selected
-                    me.allowSelection = ev.button !== 2 || sm.isSelected(record);
-                },
-                beforeselect: function (tree, record, index, eopts) {
-                    let allow = me.allowSelection;
-                    me.allowSelection = true;
-                    return allow;
-                },
-                itemdblclick: PVE.Utils.openTreeConsole,
                 afterrender: function () {
-                    if (me.tip) {
-                        return;
-                    }
-
                     me.initReactResourceTree();
-
-                    let selectors = [
-                        '.x-tree-node-text > span:not(.proxmox-tag-dark):not(.proxmox-tag-light)',
-                        '.x-tree-icon',
-                    ];
-
                 },
                 columnhide() {
                     me.visibleColumns = me.getVisibleColumns();
