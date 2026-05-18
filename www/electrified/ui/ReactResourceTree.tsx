@@ -8,6 +8,7 @@ import "../styles.css"
 import {Guest} from "../model/Guest";
 import {Node} from "../model/Node";
 import {
+    coolBackgroundMask, coolBackgroundMask_remove,
     getUniqueName, HoverTooltip,
     ObjectHTMLSelect,
     RememberChoiceButton,
@@ -144,11 +145,6 @@ export const TreeTable = watchedComponent((props: {root: TreeDataNode, stateRef:
          */
         selectedId_scrollIntoView = false;
 
-        /**
-         * Not selected but context menu shown, or about to be selected
-         */
-        overId?: string = undefined;
-
         selectId(id: string, scrollIntoView: boolean) {
             this.selectedId = id;
             this.selectedId_scrollIntoView = scrollIntoView;
@@ -163,6 +159,22 @@ export const TreeTable = watchedComponent((props: {root: TreeDataNode, stateRef:
             selectedHtmlRowRef.current?.scrollIntoView({block: "end"});
         }
     },[state.selectedId, state.selectedId_scrollIntoView])
+
+    // Set the cool background for the selected row:
+    useEffect(() => {
+        const selectedHtmlRow = selectedHtmlRowRef.current;
+
+        if(selectedHtmlRow) {
+            coolBackgroundMask(selectedHtmlRow, "c2ddf2");
+        }
+
+        return function cleanUp() {
+            if(selectedHtmlRow) {
+                coolBackgroundMask_remove(selectedHtmlRow);
+            }
+        }
+    },[state.selectedId])
+
 
     const isLeaf = (node: TreeDataNode) => node.childNodes.length === 0;
     const isExpanded = (node: TreeDataNode) => state.expandedIds.has(node.id);

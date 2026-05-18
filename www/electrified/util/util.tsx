@@ -1391,3 +1391,53 @@ export function guestConfigEntry2Record(rawConfigString: string) {
 export function record2guestConfigEntry(record: Map<string, string>) {
     return [...record.keys()].map(key => `${key==="main"?"":`${key}=`}${record.get(key)!}`).join(",");
 }
+
+const coolBackgroundMask_keys = ["backgroundImage", "backgroundSize", "backgroundRepeat", "backgroundPositionX"];
+export function coolBackgroundMask(el: HTMLElement, color: string) {
+    const maskImageRightWidth = 486;
+    const maskImageLeftWidth = 0;
+    const maskImagesHeight = 660;
+
+    const cssValues: {}[] = []
+
+    const scaleFactor = el.offsetHeight / maskImagesHeight;
+
+    // Pixels:
+    cssValues.push({
+        backgroundImage: `url(/images/cool_background_mask_pixel_${color}.png)`,
+        backgroundSize: `${el.offsetWidth - ((maskImageLeftWidth + maskImageRightWidth) * scaleFactor)}px ${el.offsetHeight}px`,
+        backgroundRepeat: "no-repeat",
+        backgroundPositionX: `${maskImageLeftWidth * scaleFactor}px`,
+    })
+
+    /*
+    // Left mask
+    cssValues.push({
+        backgroundImage: `url(/images/cool_background_mask_left_${color}.png)`,
+        backgroundSize: `${maskImageLeftWidth * scaleFactor}px ${el.offsetHeight}px`,
+        backgroundRepeat: "no-repeat",
+        backgroundPositionX: "0",
+    })
+    */
+
+    // Right mask
+    cssValues.push({
+        backgroundImage: `url(/images/cool_background_mask_right_${color}.png)`,
+        backgroundSize: `${maskImageRightWidth * scaleFactor}px ${el.offsetHeight}px`,
+        backgroundRepeat: "no-repeat",
+        backgroundPositionX: "right",
+    })
+
+    // Apply cssValues
+    for(const key of coolBackgroundMask_keys) {
+        const allValues = cssValues.filter(obj => obj[key] !== undefined).map(obj => obj[key]).join(",")
+        el.style[key] = allValues;
+    }
+}
+
+export function coolBackgroundMask_remove(el: HTMLElement) {
+    for(const key of coolBackgroundMask_keys) {
+        el.style.removeProperty(key);
+        el.style[key] = "";
+    }
+}
