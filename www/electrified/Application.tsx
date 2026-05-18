@@ -51,7 +51,7 @@ import {ElectrifiedJsonConfig} from "pveme-nodejsserver/Common";
 import {retsync2promise} from "proxy-facades/retsync";
 import {createElement} from "react";
 import {ElectrifiedFeaturesPlugin} from "./ElectrifiedFeaturesPlugin";
-import {load, watchedComponent} from "react-deepwatch";
+import {load, watched, watchedComponent} from "react-deepwatch";
 import {ErrorBoundary} from "react-error-boundary";
 import {Icon, Tooltip} from "@blueprintjs/core";
 import {Pool} from "./model/Pool";
@@ -724,7 +724,7 @@ export class Application extends AsyncConstructableClass{
             }
             const item = this.datacenter._getItemForResourceRecord(props.node.data);
             return <Component {...props} item={item}/>
-        }
+        });
 
         const errorRender= (props: { error: Error }) => {
             fixErrorStack(props.error)
