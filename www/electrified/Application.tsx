@@ -718,8 +718,8 @@ export class Application extends AsyncConstructableClass{
          * @param props
          * @constructor
          */
-        const OuterComponent = (props: any) => {
-            if(!this._datacenter) {
+        const OuterComponent = watchedComponent((props: any) => {
+            if(!watched(this)._datacenter) {
                 return <span style={{color: "#555"}}><img src="/images/E_small.png" height="12px"/><i>{t`'ing...`}</i></span>
             }
             const item = this.datacenter._getItemForResourceRecord(props.node.data);
