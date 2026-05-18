@@ -18,7 +18,14 @@ mk-build-deps --install
 As an IDE,
 - ~~Either use vscode with the "Remote SSH" plugin and connect the /root/proxmox/pve-manager-electrified project folder on the PVE server. This way, you can debug the nodejsserver seamlessly.~~
 - ~~Or use Jetbrains Webstorm. It also has a remote SSH feature. Similar to the above.~~
-- Better: Use a Jetbrains IDE and configure an automatic deployment. Make sure, the `.git` folder is not excluded from syncing, cause the make scripts expect, that there's such a folder, to automatically extract version information. Also enable "delete target items".
+- Better: Use a Jetbrains IDE and configure an automatic deployment. Enable "delete target items".
+  - Includes: 
+     - `.git` folder. Make sure, it is not excluded from syncing, cause the make scripts expect, that there's such a folder, to automatically extract version information.
+  - Excludes:    
+    - Local: `/root/proxmox/pve-manager-electrified/nodejsserver/node_modules`
+    - Local: `/root/proxmox/pve-manager-electrified/www/node_modules`
+    - Local: `/root/proxmox/pve-manager-electrified/local.config.mk`
+    - Remote: `/www/manager6/OnlineHelpInfo.js` . this file is a build artefact and should not be deleted by the sync.
 With this setup, you have the .git / source code locally and can have a "burner" target PVE server, where you can leave a mess or hop between snapshots.
 
 
