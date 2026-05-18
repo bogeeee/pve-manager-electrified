@@ -165,7 +165,7 @@ export const TreeTable = watchedComponent((props: {root: TreeDataNode, stateRef:
         const selectedHtmlRow = selectedHtmlRowRef.current;
 
         if(selectedHtmlRow) {
-            coolBackgroundMask(selectedHtmlRow, "selected_lightTheme");
+            coolBackgroundMask(selectedHtmlRow, "selected");
         }
 
         return function cleanUp() {
@@ -206,7 +206,7 @@ export const TreeTable = watchedComponent((props: {root: TreeDataNode, stateRef:
                 const node = row.node;
                 const isRoot = row.level === 0;
                 const TreeCellComponent = props.cols[0].CellComponent;
-                return <table key={node.id} ref={isSelected(node)?selectedHtmlRowRef as any:undefined} role="presentation" data-recordindex="0" className={`x-grid-item`} cellPadding="0" cellSpacing="0" style={{ width:0}} onClick={() => {state.selectedId = node.id; setTimeout(() => {props.onNodeClick?.(node); state.selectId(node.id,false)})}} onContextMenu={(event) => {event.preventDefault(); state.overId = node.id; props.onNodeContextMenu?.(node, event)}} onMouseEnter={(event) => !isSelected(node) && coolBackgroundMask(event.currentTarget, "hovered_lightTheme")} onMouseLeave={(event) => !isSelected(node) && coolBackgroundMask_remove(event.currentTarget)}>
+                return <table key={node.id} ref={isSelected(node)?selectedHtmlRowRef as any:undefined} role="presentation" data-recordindex="0" className={`x-grid-item`} cellPadding="0" cellSpacing="0" style={{ width:0}} onClick={() => {state.selectedId = node.id; setTimeout(() => {props.onNodeClick?.(node); state.selectId(node.id,false)})}} onContextMenu={(event) => {event.preventDefault(); props.onNodeContextMenu?.(node, event)}} onMouseEnter={(event) => !isSelected(node) && coolBackgroundMask(event.currentTarget, "hovered")} onMouseLeave={(event) => !isSelected(node) && coolBackgroundMask_remove(event.currentTarget)}>
                     <tbody>
                         <tr className={`x-grid-tree-node${isLeaf(node)?"-leaf":(isExpanded(node)?"-expanded":"")}  x-grid-row`} role="row" data-qtip="" data-qtitle="" aria-level={row.level+1} aria-expanded={isExpanded(row.node)}>
                             {/* Tree column */}

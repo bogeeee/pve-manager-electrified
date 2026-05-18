@@ -73,3 +73,23 @@
         display: initial;
     }
 }
+
+/*
+ All hovered / seleted bars are gray (instead of blue) in electrified:
+*/
+@media (prefers-color-scheme: light) {
+    .x-grid-item-selected, .x-column-header-selected, .x-column-header-sort-ASC, .x-column-header-sort-DESC {
+        background-color: #cfcfcf !important;
+    }
+
+    .x-grid-item-over, .x-column-header-over {
+        background-color: #eeeeee !important;
+    }
+
+
+
+
+    .x-treelist-row-over {
+        background-color: #eeeeee !important;
+    }
+}

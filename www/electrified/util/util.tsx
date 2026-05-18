@@ -1393,7 +1393,15 @@ export function record2guestConfigEntry(record: Map<string, string>) {
 }
 
 const coolBackgroundMask_keys = ["backgroundImage", "backgroundSize", "backgroundRepeat", "backgroundPositionX"];
-export function coolBackgroundMask(el: HTMLElement, color: string) {
+
+/**
+ *
+ * @param el
+ * @param colorClass i.e. "hovered", "selected". Will automaticalled be suffixed with dark theme
+ */
+export function coolBackgroundMask(el: HTMLElement, colorClass: string) {
+    el.style.backgroundColor = "initial"; // Clear classic style
+
     const maskImageRightWidth = 486;
     const maskImageLeftWidth = 0;
     const maskImagesHeight = 660;
@@ -1404,7 +1412,7 @@ export function coolBackgroundMask(el: HTMLElement, color: string) {
 
     // Pixels:
     cssValues.push({
-        backgroundImage: `url(/images/cool_background_mask_pixel_${color}.png)`,
+        backgroundImage: `url(/images/cool_background_mask_pixel_${colorClass}_${isPVEDarkTheme()?"darkTheme":"lightTheme"}.png)`,
         backgroundSize: `${el.offsetWidth - ((maskImageLeftWidth + maskImageRightWidth) * scaleFactor)}px ${el.offsetHeight}px`,
         backgroundRepeat: "no-repeat",
         backgroundPositionX: `${maskImageLeftWidth * scaleFactor}px`,
@@ -1413,7 +1421,7 @@ export function coolBackgroundMask(el: HTMLElement, color: string) {
     /*
     // Left mask
     cssValues.push({
-        backgroundImage: `url(/images/cool_background_mask_left_${color}.png)`,
+        backgroundImage: `url(/images/cool_background_mask_left_${colorClass}_${isPVEDarkTheme()?"darkTheme":"lightTheme"}.png)`,
         backgroundSize: `${maskImageLeftWidth * scaleFactor}px ${el.offsetHeight}px`,
         backgroundRepeat: "no-repeat",
         backgroundPositionX: "0",
@@ -1422,7 +1430,7 @@ export function coolBackgroundMask(el: HTMLElement, color: string) {
 
     // Right mask
     cssValues.push({
-        backgroundImage: `url(/images/cool_background_mask_right_${color}.png)`,
+        backgroundImage: `url(/images/cool_background_mask_right_${colorClass}_${isPVEDarkTheme()?"darkTheme":"lightTheme"}.png)`,
         backgroundSize: `${maskImageRightWidth * scaleFactor}px ${el.offsetHeight}px`,
         backgroundRepeat: "no-repeat",
         backgroundPositionX: "right",
@@ -1430,14 +1438,17 @@ export function coolBackgroundMask(el: HTMLElement, color: string) {
 
     // Apply cssValues
     for(const key of coolBackgroundMask_keys) {
+        //@ts-ignore
         const allValues = cssValues.filter(obj => obj[key] !== undefined).map(obj => obj[key]).join(",")
+        //@ts-ignore
         el.style[key] = allValues;
     }
 }
 
 export function coolBackgroundMask_remove(el: HTMLElement) {
     for(const key of coolBackgroundMask_keys) {
-        el.style.removeProperty(key);
+        //@ts-ignore
         el.style[key] = "";
+
     }
 }
