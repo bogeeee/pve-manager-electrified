@@ -214,12 +214,6 @@ Ext.define('PVE.tree.ResourceTree', {
         }
     },
 
-    setIconCls: function (info) {
-        let cls = PVE.Utils.get_object_icon_class(info.type, info);
-        if (cls !== '') {
-            info.iconCls = cls;
-        }
-    },
 
     getToolTip: function (info) {
         let qtips = [];
@@ -252,7 +246,6 @@ Ext.define('PVE.tree.ResourceTree', {
     addChildSorted: function (node, info, insertPool = false) {
         let me = this;
 
-        me.setIconCls(info);
 
         let nestPools = PVE.UIOptions.getTreeSortingValue('nest-pools');
         if (info.type === 'pool' && info.pool && !insertPool && nestPools) {
@@ -493,7 +486,6 @@ Ext.define('PVE.tree.ResourceTree', {
                     if (info.id !== oldid) {
                         info.id = oldid;
                     }
-                    me.setIconCls(info);
                     olditem.commit();
                 }
                 if ((!item || moved) && olditem.isLeaf()) {
@@ -659,7 +651,6 @@ Ext.define('PVE.tree.ResourceTree', {
                     if (node.data.groupbyid) {
                         node.beginEdit();
                         let info = node.data;
-                        me.setIconCls(info);
                         if (me.viewFilter.groupRenderer) {
                             info.text = me.viewFilter.groupRenderer(info);
                         }
