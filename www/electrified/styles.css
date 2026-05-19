@@ -93,3 +93,7 @@
         background-color: #eeeeee !important;
     }
 }
+
+.treeRow-row-contextMenu {
+    outline: 1px solid #767171;
+}

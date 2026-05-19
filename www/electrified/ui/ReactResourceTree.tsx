@@ -1,4 +1,4 @@
-import React, {CSSProperties, MutableRefObject, ReactNode, useEffect, useRef} from "react";
+import React, {CSSProperties, MutableRefObject, ReactNode, useEffect, useRef, MouseEvent} from "react";
 import {bind, binding, load, READS_INSIDE_LOADER_FN, useWatchedState, watched, watchedComponent} from "react-deepwatch"
 import {Button, ButtonGroup, Classes, Icon, InputGroup, Intent, NumericInput} from "@blueprintjs/core";
 import "@blueprintjs/core/lib/css/blueprint.css";
@@ -29,7 +29,7 @@ import ex = CSS.ex;
  * The Tree-Table body in the pve resource tree (=classicResourceTree)
  * plays together with it = controlled in both directions
  */
-export const ReactResourceTree = watchedComponent((props: {classicResourceTree: any, onNodeClick: (node: TreeDataNode) => void, onNodeDoubleClick: (node: TreeDataNode, event: any) => void, onNodeContextMenu: (node: TreeDataNode, event: any) => void}) => {
+export const ReactResourceTree = watchedComponent((props: {classicResourceTree: any, onNodeClick: (node: TreeDataNode) => void, onNodeDoubleClick: (node: TreeDataNode, event: any) => void, onNodeContextMenu: (node: TreeDataNode, event: any) => Promise<void>}) => {
 
     const classicResourceTree = props.classicResourceTree;
 
@@ -135,7 +135,7 @@ class TreeDataNode {
  * Params:
  * stateRef: gets filled with the state. So this is a cheap way of controlling it from the non-react outside world
  */
-export const TreeTable = watchedComponent((props: {root: TreeDataNode, stateRef: MutableRefObject<any>, onNodeClick?: (node: TreeDataNode) => void, onNodeDoubleClick?: (node: TreeDataNode, event: any) => void, onNodeContextMenu?: (node: TreeDataNode, event: any) => void, getIconCls:(node:TreeDataNode) => string, getToolTip?: (node:TreeDataNode) => ReactNode, cols: {key: string, width: number, CellComponent: (props: {node: TreeDataNode}) => ReactNode}[] }) => {
+export const TreeTable = watchedComponent((props: {root: TreeDataNode, stateRef: MutableRefObject<any>, onNodeClick?: (node: TreeDataNode) => void, onNodeDoubleClick?: (node: TreeDataNode, event: any) => void, onNodeContextMenu?: (node: TreeDataNode, event: any) => Promise<void>, getIconCls:(node:TreeDataNode) => string, getToolTip?: (node:TreeDataNode) => ReactNode, cols: {key: string, width: number, CellComponent: (props: {node: TreeDataNode}) => ReactNode}[] }) => {
     const state = useWatchedState(new class {
         expandedIds= new Set<string>();
         selectedId?: string = undefined;
@@ -146,6 +146,7 @@ export const TreeTable = watchedComponent((props: {root: TreeDataNode, stateRef:
         selectedId_scrollIntoView = false;
 
         selectId(id: string, scrollIntoView: boolean) {
+            hoverCleanup();
             this.selectedId = id;
             this.selectedId_scrollIntoView = scrollIntoView;
         }
@@ -153,6 +154,10 @@ export const TreeTable = watchedComponent((props: {root: TreeDataNode, stateRef:
     props.stateRef.current = state;
 
     const selectedHtmlRowRef = useRef<HTMLElement>()
+
+    //const hoveredHtmlRowRef = useRef<HTMLElement>()
+    const hoverCleanupFns = useRef<(() => void)[]>([]) // Called when hovering another row or when the context menu is finished
+    const idWhereContextMenuIsShowingRef = useRef<string | undefined>(); // Flag it as shown so the row stays hovered. TODO: use the actual id and an effect to survive rerenders
 
     useEffect(() => {
         if(state.selectedId_scrollIntoView) {
@@ -181,6 +186,34 @@ export const TreeTable = watchedComponent((props: {root: TreeDataNode, stateRef:
     const expand  = (node: TreeDataNode) => state.expandedIds.add(node.id);
     const collapse  = (node: TreeDataNode) => state.expandedIds.delete(node.id)
     const isSelected  = (node: TreeDataNode) => state.selectedId === node.id;
+    const isContextMenuShown = () => idWhereContextMenuIsShowingRef.current !== undefined;
+    var hoverCleanup = () => {hoverCleanupFns.current.forEach(f=>f());hoverCleanupFns.current = []}
+
+    const onMouseEnter = (node: TreeDataNode, event: MouseEvent<any, any>) => {
+        const rowElement = event.currentTarget;
+        if(!isSelected(node)) {
+            coolBackgroundMask(rowElement, "hovered")
+            hoverCleanupFns.current.push(() => coolBackgroundMask_remove(rowElement))
+        }
+
+    }
+
+    const onMouseLeave = (node: TreeDataNode, event: MouseEvent<any, any>) => {
+        hoverCleanup();
+    }
+
+    const onContextMenu = async (node: TreeDataNode, event: MouseEvent<any, any>) => {
+        event.preventDefault();
+        const rowElement: HTMLElement = event.currentTarget;
+        if(props.onNodeContextMenu) {
+            rowElement.classList.add("treeRow-row-contextMenu")
+            idWhereContextMenuIsShowingRef.current = node.id;
+            await props.onNodeContextMenu?.(node, event)
+            idWhereContextMenuIsShowingRef.current = undefined;
+            rowElement.classList.remove("treeRow-row-contextMenu");
+        }
+
+    };
 
     // Determine treeRows
     const treeRows: {level: number, node: TreeDataNode}[] = [];
@@ -206,7 +239,7 @@ export const TreeTable = watchedComponent((props: {root: TreeDataNode, stateRef:
                 const node = row.node;
                 const isRoot = row.level === 0;
                 const TreeCellComponent = props.cols[0].CellComponent;
-                return <table key={node.id} ref={isSelected(node)?selectedHtmlRowRef as any:undefined} role="presentation" data-recordindex="0" className={`x-grid-item`} cellPadding="0" cellSpacing="0" style={{ width:0}} onClick={() => {state.selectId(node.id,false); setTimeout(() => {props.onNodeClick?.(node); })}} onDoubleClick={(event) => {props.onNodeDoubleClick?.(node,event)}}  onContextMenu={(event) => {event.preventDefault(); props.onNodeContextMenu?.(node, event)}} onMouseEnter={(event) => !isSelected(node) && coolBackgroundMask(event.currentTarget, "hovered")} onMouseLeave={(event) => !isSelected(node) && coolBackgroundMask_remove(event.currentTarget)}>
+                return <table key={node.id} ref={isSelected(node)?selectedHtmlRowRef as any:undefined} role="presentation" data-recordindex="0" className={`x-grid-item`} cellPadding="0" cellSpacing="0" style={{ width:0}} onClick={() => {state.selectId(node.id,false); setTimeout(() => {props.onNodeClick?.(node); })}} onDoubleClick={(event) => {props.onNodeDoubleClick?.(node,event)}} onContextMenu={(event) => onContextMenu(node, event)} onMouseEnter={(event) => onMouseEnter(node, event)} onMouseLeave={(event) => onMouseLeave(node, event)}>
                     <tbody>
                         <tr className={`x-grid-tree-node${isLeaf(node)?"-leaf":(isExpanded(node)?"-expanded":"")}  x-grid-row`} role="row" data-qtip="" data-qtitle="" aria-level={row.level+1} aria-expanded={isExpanded(row.node)}>
                             {/* Tree column */}

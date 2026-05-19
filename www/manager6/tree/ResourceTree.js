@@ -702,8 +702,11 @@ Ext.define('PVE.tree.ResourceTree', {
                 PVE.Utils.openTreeConsole(me, node, node.data, undefined, extEvent)
             },
             onNodeContextMenu: (node, event) => {
-                const extEvent = new Ext.EventObjectImpl(event);
-                PVE.Utils.createCmdMenu(undefined, node, undefined, undefined, extEvent)
+                return new Promise((resolve, reject) => {
+                    const extEvent = new Ext.EventObjectImpl(event);
+                    const menu = PVE.Utils.createCmdMenu(undefined, node, undefined, undefined, extEvent);
+                    menu.addListener("hide", () => resolve());
+                })
             }
         }
         reactRoot.render(electrifiedApp._react.createElement(electrifiedApp._ReactResourceTree, props));
