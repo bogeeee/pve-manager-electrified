@@ -182,7 +182,8 @@ export const TreeTable = watchedComponent((props: {root: TreeDataNode, stateRef:
 
 
     const isLeaf = (node: TreeDataNode) => node.childNodes.length === 0;
-    const isExpanded = (node: TreeDataNode) => state.expandedIds.has(node.id);
+    const isFixedExpaned = (node: TreeDataNode) => node.id === props.root.id || (props.root.childNodes.length === 1 && node.id === props.root.childNodes[0].id); // Always expand root and single childs under root
+    const isExpanded = (node: TreeDataNode) => state.expandedIds.has(node.id) || isFixedExpaned(node);
     const expand  = (node: TreeDataNode) => state.expandedIds.add(node.id);
     const collapse  = (node: TreeDataNode) => state.expandedIds.delete(node.id)
     const isSelected  = (node: TreeDataNode) => state.selectedId === node.id;
@@ -251,8 +252,8 @@ export const TreeTable = watchedComponent((props: {root: TreeDataNode, stateRef:
                                     {isLeaf(node) && <div className=" x-tree-elbow-img x-tree-elbow" role="presentation"/>}
 
                                     {/* Expand/Collapse: */}
-                                    {!isLeaf(node) &&  isExpanded(row.node) && <div className=" x-tree-elbow-img x-tree-elbow-end-plus x-tree-expander" role="presentation" onClick={() => collapse(node)}/>}
-                                    {!isLeaf(node) && !isExpanded(row.node) && <div className=" x-tree-elbow-img x-tree-elbow-plus x-tree-expander" role="presentation" onClick={() => expand(node)}/>}
+                                    {!isLeaf(node) && !isFixedExpaned(node) && isExpanded(row.node) && <div className=" x-tree-elbow-img x-tree-elbow-end-plus x-tree-expander" role="presentation" onClick={() => collapse(node)}/>}
+                                    {!isLeaf(node) && !isFixedExpaned(node) && !isExpanded(row.node) && <div className=" x-tree-elbow-img x-tree-elbow-plus x-tree-expander" role="presentation" onClick={() => expand(node)}/>}
 
                                     {/* Icon: */}
                                     <HoverTooltip tooltip={props.getToolTip?.(node)} showHand={false}>
