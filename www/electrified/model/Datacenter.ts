@@ -83,6 +83,7 @@ export class Datacenter extends ModelBase implements NotificationTarget{
         // Refresh electrufied stats regularly:
         setInterval(() => spawnAsync(async () => {
             try {
+                window.localStorage.setItem("debug_electrified_datacenter_refreshResourceStatsTimer_called", String(Number((window.localStorage.getItem("debug_electrified_datacenter_refreshResourceStatsTimer_called") || 0)) + 1));
                 await this._refreshElectrifiedResourceStats();
             }
             catch (e) {
