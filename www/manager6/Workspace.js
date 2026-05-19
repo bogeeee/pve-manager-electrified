@@ -355,7 +355,7 @@ Ext.define('PVE.StdWorkspace', {
                     margin: '2 0 2 5',
                     items: [
                         {
-                            html: `<div style="padding-right: 4px; padding-left: 2px"><img class="shakeMe whenLight" src="/images/pve-electrified_logo.png" height="30" style="position: relative; top:2px"><img class="shakeMe whenDark" src="/images/pve-electrified_logo_dark.png" height="30" style="position: relative; top:2px"></div>`,
+                            html: `<div style="padding-right: 4px; padding-left: 2px"><img class="shakeMe whenLight" src="/images/pve-electrified_logo_titlebar_lightTheme.png" height="30" style="position: relative; top:2px"><img class="shakeMe whenDark" src="/images/pve-electrified_logo_dark.png" height="30" style="position: relative; top:2px"></div>`,
                         },
                         {
                             minWidth: 150,
