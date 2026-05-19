@@ -591,7 +591,7 @@ export const muiTheme = createTheme({
  * @param dialogProps see the Blueprint dialog props. + The property electrify niceElectrifiedStyle (default: true)
  * @param contentComponentFn
  */
-export async function showBlueprintDialog<T>(dialogProps: Partial<BlueprintDialogProps & {niceElectrifiedStyle: boolean}>, contentComponentFn: FunctionComponent<{resolve: (result: T) => void, close: () => void}>) {
+export async function showBlueprintDialog<T>(dialogProps: Partial<BlueprintDialogProps & {niceElectrifiedStyle?: boolean | {maxSparkWidth?: number}}>, contentComponentFn: FunctionComponent<{resolve: (result: T) => void, close: () => void}>) {
     return new Promise<T|undefined>((resolve) => {
         // We need some <div/> to render into
         const targetDiv = document.createElement("div");
@@ -627,14 +627,17 @@ export async function showBlueprintDialog<T>(dialogProps: Partial<BlueprintDialo
                         return;
                     }
 
-                    const sparkImageWidth = 486;
-                    const sparkImageHeight = 660;
+                    const consts = coolBackgroundMask_consts;
                     const topSpikeXPosition = 407; // so the headerbar can exactly be aligned
                     const lowerSpikeXPosition = 250; // So the footer bar's right edge can be aligned to it
-                    const scaleFactor = contentDiv.offsetHeight / sparkImageHeight;
+                    const maxSparkWidth = ((typeof dialogProps.niceElectrifiedStyle === "object") && dialogProps.niceElectrifiedStyle?.maxSparkWidth) || 350
+                    const yScaleFactor = contentDiv.offsetHeight / consts.maskImagesSourceHeight;
+                    const xScaleFactor = Math.min(consts.maskImageRightSourceWidth * yScaleFactor, Math.min(consts.maskImageRightSourceWidth, maxSparkWidth)) / consts.maskImageRightSourceWidth;
+
+
                     const shiftSparkToTheLeft = 65;
 
-                    const enhancedContentWidthPx = (sparkImageWidth - shiftSparkToTheLeft) * scaleFactor;
+                    const enhancedContentWidthPx = (consts.maskImageRightSourceWidth - shiftSparkToTheLeft) * xScaleFactor;
                     const dialog = contentDiv.parentElement!;
                     const body = dialog!.querySelector(".bp6-dialog-body") as HTMLElement;
                     const originalBodyOffsetWidth = body.offsetWidth;
@@ -651,11 +654,11 @@ export async function showBlueprintDialog<T>(dialogProps: Partial<BlueprintDialo
                     // Align header:
                     const headerDiv = dialog!.querySelector(".bp6-dialog-header") as HTMLElement;
                     const origHeaderWidth = headerDiv.offsetWidth;
-                    headerDiv.style.width = `${origHeaderWidth + (-sparkImageWidth + topSpikeXPosition) * scaleFactor}px`
+                    headerDiv.style.width = `${origHeaderWidth + (-consts.maskImageRightSourceWidth + topSpikeXPosition) * xScaleFactor}px`
 
                     // Align footer:
                     const footerDiv = dialog!.querySelector(".bp6-dialog-footer") as HTMLElement;
-                    footerDiv.style.width = `${footerDiv.offsetWidth + (-sparkImageWidth + (footerDiv.offsetHeight < (170 * scaleFactor)?lowerSpikeXPosition:0)) * scaleFactor}px`
+                    footerDiv.style.width = `${footerDiv.offsetWidth + (-consts.maskImageRightSourceWidth + (footerDiv.offsetHeight < (170 * xScaleFactor)?lowerSpikeXPosition:0)) * xScaleFactor}px`
 
                     dialog.style.backgroundColor = "initial";
                     dialog.style.boxShadow = "initial";
@@ -1446,23 +1449,27 @@ export function record2guestConfigEntry(record: Map<string, string>) {
 }
 
 const coolBackgroundMask_keys = ["backgroundImage", "backgroundSize", "backgroundRepeat", "backgroundPositionX"];
+var coolBackgroundMask_consts = {
+    maskImageRightSourceWidth: 486,
+    maskImageLeftSourceWidth: 0,
+    maskImagesSourceHeight: 660,
+    backgroundOverLap: 150, // Overlap the background into the mask images to prevent quirks sometins
 
+}
 /**
  *
  * @param el
  * @param colorClass i.e. "hovered", "selected". Will automaticalled be suffixed with dark theme
  */
-export function coolBackgroundMask(el: HTMLElement, colorClass: string) {
+export function coolBackgroundMask(el: HTMLElement, colorClass: string, maxImageRightWidh = 350) {
+    const consts = coolBackgroundMask_consts;
     el.style.backgroundColor = "initial"; // Clear classic style
-
-    const maskImageRightWidth = 486;
-    const maskImageLeftWidth = 0;
-    const maskImagesHeight = 660;
-    const backgroundOverLap = 150; // Overlap the background into the mask images to prevent quirks sometins
 
     const cssValues: {}[] = []
 
-    const scaleFactor = el.offsetHeight / maskImagesHeight;
+    const yScaleFactor = el.offsetHeight / consts.maskImagesSourceHeight;
+    const xLeftScaleFactor = yScaleFactor;
+    const xRightScaleFactor = Math.min(consts.maskImageRightSourceWidth * yScaleFactor, maxImageRightWidh) / consts.maskImageRightSourceWidth;
 
 
 
@@ -1470,7 +1477,7 @@ export function coolBackgroundMask(el: HTMLElement, colorClass: string) {
     // Left mask
     cssValues.push({
         backgroundImage: `url(/images/cool_background_mask_left_${colorClass}_${isPVEDarkTheme()?"darkTheme":"lightTheme"}.png)`,
-        backgroundSize: `${maskImageLeftWidth * scaleFactor}px ${el.offsetHeight}px`,
+        backgroundSize: `${maskImageLeftSourceWidth * scaleFactor}px ${el.offsetHeight}px`,
         backgroundRepeat: "no-repeat",
         backgroundPositionX: "0",
     })
@@ -1479,7 +1486,7 @@ export function coolBackgroundMask(el: HTMLElement, colorClass: string) {
     // Right mask
     cssValues.push({
         backgroundImage: `url(/images/cool_background_mask_right_${colorClass}_${isPVEDarkTheme()?"darkTheme":"lightTheme"}.png)`,
-        backgroundSize: `${maskImageRightWidth * scaleFactor}px ${el.offsetHeight}px`,
+        backgroundSize: `${consts.maskImageRightSourceWidth * xRightScaleFactor}px ${el.offsetHeight}px`,
         backgroundRepeat: "no-repeat",
         backgroundPositionX: "right",
     })
@@ -1487,9 +1494,9 @@ export function coolBackgroundMask(el: HTMLElement, colorClass: string) {
     // Pixels:
     cssValues.push({
         backgroundImage: `url(/images/cool_background_mask_pixel_${colorClass}_${isPVEDarkTheme()?"darkTheme":"lightTheme"}.png)`,
-        backgroundSize: `${el.offsetWidth + ((-maskImageLeftWidth -maskImageRightWidth + backgroundOverLap) * scaleFactor)}px ${el.offsetHeight}px`,
+        backgroundSize: `${el.offsetWidth + (-consts.maskImageLeftSourceWidth * xLeftScaleFactor) + ((-consts.maskImageRightSourceWidth + consts.backgroundOverLap) * xRightScaleFactor)}px ${el.offsetHeight}px`,
         backgroundRepeat: "no-repeat",
-        backgroundPositionX: `${maskImageLeftWidth * scaleFactor}px`,
+        backgroundPositionX: `${consts.maskImageLeftSourceWidth * xLeftScaleFactor}px`,
     })
 
     // Apply cssValues
