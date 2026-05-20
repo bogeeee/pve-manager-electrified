@@ -271,6 +271,7 @@ export class Node extends GuestsContainerBase implements NotificationTarget {
         const clientTimestamp = new Date().getTime();
         const resourceStats = getElectrifiedApp().loginData?.cap.nodes["Sys.Audit"]?await this.electrifiedApi.getResourceStats(window.document.hasFocus(), needsCpuUsage):undefined;
 
+        // Apply stats for this node:
         {
             const newStats = resourceStats ? {
                 clientTimestamp,
@@ -279,7 +280,7 @@ export class Node extends GuestsContainerBase implements NotificationTarget {
             this.electrifiedStats = preserve(this.electrifiedStats, newStats);
         }
 
-        // Guests:
+        // Apply stats to guests:
         if(resourceStats) {
             const guestStatsMap = new Map(resourceStats.guestCpuUsage.map(g => [g.guestId, g])); // convert to map
             for(const guest of this._guests.values()) {

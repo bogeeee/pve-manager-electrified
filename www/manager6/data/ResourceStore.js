@@ -306,6 +306,38 @@ Ext.define('PVE.data.ResourceStore', {
                 hidden: true,
                 sortable: true,
                 width: 110,
+                convert: function (value, record) {
+                    /**
+                     * Retrieves it from a more up2date source: The electrified's pid, if possible
+                     * @returns {string}
+                     */
+                    function getImprovedValue() {
+                        if(record.data.type === "qemu" || record.data.type === "lxc") {
+                            if (!window.electrifiedApp.initialized) {
+                                return;
+                            }
+                            const guest = window.electrifiedApp.datacenter.getGuest(record.data.vmid);
+                            if(!guest) {
+                                return;
+                            }
+                            const max_electrifiedStats_age = 5000;
+                            if(value === "stopped" && guest.electrifiedStats?.pid && (guest.electrifiedStats.clientTimestamp + max_electrifiedStats_age) > new Date().getTime()) {
+                                return "running";
+                            }
+                            if(value === "running" && !guest.electrifiedStats && guest.parent?.electrifiedStats && (guest.parent.electrifiedStats.clientTimestamp + max_electrifiedStats_age) > new Date().getTime()) {
+                                return "stopped";
+                            }
+                        }
+                    }
+
+                    try {
+                        return getImprovedValue() || value;
+                    }
+                    catch (e) {
+                        console.log(e);
+                    }
+                    return value
+                }
             },
             lock: {
                 header: gettext('Lock'),
