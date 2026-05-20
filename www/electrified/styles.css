@@ -97,3 +97,7 @@
 .treeRow-row-contextMenu {
     outline: 1px solid #767171;
 }
+
+.electrified_hide_while_initializing {
+    visibility: hidden;
+}

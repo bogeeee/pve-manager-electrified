@@ -592,6 +592,14 @@ export const muiTheme = createTheme({
  * @param contentComponentFn
  */
 export async function showBlueprintDialog<T>(dialogProps: Partial<BlueprintDialogProps & {niceElectrifiedStyle?: boolean | {maxSparkWidth?: number}}>, contentComponentFn: FunctionComponent<{resolve: (result: T) => void, close: () => void}>) {
+    dialogProps = {
+        transitionDuration:0,
+        backdropProps: {style: {opacity: 0.75}},
+        className: (dialogProps.niceElectrifiedStyle !== false)?"electrified_hide_while_initializing": undefined,
+        style: {visibility: "hidden", opacity: 0.2},
+        ...dialogProps,
+    }
+
     return new Promise<T|undefined>((resolve) => {
         // We need some <div/> to render into
         const targetDiv = document.createElement("div");
@@ -619,13 +627,13 @@ export async function showBlueprintDialog<T>(dialogProps: Partial<BlueprintDialo
                 if(dialogProps.niceElectrifiedStyle === false) {
                     return;
                 }
+                spawnAsync(async () => {
+                    // Wait till containerRef.current is set (it is not set from the beginning on an there seems to be no working event for it):
+                    await retryTilSuccess(async () => {
+                        containerRef.current || throwError(new RetryableError("got no containerRef"))
+                    }, {maxTime: 1000})
 
-                let contentDiv: HTMLElement | undefined;
-                setTimeout(() => {
-                    contentDiv = containerRef.current?.querySelector(".electrifiedBlueprintDialogContent")!;
-                    if(!contentDiv) {
-                        return;
-                    }
+                    const contentDiv: HTMLElement = containerRef.current!.querySelector(".electrifiedBlueprintDialogContent")!;
 
                     const consts = coolBackgroundMask_consts;
                     const topSpikeXPosition = 407; // so the headerbar can exactly be aligned
@@ -663,9 +671,12 @@ export async function showBlueprintDialog<T>(dialogProps: Partial<BlueprintDialo
                     dialog.style.backgroundColor = "initial";
                     dialog.style.boxShadow = "initial";
                     coolBackgroundMask(contentDiv!, "dialog");
-                },100)
 
-            })
+                    setTimeout(() => dialog.classList.remove("electrified_hide_while_initializing"), 50);
+                })
+
+                }, []);
+
 
             return <BlueprintDialog containerRef={containerRef as any} className={isPVEDarkTheme()?"bp6-dark":undefined} usePortal={true} portalContainer={document.body} isOpen={open} {...dialogProps} onClose={() => {
                     close();
