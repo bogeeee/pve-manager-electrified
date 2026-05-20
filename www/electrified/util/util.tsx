@@ -593,10 +593,9 @@ export const muiTheme = createTheme({
  */
 export async function showBlueprintDialog<T>(dialogProps: Partial<BlueprintDialogProps & {niceElectrifiedStyle?: boolean | {maxSparkWidth?: number}}>, contentComponentFn: FunctionComponent<{resolve: (result: T) => void, close: () => void}>) {
     dialogProps = {
-        transitionDuration:0,
+        transitionDuration:(dialogProps.niceElectrifiedStyle !== false)?0:100,
         backdropProps: {style: {opacity: 0.75}},
-        className: (dialogProps.niceElectrifiedStyle !== false)?"electrified_hide_while_initializing": undefined,
-        style: {visibility: "hidden", opacity: 0.2},
+        className: (dialogProps.niceElectrifiedStyle !== false)?"electrified_hide_while_initializing": undefined, // this is to prevent flickering while adding the niceElectrifiedStyle effects
         ...dialogProps,
     }
 

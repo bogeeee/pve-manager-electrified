@@ -99,5 +99,5 @@
 }
 
 .electrified_hide_while_initializing {
-    visibility: hidden;
+    opacity: 0; /* hide. Don't use visibility: hidden because it removes the auto-focus from inputs */
 }
