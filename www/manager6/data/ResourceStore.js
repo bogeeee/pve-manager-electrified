@@ -130,6 +130,13 @@ Ext.define('PVE.data.ResourceStore', {
                         if (info.name) {
                             text += ' (' + info.name + ')';
                         }
+                        else {
+                            try {
+                                const improvedName = getImprovedName();
+                                text += (improvedName?` ${improvedName}`:"");
+                            }
+                            catch (e) {}
+                        }
                     } else {
                         // node, pool, storage
                         text = info[info.type] || info.id;
@@ -139,6 +146,23 @@ Ext.define('PVE.data.ResourceStore', {
                     }
 
                     return text;
+
+                    /**
+                     * Retrieves it from a more up2date source
+                     * @returns {string}
+                     */
+                    function getImprovedName() {
+                        if (record.data.type === "qemu" || record.data.type === "lxc") {
+                            if (!window.electrifiedApp.initialized) {
+                                return;
+                            }
+                            const guest = window.electrifiedApp.datacenter.getGuest(record.data.vmid);
+                            if (!guest) {
+                                return;
+                            }
+                            return guest.name;
+                        }
+                    }
                 },
             },
             vmid: {
