@@ -217,25 +217,26 @@ export async function showCloneDialog(param_source: Guest) {
 
         return <div>
             <div className={Classes.DIALOG_BODY} >
-                <table>
-                    <tbody>
-                    <tr>
-                        {/* Target node: */}
-                        <td className="electrifiedFormLabel">{t`Target node`}:</td>
-                        <td><ObjectHTMLSelect binding={binding(state.targetNode)} items={app.datacenter.nodes.map(node => {return {value:node, content: node.name}})} fill={true}/></td>
+                <form onKeyDown={(event) => {if(event.key === "Enter") { event.preventDefault();if(isValid()) props.resolve(state) }}}>
+                    <table>
+                        <tbody>
+                        <tr>
+                            {/* Target node: */}
+                            <td className="electrifiedFormLabel">{t`Target node`}:</td>
+                            <td><ObjectHTMLSelect binding={binding(state.targetNode)} items={app.datacenter.nodes.map(node => {return {value:node, content: node.name}})} fill={true}/></td>
 
-                        <td className="electrifiedDialogSpacer"/>
+                            <td className="electrifiedDialogSpacer"/>
 
-                        {/* Snapshot: */}
-                        <td className="electrifiedFormLabel">{t`Snapshot`}:</td>
-                        <td><ObjectHTMLSelect binding={binding(state.snapshot)} items={[...load(() => origGuest.snapshotRoot.getSnapshotsSorted(),{preserve: false, deps: [READS_INSIDE_LOADER_FN], fallback: []})].reverse().map(snap => {return {value: snap, content: snap.isSnapshot()?snap.snapshotName:t`Current`}})} fill={true} /></td>
-                    </tr>
-                    <tr>
-                        {/* Guest Id: */}
-                        <td className="electrifiedFormLabel">{t`Guest ID`}:</td>
-                        <td><NumericInput value={state.id} onValueChange={(val) => state.id = val} min={0} max={99999} fill={true}/></td>
+                            {/* Snapshot: */}
+                            <td className="electrifiedFormLabel">{t`Snapshot`}:</td>
+                            <td><ObjectHTMLSelect binding={binding(state.snapshot)} items={[...load(() => origGuest.snapshotRoot.getSnapshotsSorted(),{preserve: false, deps: [READS_INSIDE_LOADER_FN], fallback: []})].reverse().map(snap => {return {value: snap, content: snap.isSnapshot()?snap.snapshotName:t`Current`}})} fill={true} /></td>
+                        </tr>
+                        <tr>
+                            {/* Guest Id: */}
+                            <td className="electrifiedFormLabel">{t`Guest ID`}:</td>
+                            <td><NumericInput value={state.id} onValueChange={(val) => state.id = val} min={0} max={99999} fill={true}/></td>
 
-                        <td className="electrifiedDialogSpacer"/>
+                            <td className="electrifiedDialogSpacer"/>
 
                         {/* Target storage: */}
                         <td className="electrifiedFormLabel">{t`Target storage`}:</td>
@@ -244,83 +245,84 @@ export async function showCloneDialog(param_source: Guest) {
                     <tr>
                         {/* Name: */}
                         <td className="electrifiedFormLabel">{t`Name`}:</td>
-                        <td colSpan={4}><InputGroup {...bind(state.name)} fill={true}/> </td>
+                        <td colSpan={4}><InputGroup {...bind(state.name)} fill={true} autoFocus={true}/> </td>
 
 
+                        </tr>
+                        <tr>
+                            {/* Resource pool: */}
+                            <td className="electrifiedFormLabel">{t`Resource pool`}:</td>
+                            <td colSpan={4}><ObjectHTMLSelect binding={binding(state.pool)} items={[{value: undefined, content: t`No pool`}, ...app.datacenter.pools.map(pool => {return {value: pool, content: pool.name}})]} fill={true}/></td>
+                        </tr>
+                        <tr><td colSpan={99}><hr/></td></tr>
+                        </tbody></table>
+                    <table style={{width: "100%"}}><tbody>
+                    {origGuest instanceof Qemu &&
+                    <tr>
+                        {/* With RAM: */}
+                        <td className="electrifiedFormLabel"><span className="fa pve-itype-icon-memory" style={{width: "14px", height: "8px", position: "relative", left: "-4px"}}/>  {t`With RAM`}:</td>
+                        <td style={{...cellStyle, whiteSpace: "nowrap"}}><input type="checkbox" {...bind(state.withRam)} disabled={!state.withRamPossible}/>&#160;<span
+                            style={iconFixStyle as any}><RememberChoiceButton
+                            currentValue={state.withRam}
+                            storageBind={state.isOlderSnapshot?binding(fastCloneUserConfig.withRam_forOlderSnapshots):binding(fastCloneUserConfig.withRam_forCurrent)}
+                            tooltip={state.isOlderSnapshot?t`Set as default for this dialog for cloning from an older snapshot`:t`Set as default for this dialog when cloning from **current** state`}
+                            disabled={!state.withRamPossible}
+                        /></span></td>
+                    </tr>
+                    }
+                    <tr>
+                        {/* Take initial snapshot: */}
+                        <td className="electrifiedFormLabel"><span className="fa fa-history"/> {t`Take an initial snapshot, named "cloned"`}:</td>
+                        <td style={{...cellStyle, whiteSpace: "nowrap"}}><input type="checkbox" {...bind(state.createInitialSnapshot)} disabled={state.withRam && state.withRamPossible}/>&#160;<span style={iconFixStyle as any}><RememberChoiceButton currentValue={state.createInitialSnapshot} storageBind={binding(fastCloneUserConfig.createInitialSnapshot)} disabled={state.withRam && state.withRamPossible}/></span></td>
+                        <td width="100%"></td>
                     </tr>
                     <tr>
-                        {/* Resource pool: */}
-                        <td className="electrifiedFormLabel">{t`Resource pool`}:</td>
-                        <td colSpan={4}><ObjectHTMLSelect binding={binding(state.pool)} items={[{value: undefined, content: t`No pool`}, ...app.datacenter.pools.map(pool => {return {value: pool, content: pool.name}})]} fill={true}/></td>
+                        {/* Randomize mac addresses: */}
+                        <td style={cellStyle} className="electrifiedFormLabel"><span className="fa fa-random"/> {t`Randomize MAC address(es)`}:</td>
+                        <td style={{...cellStyle, whiteSpace: "nowrap"}}>
+                            <input type="checkbox" {...bind(state.randomizeMacAddresses)}/>&#160;<span style={iconFixStyle as any}><RememberChoiceButton currentValue={state.randomizeMacAddresses} storageBind={binding(fastCloneUserConfig.randomizeMacAddresses)}/></span>
+                        </td>
+                        <td style={cellStyle}>
+                            {(state.withRamPossible && state.withRam && origGuest.isRunning())&& <div><span className={"fa fa-exclamation-triangle"}/> {t`This won't affect your cloned **running** state, so you might still have address conflicts until you stop and re-start the clone.`}</div>}
+                        </td>
                     </tr>
-                    <tr><td colSpan={99}><hr/></td></tr>
-                    </tbody></table>
-                <table style={{width: "100%"}}><tbody>
-                {origGuest instanceof Qemu &&
-                <tr>
-                    {/* With RAM: */}
-                    <td className="electrifiedFormLabel"><span className="fa pve-itype-icon-memory" style={{width: "14px", height: "8px", position: "relative", left: "-4px"}}/>  {t`With RAM`}:</td>
-                    <td style={{...cellStyle, whiteSpace: "nowrap"}}><input type="checkbox" {...bind(state.withRam)} disabled={!state.withRamPossible}/>&#160;<span
-                        style={iconFixStyle as any}><RememberChoiceButton
-                        currentValue={state.withRam}
-                        storageBind={state.isOlderSnapshot?binding(fastCloneUserConfig.withRam_forOlderSnapshots):binding(fastCloneUserConfig.withRam_forCurrent)}
-                        tooltip={state.isOlderSnapshot?t`Set as default for this dialog for cloning from an older snapshot`:t`Set as default for this dialog when cloning from **current** state`}
-                        disabled={!state.withRamPossible}
-                    /></span></td>
-                </tr>
-                }
-                <tr>
-                    {/* Take initial snapshot: */}
-                    <td className="electrifiedFormLabel"><span className="fa fa-history"/> {t`Take an initial snapshot, named "cloned"`}:</td>
-                    <td style={{...cellStyle, whiteSpace: "nowrap"}}><input type="checkbox" {...bind(state.createInitialSnapshot)} disabled={state.withRam && state.withRamPossible}/>&#160;<span style={iconFixStyle as any}><RememberChoiceButton currentValue={state.createInitialSnapshot} storageBind={binding(fastCloneUserConfig.createInitialSnapshot)} disabled={state.withRam && state.withRamPossible}/></span></td>
-                    <td width="100%"></td>
-                </tr>
-                <tr>
-                    {/* Randomize mac addresses: */}
-                    <td style={cellStyle} className="electrifiedFormLabel"><span className="fa fa-random"/> {t`Randomize MAC address(es)`}:</td>
-                    <td style={{...cellStyle, whiteSpace: "nowrap"}}>
-                        <input type="checkbox" {...bind(state.randomizeMacAddresses)}/>&#160;<span style={iconFixStyle as any}><RememberChoiceButton currentValue={state.randomizeMacAddresses} storageBind={binding(fastCloneUserConfig.randomizeMacAddresses)}/></span>
-                    </td>
-                    <td style={cellStyle}>
-                        {(state.withRamPossible && state.withRam && origGuest.isRunning())&& <div><span className={"fa fa-exclamation-triangle"}/> {t`This won't affect your cloned **running** state, so you might still have address conflicts until you stop and re-start the clone.`}</div>}
-                    </td>
-                </tr>
-                {origGuest.type === "qemu" &&
-                <tr>
-                    {/* Randomize vmgenId: */}
-                    <td className="electrifiedFormLabel"><span className="fa fa-random"/> {t`Randomize VM gen id`}:</td>
-                    <td style={{...cellStyle, whiteSpace: "nowrap"}}>
-                        <input type="checkbox" {...bind(state.randomizeVmGenId)}/>&#160;<span style={iconFixStyle as any}><RememberChoiceButton currentValue={state.randomizeVmGenId} storageBind={binding(fastCloneUserConfig.randomizeVmGenId)}/></span>
-                    </td>
-                </tr>
-                }
-                <tr>
-                    {/* Start guest: */}
-                    <td className="electrifiedFormLabel"><span className="fa fa-play"/> {t`Start guest`}:</td>
-                    <td style={{...cellStyle, whiteSpace: "nowrap"}}><input type="checkbox" {...bind(state.start)}/>&#160;<span style={iconFixStyle as any}><RememberChoiceButton currentValue={state.start} storageBind={state.withRam?binding(fastCloneUserConfig.start_withRam):binding(fastCloneUserConfig.start)} tooltip={state.withRam?t`Set as default for this dialog for when cloning **With RAM**`:t`Set as default for this dialog when cloning **without RAM**`}/></span></td>
-                </tr>
-                <tr>
-                    {/* Include in same backups as source */}
-                    <td className="electrifiedFormLabel" style={{...cellStyle, maxWidth: "200px"}}><span className="fa fa-save"/> {t`List in same backup jobs as source`}:</td>
-                    <td style={{...cellStyle, whiteSpace: "nowrap"}}><input type="checkbox" {...bind(state.listInBackupJobs)} disabled={affectedIncludeBackupJobs.length === 0 && affectedExcludeBackupJobs.length === 0} />&#160;<span style={iconFixStyle as any}><RememberChoiceButton currentValue={state.listInBackupJobs} storageBind={binding(fastCloneUserConfig.listInBackupJobs)} disabled={affectedIncludeBackupJobs.length === 0 && affectedExcludeBackupJobs.length === 0}/></span></td>
-                </tr>
-                <tr>
-                    <td colSpan={99} className="electrifiedFormLabel" style={{...cellStyle, maxWidth: "200px"}}>
-                        <div style={{paddingLeft: "24px", whiteSpace: "initial", position:"relative", top: "-4px"}}><i>
-                            {affectedIncludeBackupJobs.length > 0 && <div>{t`${affectedIncludeBackupJobs.length} job(s) list ${origGuest.id}`} for include → <span style={{textDecoration: state.listInBackupJobs?undefined:"line-through"}}>{t`This will add the clone to the include list as well.`}</span></div>}
-                            {affectedExcludeBackupJobs.length > 0 && <div>{t`${affectedExcludeBackupJobs.length} job(s) list ${origGuest.id}`} for exclude → <span style={{textDecoration: state.listInBackupJobs?undefined:"line-through"}}>{t`This will add the clone to the exclude list as well.`}</span></div>}
-                            {backupJobs.some(b => b.all && !b.excludedGuests.some(g => g.id === origGuest.id)) && <div>{t`${backupJobs.filter(b => b.all && !b.excludedGuests.some(g => g.id === origGuest.id)).length} jobs(s) include all guests (and eventually exclude some irrelevant ones) → No action necessary.`}</div>}
-                            {origGuest.pool && origGuest.pool.name === state.pool?.name && backupJobs.some(b => b._hasPool(origGuest.pool)) && <div>{t`${backupJobs.filter(b => b._hasPool(origGuest.pool)).length} job(s) cover the pool: ${origGuest.pool.name} → No action necessary.`}</div>}
-                            {origGuest.pool && origGuest.pool.name !== state.pool?.name && backupJobs.some(b => b._hasPool(origGuest.pool)) && <div><span className={"fa fa-exclamation-triangle"}/> {t`${backupJobs.filter(b => b._hasPool(origGuest.pool)).length} job(s) cover the pool: ${origGuest.pool.name} → The clone will not be covered by these job(s). Please check the datacenter backup jobs manually.`}</div>}
-                        </i>
-                        </div>
-                    </td>
-                </tr>
-                </tbody>
-                </table>
-                <br/>
-                <div style={{textAlign: "right"}}>&#160;{state.fastClonePossible()!==true?<span><Icon icon={"issue"}/> {t`Fast clone not possible:`} {state.fastClonePossible()}</span>:undefined}</div>
-                {state.snapshot.hasPendingChanges && <div style={{textAlign: "right"}}>&#160;<Icon icon={"issue"}/> {t`The guest has pending hardware changes. These will not be taken into the clone. Please stop the guest first, to apply them.`}</div>}
+                    {origGuest.type === "qemu" &&
+                    <tr>
+                        {/* Randomize vmgenId: */}
+                        <td className="electrifiedFormLabel"><span className="fa fa-random"/> {t`Randomize VM gen id`}:</td>
+                        <td style={{...cellStyle, whiteSpace: "nowrap"}}>
+                            <input type="checkbox" {...bind(state.randomizeVmGenId)}/>&#160;<span style={iconFixStyle as any}><RememberChoiceButton currentValue={state.randomizeVmGenId} storageBind={binding(fastCloneUserConfig.randomizeVmGenId)}/></span>
+                        </td>
+                    </tr>
+                    }
+                    <tr>
+                        {/* Start guest: */}
+                        <td className="electrifiedFormLabel"><span className="fa fa-play"/> {t`Start guest`}:</td>
+                        <td style={{...cellStyle, whiteSpace: "nowrap"}}><input type="checkbox" {...bind(state.start)}/>&#160;<span style={iconFixStyle as any}><RememberChoiceButton currentValue={state.start} storageBind={state.withRam?binding(fastCloneUserConfig.start_withRam):binding(fastCloneUserConfig.start)} tooltip={state.withRam?t`Set as default for this dialog for when cloning **With RAM**`:t`Set as default for this dialog when cloning **without RAM**`}/></span></td>
+                    </tr>
+                    <tr>
+                        {/* Include in same backups as source */}
+                        <td className="electrifiedFormLabel" style={{...cellStyle, maxWidth: "200px"}}><span className="fa fa-save"/> {t`List in same backup jobs as source`}:</td>
+                        <td style={{...cellStyle, whiteSpace: "nowrap"}}><input type="checkbox" {...bind(state.listInBackupJobs)} disabled={affectedIncludeBackupJobs.length === 0 && affectedExcludeBackupJobs.length === 0} />&#160;<span style={iconFixStyle as any}><RememberChoiceButton currentValue={state.listInBackupJobs} storageBind={binding(fastCloneUserConfig.listInBackupJobs)} disabled={affectedIncludeBackupJobs.length === 0 && affectedExcludeBackupJobs.length === 0}/></span></td>
+                    </tr>
+                    <tr>
+                        <td colSpan={99} className="electrifiedFormLabel" style={{...cellStyle, maxWidth: "200px"}}>
+                            <div style={{paddingLeft: "24px", whiteSpace: "initial", position:"relative", top: "-4px"}}><i>
+                                {affectedIncludeBackupJobs.length > 0 && <div>{t`${affectedIncludeBackupJobs.length} job(s) list ${origGuest.id}`} for include → <span style={{textDecoration: state.listInBackupJobs?undefined:"line-through"}}>{t`This will add the clone to the include list as well.`}</span></div>}
+                                {affectedExcludeBackupJobs.length > 0 && <div>{t`${affectedExcludeBackupJobs.length} job(s) list ${origGuest.id}`} for exclude → <span style={{textDecoration: state.listInBackupJobs?undefined:"line-through"}}>{t`This will add the clone to the exclude list as well.`}</span></div>}
+                                {backupJobs.some(b => b.all && !b.excludedGuests.some(g => g.id === origGuest.id)) && <div>{t`${backupJobs.filter(b => b.all && !b.excludedGuests.some(g => g.id === origGuest.id)).length} jobs(s) include all guests (and eventually exclude some irrelevant ones) → No action necessary.`}</div>}
+                                {origGuest.pool && origGuest.pool.name === state.pool?.name && backupJobs.some(b => b._hasPool(origGuest.pool)) && <div>{t`${backupJobs.filter(b => b._hasPool(origGuest.pool)).length} job(s) cover the pool: ${origGuest.pool.name} → No action necessary.`}</div>}
+                                {origGuest.pool && origGuest.pool.name !== state.pool?.name && backupJobs.some(b => b._hasPool(origGuest.pool)) && <div><span className={"fa fa-exclamation-triangle"}/> {t`${backupJobs.filter(b => b._hasPool(origGuest.pool)).length} job(s) cover the pool: ${origGuest.pool.name} → The clone will not be covered by these job(s). Please check the datacenter backup jobs manually.`}</div>}
+                            </i>
+                            </div>
+                        </td>
+                    </tr>
+                    </tbody>
+                    </table>
+                    <br/>
+                    <div style={{textAlign: "right"}}>&#160;{state.fastClonePossible()!==true?<span><Icon icon={"issue"}/> {t`Fast clone not possible:`} {state.fastClonePossible()}</span>:undefined}</div>
+                    {state.snapshot.hasPendingChanges && <div style={{textAlign: "right"}}>&#160;<Icon icon={"issue"}/> {t`The guest has pending hardware changes. These will not be taken into the clone. Please stop the guest first, to apply them.`}</div>}
+                </form>
             </div>
 
             <div className={Classes.DIALOG_FOOTER}>
