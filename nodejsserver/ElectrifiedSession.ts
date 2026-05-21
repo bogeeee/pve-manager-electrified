@@ -24,6 +24,7 @@ import chokidar from "chokidar";
 import {ClientCallbackSet} from "restfuncs-server";
 import {Buffer} from "node:buffer";
 import {Readable as ReadableStream} from "stream";
+import {SaferFileWatcher} from "./util/SaferFileWatcher";
 
 //import {ServerSocketConnection} from "restfuncs-server";
 type ServerSocketConnection = any; // Bug workaround: Don't know why the above line causes typescript-rtti to emit an `import ... from /dist/commonjs/index`. Does not look different than with i.e. ServerSesssion
@@ -368,43 +369,10 @@ export class ElectrifiedSession extends ServerSession {
             await fsPromises.mkdir(parentDir, {recursive: true}); // Create parent dir
         }
         await fsPromises.writeFile(filePath, newContent,{encoding});
-        ElectrifiedSession.bugfix_watchWrittenFile(filePath);
+
+        ElectrifiedSession.fileWatchers.get(filePath).interval = 100; // It was observed that the direct file watcher does not fire anymore, so we increase polling frequency
     }
 
-    /**
-     * Bug: After this process once wrote to a file, the chokidar watcher won't receive any more change events
-     * This polls them still and informs the listeners
-     * @param filePath
-     * @protected
-     */
-    protected static bugfix_watchWrittenFile(filePath: string) {
-        const state = ElectrifiedSession.bugfix_writtenFile_watchers.get(filePath);
-        setInterval(() => spawnAsync(async () => await state.pollForChanges(), false), 100);
-    }
-
-    /**
-     * @see bugfix_watchWrittenFile
-     * @protected
-     */
-    protected static bugfix_writtenFile_watchers = newDefaultMap((path: string) => new class {
-        lastSeenContent = fs.readFileSync(path);
-
-        /**
-         * ... Note: Can occasionally  error
-         */
-        async pollForChanges() {
-            if(!await fileExists(path)) {
-                return;
-            }
-            const currentContent = await fsPromises.readFile(path); // The file still not existing was often observed
-            if(!currentContent.equals(this.lastSeenContent)) { // Changed?
-                this.lastSeenContent = currentContent;
-                const fileStat = await ElectrifiedSession.getFileStat(path);
-                //console.log("change event by bugfix_writtenFile_watchers#pollForChanges. Path: " + path + "; trigger_path:" + path + ", stat: " + JSON.stringify(fileStat));
-                ElectrifiedSession.fileWatchers.get(path).call(fileStat); // call callbacks
-            }
-        }
-    }) as (Map<string, any> /* typescript-rtti somehow gets this type wrong*/);
 
     @remote async removeFile(path: string) {
         await fsPromises.rm(path, {recursive: true})
@@ -431,37 +399,7 @@ export class ElectrifiedSession extends ServerSession {
      * Bug worakound: ":any" because typescript-rtti tries to follow the type and creates a broken import statement: "import ... from "restfuncs-server/dist/commonjs/..."
      * @protected
      */
-    protected static fileWatchers: any = newDefaultMap((path: string)=> {
-        const clientCallbacks = new ClientCallbackSet<[stat: Awaited<ReturnType<ElectrifiedSession["getFileStat"]>>]>();
-
-        // Also create the watcher here, now that we are on a one-per file invocation. Low prio TODO: remove this watcher when all clients are disconnected
-        const watcher = chokidar.watch(path, {
-            persistent: false, atomic: true,
-            ignoreInitial: true,
-            depth:0, // For directories, only the first child level
-        });
-        ['add','change', 'unlink','addDir', 'unlinkDir'].forEach(async (eventName) => {
-            (watcher as any).on(eventName, async (trigger_path?: any) => {
-                const fileStat = await ElectrifiedSession.getFileStat(path);
-                //console.log("change event. Path: " + path + "; trigger_path:" + trigger_path + ": " + eventName + " stat: " + JSON.stringify(fileStat));
-
-                // Inform listeners:
-                if(eventName === "change" && ElectrifiedSession.bugfix_writtenFile_watchers.has(path)) { // in bugfix mode?
-                    spawnAsync(() => ElectrifiedSession.bugfix_writtenFile_watchers.get(path).pollForChanges(), false); // use this method to inform clientCallbacks only once
-                }
-                else {
-                    clientCallbacks.call(fileStat);
-                }
-
-            });
-        });
-
-        (watcher as any).on("error", async (error: unknown) => {
-            console.error(error);
-        });
-
-        return clientCallbacks;
-    })
+    protected static fileWatchers: any = newDefaultMap((path: string)=> new SaferFileWatcher(path, 2000));
 
     /**
      * Informs you when a file content was changed, or it was added or deleted.
@@ -470,11 +408,11 @@ export class ElectrifiedSession extends ServerSession {
      * @param callback
      */
     @remote onFileChanged(path: string, callback: (stat: Awaited<ReturnType<ElectrifiedSession["getFileStat"]>>) => void) {
-       ElectrifiedSession.fileWatchers.get(path).add(callback);
+       ElectrifiedSession.fileWatchers.get(path).listeners.add(callback);
     }
 
     @remote offFileChanged(path: string, callback: (stat: Awaited<ReturnType<ElectrifiedSession["getFileStat"]>>) => void) {
-        ElectrifiedSession.fileWatchers.get(path).remove(callback);
+        ElectrifiedSession.fileWatchers.get(path).listeners.remove(callback);
     }
 
     /**
