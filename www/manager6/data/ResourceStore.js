@@ -131,11 +131,12 @@ Ext.define('PVE.data.ResourceStore', {
                             text += ' (' + info.name + ')';
                         }
                         else {
-                            try {
-                                const improvedName = getImprovedName();
-                                text += (improvedName?` ${improvedName}`:"");
+                            if (record.data.type === "qemu" || record.data.type === "lxc") {
+                                const fixedName = window.electrifiedApp._fix_nameHints.get(record.data.vmid);
+                                if(fixedName) {
+                                    text += ` ${fixedName}`;
+                                }
                             }
-                            catch (e) {}
                         }
                     } else {
                         // node, pool, storage
@@ -146,23 +147,6 @@ Ext.define('PVE.data.ResourceStore', {
                     }
 
                     return text;
-
-                    /**
-                     * Retrieves it from a more up2date source
-                     * @returns {string}
-                     */
-                    function getImprovedName() {
-                        if (record.data.type === "qemu" || record.data.type === "lxc") {
-                            if (!window.electrifiedApp.initialized) {
-                                return;
-                            }
-                            const guest = window.electrifiedApp.datacenter.getGuest(record.data.vmid);
-                            if (!guest) {
-                                return;
-                            }
-                            return guest.name;
-                        }
-                    }
                 },
             },
             vmid: {
@@ -177,6 +161,13 @@ Ext.define('PVE.data.ResourceStore', {
                 hidden: true,
                 sortable: true,
                 type: 'string',
+                convert: function (value, record) {
+                    const item = record.data;
+                    if(!value && (item.type === "lxc" || item.type === "qemu")) {
+                        return window.electrifiedApp._fix_nameHints.get(item.vmid) || "";
+                    }
+                    return value;
+                }
             },
             disk: {
                 header: gettext('Disk usage'),

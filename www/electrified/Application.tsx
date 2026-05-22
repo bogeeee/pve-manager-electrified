@@ -865,6 +865,11 @@ export class Application extends AsyncConstructableClass{
         }, 30)
     }
 
+    /**
+     * For fresh created clones: The resource store does not return the proper name for a while, so it is provided  here / fetched from here
+     */
+    _fix_nameHints = new Map<number, string>();
+
     get _electrifiedFeaturesPlugin(): ElectrifiedFeaturesPlugin {
         return this.getPluginByClass(ElectrifiedFeaturesPlugin)  as ElectrifiedFeaturesPlugin || throwError("Not yet initialized / constructor has not been called yet");
     }

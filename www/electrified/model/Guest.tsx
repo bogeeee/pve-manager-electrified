@@ -796,6 +796,9 @@ export abstract class Guest extends ModelBase implements NotificationTarget {
         try {
             let sourceSnapshot: Guest = cloneParams.snapshot;
             let clone: Guest;
+
+            app._fix_nameHints.set(cloneParams.id, cloneParams.name); setTimeout(() => app._fix_nameHints.delete(cloneParams.id), 20000); // Help the resource tree to display the propert name
+
             if(cloneParams.fastClonePossible() === true) {
                 let sourceSnapshotName = cloneParams.snapshot.snapshotName;
                 if(sourceSnapshotName === undefined) {
