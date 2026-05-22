@@ -138,10 +138,6 @@ export abstract class Guest extends ModelBase implements NotificationTarget {
     netout!:number
 
     /**
-     *
-     */
-    status!:"running" | "stopped"
-    /**
      * Tags
      */
     tags!: string[]
@@ -649,7 +645,7 @@ export abstract class Guest extends ModelBase implements NotificationTarget {
      * @param fields fields from resource store (classic pve)
      */
     _updateFieldsFromResourceStore(fields: any) {
-        const fieldsToCopy: (keyof this)[] = ["cpu","disk","diskread", "diskwrite", "hastate", "maxcpu", "maxdisk", "maxmem", "mem", "netin", "netout", "status", "uptime"];
+        const fieldsToCopy: (keyof this)[] = ["cpu","disk","diskread", "diskwrite", "hastate", "maxcpu", "maxdisk", "maxmem", "mem", "netin", "netout", "uptime"];
         for(const key of fieldsToCopy) {
             //@ts-ignore
             this[key] = fields[key];
@@ -690,6 +686,25 @@ export abstract class Guest extends ModelBase implements NotificationTarget {
 
     isLocked() {
         return this.lock !== undefined && this.lock !== "";
+    }
+
+    /**
+     *
+     * @param plainValue the value from the resource
+     */
+    _getImproveStatus(plainValue: string) {
+        const max_electrifiedStats_age = 5000;
+        if((plainValue === "stopped" || plainValue === "unknown") && this.electrifiedStats?.pid && (this.electrifiedStats.clientTimestamp + max_electrifiedStats_age) > new Date().getTime()) {
+            return "running";
+        }
+        if(plainValue === "running" && !this.electrifiedStats && this.parent?.electrifiedStats && (this.parent.electrifiedStats.clientTimestamp + max_electrifiedStats_age) > new Date().getTime()) {
+            return "stopped";
+        }
+        return plainValue;
+    }
+
+    get status(): "running" | "stopped" {
+        return this._getImproveStatus(this.rawDataRecord["status"] as string) as any;
     }
 
     isRunning() {

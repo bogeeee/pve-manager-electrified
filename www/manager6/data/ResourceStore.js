@@ -331,17 +331,7 @@ Ext.define('PVE.data.ResourceStore', {
                             if (!window.electrifiedApp.initialized) {
                                 return;
                             }
-                            const guest = window.electrifiedApp.datacenter.getGuest(record.data.vmid);
-                            if(!guest) {
-                                return;
-                            }
-                            const max_electrifiedStats_age = 5000;
-                            if((value === "stopped" || value === "unknown") && guest.electrifiedStats?.pid && (guest.electrifiedStats.clientTimestamp + max_electrifiedStats_age) > new Date().getTime()) {
-                                return "running";
-                            }
-                            if(value === "running" && !guest.electrifiedStats && guest.parent?.electrifiedStats && (guest.parent.electrifiedStats.clientTimestamp + max_electrifiedStats_age) > new Date().getTime()) {
-                                return "stopped";
-                            }
+                            return window.electrifiedApp.datacenter.getGuest(record.data.vmid)?._getImproveStatus(value);
                         }
                     }
 
