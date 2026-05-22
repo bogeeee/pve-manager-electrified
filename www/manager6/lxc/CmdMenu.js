@@ -113,6 +113,15 @@ Ext.define('PVE.lxc.CmdMenu', {
                 },
             },
             {
+                text: gettext('Remove'),
+                disabled: !caps.vms['VM.Allocate'],
+                itemId: 'removeBtn',
+                handler: function () {
+                    window.electrifiedApp._deleteItem(info);
+                },
+                iconCls: 'fa fa-trash-o',
+            },
+            {
                 text: `<span style="text-decoration: line-through">${gettext('Convert to template')}</span>`,
                 iconCls: 'fa fa-fw fa-file-o',
                 handler: function () {

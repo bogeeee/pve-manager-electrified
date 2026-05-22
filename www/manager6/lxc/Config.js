@@ -165,18 +165,7 @@ Ext.define('PVE.lxc.Config', {
                         disabled: !caps.vms['VM.Allocate'],
                         itemId: 'removeBtn',
                         handler: function () {
-                            Ext.create('PVE.window.SafeDestroyGuest', {
-                                url: base_url,
-                                item: {
-                                    type: 'CT',
-                                    id: vmid,
-                                    formattedIdentifier: PVE.Utils.getFormattedGuestIdentifier(
-                                        vmid,
-                                        vm.name,
-                                    ),
-                                },
-                                taskName: 'vzdestroy',
-                            }).show();
+                            window.electrifiedApp._deleteItem(vm);
                         },
                         iconCls: 'fa fa-trash-o',
                     },
@@ -425,7 +414,7 @@ Ext.define('PVE.lxc.Config', {
 
             startBtn.setDisabled(!caps.vms['VM.PowerMgmt'] || status === 'running' || template);
             shutdownBtn.setDisabled(!caps.vms['VM.PowerMgmt'] || status !== 'running');
-            me.down('#removeBtn').setDisabled(!caps.vms['VM.Allocate'] || status !== 'stopped');
+            me.down('#removeBtn').setDisabled(!caps.vms['VM.Allocate']);
             consoleBtn.setDisabled(template);
 
             if (prevStatus === 'stopped' && status === 'running') {

@@ -116,6 +116,11 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
             forceStopAfterSeconds: 60,
             alternatingMode: false,
         }
+
+        deleteGuestDialog = {
+            purge: false,
+            destroyUnreferencedDisks: false,
+        }
     }
 
     /**

@@ -1046,6 +1046,13 @@ export abstract class Guest extends ModelBase implements NotificationTarget {
     }
 
     /**
+     * Stops the guest immediately
+     */
+    async stop() {
+        await this.parent.awaitTask(await this.parent.api2fetch("POST", `/${this.type}/${this.id}/status/stop`,{"overrule-shutdown": true}));
+    }
+
+    /**
      * ... displays a Dialog when there are resource conflicts (or not enough resources) before actually starting it.
      */
     async startInteractively() {

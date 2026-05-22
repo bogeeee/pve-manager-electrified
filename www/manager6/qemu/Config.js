@@ -131,18 +131,7 @@ Ext.define('PVE.qemu.Config', {
                         itemId: 'removeBtn',
                         disabled: !caps.vms['VM.Allocate'],
                         handler: function () {
-                            Ext.create('PVE.window.SafeDestroyGuest', {
-                                url: base_url,
-                                item: {
-                                    type: 'VM',
-                                    id: vmid,
-                                    formattedIdentifier: PVE.Utils.getFormattedGuestIdentifier(
-                                        vmid,
-                                        vm.name,
-                                    ),
-                                },
-                                taskName: 'qmdestroy',
-                            }).show();
+                            window.electrifiedApp._deleteItem(vm);
                         },
                         iconCls: 'fa fa-trash-o',
                     },
@@ -506,7 +495,7 @@ Ext.define('PVE.qemu.Config', {
             startBtn.setDisabled(!caps.vms['VM.PowerMgmt'] || template || guest_running);
 
             shutdownBtn.setDisabled(!caps.vms['VM.PowerMgmt'] || status !== 'running');
-            me.down('#removeBtn').setDisabled(!caps.vms['VM.Allocate'] || status !== 'stopped');
+            me.down('#removeBtn').setDisabled(!caps.vms['VM.Allocate']);
             consoleBtn.setDisabled(template);
 
             let wasStopped = ['prelaunch', 'stopped', 'suspended'].indexOf(prevQMPStatus) !== -1;

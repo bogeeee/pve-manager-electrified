@@ -28,7 +28,7 @@ import {
     ObjectHTMLSelect,
     sleep,
     coolBackgroundMask,
-    coolBackgroundMask_remove
+    coolBackgroundMask_remove, RememberChoiceButton
 } from "./util/util";
 import {generated_pluginList as pluginList} from "../_generated_pluginList";
 import {
@@ -51,9 +51,9 @@ import {ElectrifiedJsonConfig} from "pveme-nodejsserver/Common";
 import {retsync2promise} from "proxy-facades/retsync";
 import {createElement} from "react";
 import {ElectrifiedFeaturesPlugin} from "./ElectrifiedFeaturesPlugin";
-import {load, watched, watchedComponent} from "react-deepwatch";
+import {bind, binding, load, useWatchedState, watched, watchedComponent} from "react-deepwatch";
 import {ErrorBoundary} from "react-error-boundary";
-import {Icon, Tooltip} from "@blueprintjs/core";
+import {Button, ButtonGroup, Classes, Icon, Intent, Tooltip} from "@blueprintjs/core";
 import {Pool} from "./model/Pool";
 import {Ext} from "./classicGlobalObjects";
 import {ExtJs2ReactComponent, ExtJsPanel2React} from "./util/ExtJsReactComponent";
@@ -695,6 +695,68 @@ export class Application extends AsyncConstructableClass{
         spawnWithErrorHandling(async () => {
             await this.getPluginByName(pluginName)!.getResourceTreeColumns().find(col => col.key === columnKey)!.showConfig!();
         })
+    }
+
+    _deleteItem(dataItem: any) {
+        spawnWithErrorHandling(async () => {
+            const item = this.datacenter._getItemForResourceRecord(dataItem) || throwError("Item not found")
+            if(item instanceof Guest) {
+                const result = await showBlueprintDialog({title: t`Delete ${item.ui_toString()}`, niceElectrifiedStyle: false},(props) => {
+                    const dialogConfig = watched(this.userConfig.deleteGuestDialog);
+                    const state = useWatchedState(new class {
+                        purge = dialogConfig.purge !== undefined ?dialogConfig.purge:false;
+                        destroyUnreferencedDisks = dialogConfig.destroyUnreferencedDisks !== undefined ?dialogConfig.destroyUnreferencedDisks:false;
+                    }); // contentComponentFn was wrapped for you in a watchedComponent, so you can use watchedComponent features (see react-deepwatch)
+                    const iconFixStyle = {position: "relative", top: "-2px"}
+                    function isValid() {
+                        return true
+                    }
+                    const doDelete = () => {
+                        spawnWithErrorHandling(async () => {
+                            props.close();
+                            if(item.type === "qemu" && item.isRunning()) {
+                                await item.stop();
+                            }
+                            await this.currentNode.awaitTask(await this.currentNode.api2fetch("DELETE", `/${item.type}/${item.id}`,{purge: state.purge, "destroy-unreferenced-disks": state.destroyUnreferencedDisks, ...(item.type === "lxc"?{force: true}:{}) }));
+                            props.resolve(true);
+                        })
+                    }
+                    return <div>
+                        <div className={Classes.DIALOG_BODY}>
+                            <form onKeyDown={(event) => {if(event.key === "Enter") { event.preventDefault();if(isValid()) doDelete() }}}>
+                                <table>
+                                    <tbody>
+                                    <tr>
+                                        {/* Purge from job configurations: */}
+                                        <td style={{whiteSpace: "nowrap"}}><input type="checkbox" {...bind(state.purge)} />&#160;<span style={iconFixStyle}><RememberChoiceButton currentValue={state.purge} storageBind={binding(dialogConfig.purge)} /></span></td>
+                                        <td className="electrifiedFormLabel" style={{verticalAlign: "top"}}>{t`Purge from job configurations`} <InfoTooltip><span>{t`Remove from replication, HA and backup jobs`}</span></InfoTooltip> </td>
+                                    </tr>
+                                    <tr>
+                                        {/* Destroy unreferenced disks: */}
+                                        <td style={{whiteSpace: "nowrap"}}><input type="checkbox" {...bind(state.destroyUnreferencedDisks)} />&#160;<span style={iconFixStyle}><RememberChoiceButton currentValue={state.destroyUnreferencedDisks} storageBind={binding(dialogConfig.destroyUnreferencedDisks)} /></span></td>
+                                        <td className="electrifiedFormLabel" style={{verticalAlign: "top"}}>{t`Destroy unreferenced disks owned by guest`} <InfoTooltip><span>{t`Scan all enabled storages for unreferenced disks and delete them.`}</span></InfoTooltip> </td>
+                                    </tr>
+                                    </tbody>
+                                </table>
+                            </form>
+                        </div>
+
+                        <div className={Classes.DIALOG_FOOTER}>
+                            <div className={Classes.DIALOG_FOOTER_ACTIONS}>
+                                <ButtonGroup>
+                                    <Button onClick={() => doDelete()} disabled={!isValid()} intent={Intent.PRIMARY} autoFocus={true}>OK</Button>
+                                    <Button onClick={() => props.resolve(false)}>Cancel</Button>
+                                </ButtonGroup>
+                            </div>
+                        </div>
+                    </div>;
+                });
+            }
+            else {
+                throw new Error(`Unhandled type`)
+            }
+        })
+
     }
 
     /**
