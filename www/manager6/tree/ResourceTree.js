@@ -541,7 +541,7 @@ Ext.define('PVE.tree.ResourceTree', {
                         break;
                     }
                 }
-                me.selectById(lastsel.data.id);
+                me.selectById(lastsel.data.id, false);
             } else if (lastsel && reselect) {
                 me.selectById(lastsel.data.id);
             }
@@ -613,15 +613,15 @@ Ext.define('PVE.tree.ResourceTree', {
                 }
                 me.reactTreeState.expandedIds.add(node.id);
             },
-            selectExpand: function (node) {
+            selectExpand: function (node, scrollIntoView=true) {
                 me.expand(node);
-                me.reactTreeState.selectId(node.id, true);
+                me.reactTreeState.selectId(node.id, scrollIntoView);
                 let sm = me.getSelectionModel();
                 if (!sm.isSelected(node)) {
                     sm.select(node);
                 }
             },
-            selectById: function (nodeid) {
+            selectById: function (nodeid, scrollIntoView=true) {
                 let rootnode = me.store.getRootNode();
                 let node;
                 if (nodeid === 'root') {
@@ -630,7 +630,7 @@ Ext.define('PVE.tree.ResourceTree', {
                     node = findNode(rootnode, nodeid);
                 }
                 if (node) {
-                    me.selectExpand(node);
+                    me.selectExpand(node, scrollIntoView);
                 }
                 return node;
             },
