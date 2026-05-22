@@ -1049,7 +1049,7 @@ export abstract class Guest extends ModelBase implements NotificationTarget {
      * Stops the guest immediately
      */
     async stop() {
-        await this.parent.awaitTask(await this.parent.api2fetch("POST", `/${this.type}/${this.id}/status/stop`,{"overrule-shutdown": true}));
+        await this.parent.awaitTask(await this.parent.api2fetch("POST", `/${this.type}/${this.id}/status/stop`,{"overrule-shutdown": true}) as string);
     }
 
     /**

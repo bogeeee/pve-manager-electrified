@@ -717,7 +717,7 @@ export class Application extends AsyncConstructableClass{
                             if(item.type === "qemu" && item.isRunning()) {
                                 await item.stop();
                             }
-                            await this.currentNode.awaitTask(await this.currentNode.api2fetch("DELETE", `/${item.type}/${item.id}`,{purge: state.purge, "destroy-unreferenced-disks": state.destroyUnreferencedDisks, ...(item.type === "lxc"?{force: true}:{}) }));
+                            await this.currentNode.awaitTask(await this.currentNode.api2fetch("DELETE", `/${item.type}/${item.id}`,{purge: state.purge, "destroy-unreferenced-disks": state.destroyUnreferencedDisks, ...(item.type === "lxc"?{force: true}:{}) }) as string);
                             props.resolve(true);
                         })
                     }
@@ -728,12 +728,12 @@ export class Application extends AsyncConstructableClass{
                                     <tbody>
                                     <tr>
                                         {/* Purge from job configurations: */}
-                                        <td style={{whiteSpace: "nowrap"}}><input type="checkbox" {...bind(state.purge)} />&#160;<span style={iconFixStyle}><RememberChoiceButton currentValue={state.purge} storageBind={binding(dialogConfig.purge)} /></span></td>
+                                        <td style={{whiteSpace: "nowrap"}}><input type="checkbox" {...bind(state.purge)} />&#160;<span style={iconFixStyle as any}><RememberChoiceButton currentValue={state.purge} storageBind={binding(dialogConfig.purge)} /></span></td>
                                         <td className="electrifiedFormLabel" style={{verticalAlign: "top"}}>{t`Purge from job configurations`} <InfoTooltip><span>{t`Remove from replication, HA and backup jobs`}</span></InfoTooltip> </td>
                                     </tr>
                                     <tr>
                                         {/* Destroy unreferenced disks: */}
-                                        <td style={{whiteSpace: "nowrap"}}><input type="checkbox" {...bind(state.destroyUnreferencedDisks)} />&#160;<span style={iconFixStyle}><RememberChoiceButton currentValue={state.destroyUnreferencedDisks} storageBind={binding(dialogConfig.destroyUnreferencedDisks)} /></span></td>
+                                        <td style={{whiteSpace: "nowrap"}}><input type="checkbox" {...bind(state.destroyUnreferencedDisks)} />&#160;<span style={iconFixStyle as any}><RememberChoiceButton currentValue={state.destroyUnreferencedDisks} storageBind={binding(dialogConfig.destroyUnreferencedDisks)} /></span></td>
                                         <td className="electrifiedFormLabel" style={{verticalAlign: "top"}}>{t`Destroy unreferenced disks owned by guest`} <InfoTooltip><span>{t`Scan all enabled storages for unreferenced disks and delete them.`}</span></InfoTooltip> </td>
                                     </tr>
                                     </tbody>
