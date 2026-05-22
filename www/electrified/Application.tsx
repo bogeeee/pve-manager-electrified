@@ -561,13 +561,13 @@ export class Application extends AsyncConstructableClass{
             stringParams[key] = "" + value;
         });
 
-        url = `/api2/json${url}${method==="GET"?("?" + new URLSearchParams(stringParams).toString()):""}`;
+        url = `/api2/json${url}${(method==="GET" || method === "DELETE")?("?" + new URLSearchParams(stringParams).toString()):""}`;
         const init: RequestInit = {
             method,
             headers: {
                 "CSRFPreventionToken": this.loginData?.CSRFPreventionToken || (window as any).Proxmox.CSRFPreventionToken || throwError("SRFPreventionToken not set"),
             },
-            body: (method !== "GET"?new URLSearchParams(stringParams):undefined)
+            body: (!(method==="GET" || method === "DELETE")?new URLSearchParams(stringParams):undefined)
         }
 
         const fetchResult = await better_fetch(url, init);
