@@ -474,7 +474,7 @@ export class Datacenter extends ModelBase implements NotificationTarget{
         }
         else if(record.type === "qemu" || record.type === "lxc") {
             const node = this.getNode(record.node) || throwError( `Node does not exist: ${record.node}`)
-            return node.getGuest(record.vmid) || throwError(`Guest does not exist: ${record.id}`);
+            return node.getGuest(record.vmid) || throwError(`Guest does not exist: ${record.vmid}`);
         }
         else {
             return record as (Record<string, unknown> & typeof record);
