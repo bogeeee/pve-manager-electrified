@@ -121,6 +121,8 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
             purge: false,
             destroyUnreferencedDisks: false,
         }
+
+        shutdownGuestWithoutConfirm = false;
     }
 
     /**

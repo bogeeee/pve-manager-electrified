@@ -143,9 +143,8 @@ Ext.define('PVE.qemu.Config', {
             text: gettext('Shutdown'),
             disabled: !caps.vms['VM.PowerMgmt'] || !running,
             hidden: template,
-            confirmMsg: PVE.Utils.formatGuestTaskConfirmation('qmshutdown', vmid, vm.name),
-            handler: function () {
-                vm_command('shutdown');
+            handler: () => {
+                window.electrifiedApp._shutdownGuestInteractively(vm);
             },
             menu: {
                 items: [
@@ -156,36 +155,25 @@ Ext.define('PVE.qemu.Config', {
                             gettext('Shutdown, apply pending changes and reboot {0}'),
                             'VM',
                         ),
-                        confirmMsg: PVE.Utils.formatGuestTaskConfirmation(
-                            'qmreboot',
-                            vmid,
-                            vm.name,
-                        ),
-                        handler: function () {
-                            vm_command('reboot');
+                        handler: () => {
+                            window.electrifiedApp._rebootGuestInteractively(vm);
                         },
                         iconCls: 'fa fa-refresh',
                     },
                     {
                         text: gettext('Pause'),
                         disabled: !caps.vms['VM.PowerMgmt'],
-                        confirmMsg: PVE.Utils.formatGuestTaskConfirmation('qmpause', vmid, vm.name),
-                        handler: function () {
-                            vm_command('suspend');
+                        handler: () => {
+                            window.electrifiedApp._pauseGuestInteractively(vm);
                         },
                         iconCls: 'fa fa-pause',
                     },
                     {
                         text: gettext('Hibernate'),
                         disabled: !caps.vms['VM.PowerMgmt'],
-                        confirmMsg: PVE.Utils.formatGuestTaskConfirmation(
-                            'qmsuspend',
-                            vmid,
-                            vm.name,
-                        ),
                         tooltip: gettext('Suspend to disk'),
-                        handler: function () {
-                            vm_command('suspend', { todisk: 1 });
+                        handler: () => {
+                            window.electrifiedApp._suspendGuestInteractively(vm);
                         },
                         iconCls: 'fa fa-download',
                     },
@@ -193,12 +181,8 @@ Ext.define('PVE.qemu.Config', {
                         text: gettext('Stop'),
                         disabled: !caps.vms['VM.PowerMgmt'],
                         tooltip: Ext.String.format(gettext('Stop {0} immediately'), 'VM'),
-                        handler: function () {
-                            Ext.create('PVE.GuestStop', {
-                                nodename: nodename,
-                                vm: vm,
-                                autoShow: true,
-                            });
+                        handler: () => {
+                            window.electrifiedApp._stopGuestInteractively(vm);
                         },
                         iconCls: 'fa fa-stop',
                     },
@@ -206,9 +190,8 @@ Ext.define('PVE.qemu.Config', {
                         text: gettext('Reset'),
                         disabled: !caps.vms['VM.PowerMgmt'],
                         tooltip: Ext.String.format(gettext('Reset {0} immediately'), 'VM'),
-                        confirmMsg: PVE.Utils.formatGuestTaskConfirmation('qmreset', vmid, vm.name),
-                        handler: function () {
-                            vm_command('reset');
+                        handler: () => {
+                            window.electrifiedApp._resetGuestInteractively(vm);
                         },
                         iconCls: 'fa fa-bolt',
                     },

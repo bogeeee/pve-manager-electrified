@@ -171,6 +171,13 @@ export class Node extends GuestsContainerBase implements NotificationTarget {
     }
 
     /**
+     * @param id
+     */
+    async stopTask(id: string) {
+        await this.api2fetch("DELETE", `/tasks/${id}`);
+    }
+
+    /**
      *
      * @param path
      * @return File or directory

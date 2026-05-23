@@ -62,7 +62,9 @@ Ext.define('PVE.lxc.CmdMenu', {
                 text: gettext('Shutdown'),
                 iconCls: 'fa fa-fw fa-power-off',
                 disabled: stopped || suspended,
-                handler: () => confirmedVMCommand('shutdown'),
+                handler: () => {
+                    window.electrifiedApp._shutdownGuestInteractively(info);
+                },
             },
             {
                 text: gettext('Stop'),
@@ -70,11 +72,7 @@ Ext.define('PVE.lxc.CmdMenu', {
                 disabled: stopped,
                 tooltip: Ext.String.format(gettext('Stop {0} immediately'), 'CT'),
                 handler: () => {
-                    Ext.create('PVE.GuestStop', {
-                        nodename: info.node,
-                        vm: info,
-                        autoShow: true,
-                    });
+                    window.electrifiedApp._stopGuestInteractively(info);
                 },
             },
             {
@@ -82,7 +80,9 @@ Ext.define('PVE.lxc.CmdMenu', {
                 iconCls: 'fa fa-fw fa-refresh',
                 disabled: stopped,
                 tooltip: Ext.String.format(gettext('Reboot {0}'), 'CT'),
-                handler: () => confirmedVMCommand('reboot'),
+                handler: () => {
+                    window.electrifiedApp._rebootGuestInteractively(info);
+                },
             },
             {
                 xtype: 'menuseparator',

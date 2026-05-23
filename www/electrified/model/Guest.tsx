@@ -1059,15 +1059,42 @@ export abstract class Guest extends ModelBase implements NotificationTarget {
         }
     }
 
+    async suspend(todisk = false) {
+        await this.parent.awaitTask(await this.parent.api2fetch("POST", `/${this.type}/${this.id}/status/suspend`,{todisk}) as string);
+    }
+
     async start() {
         getElectrifiedApp().currentNode.execCommand`${this.manageCmd} start ${this.id}`;
+    }
+
+    async shutdown() {
+        await this.parent.awaitTask(await this.parent.api2fetch("POST", `/${this.type}/${this.id}/status/shutdown`,{}) as string);
     }
 
     /**
      * Stops the guest immediately
      */
     async stop() {
+        if(this._rebootTask) {
+            await this.parent.stopTask(this._rebootTask); // Otherwise stop may timeout and fail
+        }
         await this.parent.awaitTask(await this.parent.api2fetch("POST", `/${this.type}/${this.id}/status/stop`,{"overrule-shutdown": true}) as string);
+    }
+
+    /**
+     * Keep track of task to allow for faster top / reset
+     */
+    _rebootTask?: string;
+
+    async reboot() {
+        await this.parent.awaitTask(this._rebootTask = await this.parent.api2fetch("POST", `/${this.type}/${this.id}/status/reboot`,{}) as string);
+    }
+
+    async reset() {
+        if(this._rebootTask) {
+            await this.parent.stopTask(this._rebootTask); // Otherwise reset may timeout and fail
+        }
+        await this.parent.awaitTask(await this.parent.api2fetch("POST", `/${this.type}/${this.id}/status/reset`,{}) as string);
     }
 
     /**

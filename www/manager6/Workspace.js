@@ -415,10 +415,17 @@ Ext.define('PVE.StdWorkspace', {
                             menu: [
                                 {
                                     iconCls: 'fa fa-gear',
-                                    text: gettext('My Settings'),
+                                    text: gettext('Settings (classic)'),
                                     handler: function() {
                                         var win = Ext.create('PVE.window.Settings');
                                         win.show();
+                                    },
+                                },
+                                {
+                                    iconCls: 'fa fa-gear',
+                                    text: gettext('Settings (electrified)'),
+                                    handler: function() {
+                                        window.electrifiedApp.util.spawnWithErrorHandling(async () => await window.electrifiedApp.showGeneralSettings());
                                     },
                                 },
                                 {
@@ -448,7 +455,7 @@ Ext.define('PVE.StdWorkspace', {
                                     iconCls: 'fa fa-bell',
                                     text: gettext('Notifications'),
                                     handler: function() {
-                                        window.electrifiedApp.showNotificationSettings();
+                                        window.electrifiedApp.util.spawnWithErrorHandling(async () => await window.electrifiedApp.showNotificationSettings());
                                     },
                                 },
                                 {

@@ -59,23 +59,17 @@ Ext.define('PVE.lxc.Config', {
             text: gettext('Shutdown'),
             disabled: !caps.vms['VM.PowerMgmt'] || !running,
             hidden: template,
-            confirmMsg: PVE.Utils.formatGuestTaskConfirmation('vzshutdown', vmid, vm.name),
-            handler: function () {
-                vm_command('shutdown');
+            handler: () => {
+                window.electrifiedApp._shutdownGuestInteractively(vm);
             },
             menu: {
                 items: [
                     {
                         text: gettext('Reboot'),
                         disabled: !caps.vms['VM.PowerMgmt'],
-                        confirmMsg: PVE.Utils.formatGuestTaskConfirmation(
-                            'vzreboot',
-                            vmid,
-                            vm.name,
-                        ),
                         tooltip: Ext.String.format(gettext('Reboot {0}'), 'CT'),
-                        handler: function () {
-                            vm_command('reboot');
+                        handler: () => {
+                            window.electrifiedApp._rebootGuestInteractively(vm);
                         },
                         iconCls: 'fa fa-refresh',
                     },
@@ -83,12 +77,8 @@ Ext.define('PVE.lxc.Config', {
                         text: gettext('Stop'),
                         disabled: !caps.vms['VM.PowerMgmt'],
                         tooltip: Ext.String.format(gettext('Stop {0} immediately'), 'CT'),
-                        handler: function () {
-                            Ext.create('PVE.GuestStop', {
-                                nodename: nodename,
-                                vm: vm,
-                                autoShow: true,
-                            });
+                        handler: () => {
+                            window.electrifiedApp._stopGuestInteractively(vm);
                         },
                         iconCls: 'fa fa-stop',
                     },

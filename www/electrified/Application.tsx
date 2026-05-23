@@ -68,6 +68,7 @@ import {showNotificationSettings} from "./ui/NotificationSettings";
 import {ToasterWrapper} from "./ui/ToasterWrapper";
 import {CloneDialogResult, showCloneDialog} from "./ui/CloneDialog";
 import {ReactResourceTree} from "./ui/ReactResourceTree";
+import {showGeneralSettings} from "./ui/GeneralSettings";
 
 ExternalPromise.diagnosis_recordCallstacks=true; // For debugging "socket connection has been closed" TODO: remove this line
 
@@ -578,6 +579,10 @@ export class Application extends AsyncConstructableClass{
         return jsonResult.data;
     }
 
+    async showGeneralSettings(scrollToSectionName?: string) {
+        return await showGeneralSettings(scrollToSectionName);
+    }
+
     /**
      * shows the notification as a popup toast message. Only if not muted.
      */
@@ -756,8 +761,109 @@ export class Application extends AsyncConstructableClass{
                 throw new Error(`Unhandled type`)
             }
         })
-
     }
+
+    async _showConfirmDialog(title: string, settingsSection: string): Promise<boolean> {
+        return await showBlueprintDialog({title: <span>&#160;<Icon icon={"help"} /> {title}</span>, niceElectrifiedStyle: false, transitionDuration: 0},(props) => {
+            const state = useWatchedState(new class {
+            });
+            const isValid = ()=>true;
+            return <div>
+                <form onKeyDown={(event) => {if(event.key === "Enter") { event.preventDefault();if(isValid()) props.resolve(true) }}}>
+                    <div className={Classes.DIALOG_BODY}>
+                    </div>
+                    <div className={Classes.DIALOG_FOOTER}>
+                        <div className={Classes.DIALOG_FOOTER_ACTIONS}>
+                            <ButtonGroup style={{width: "100%"}}>
+                                <Button icon={"cog"} onClick={() => spawnWithErrorHandling(async () => await showGeneralSettings(settingsSection)) }>{t`Settings`}</Button>
+                                <div style={{flexGrow: 1}} />
+                                <Button onClick={() => props.resolve(true)} disabled={!isValid()} intent={Intent.PRIMARY} autoFocus={true}>{t`OK`}</Button>
+                                <Button onClick={() => props.resolve(false)}>{t`Cancel`}</Button>
+                            </ButtonGroup>
+                        </div>
+                    </div>
+                </form>
+            </div>;
+        }) === true;
+    }
+
+    _pauseGuestInteractively(item: any) {
+        spawnWithErrorHandling(async () => {
+            const guest: Guest = this.datacenter._getItemForResourceRecord(item) as Guest || throwError("Item not found");
+            guest instanceof Guest || throwError("wrong item type");
+
+            if(this.userConfig.shutdownGuestWithoutConfirm || await this._showConfirmDialog(t`Pause ${guest.ui_toString()}`, "start-stop")) {
+                await guest.suspend();
+            }
+        })
+    }
+
+    _suspendGuestInteractively(item: any) {
+        spawnWithErrorHandling(async () => {
+            const guest: Guest = this.datacenter._getItemForResourceRecord(item) as Guest || throwError("Item not found");
+            guest instanceof Guest || throwError("wrong item type");
+
+            if(this.userConfig.shutdownGuestWithoutConfirm || await this._showConfirmDialog(t`Hibernate ${guest.ui_toString()}`, "start-stop")) {
+                await guest.suspend(true);
+            }
+        })
+    }
+
+    _shutdownGuestInteractively(item: any) {
+        spawnWithErrorHandling(async () => {
+            const guest: Guest = this.datacenter._getItemForResourceRecord(item) as Guest || throwError("Item not found");
+            guest instanceof Guest || throwError("wrong item type");
+
+            if(this.userConfig.shutdownGuestWithoutConfirm || await this._showConfirmDialog(t`Shutdown ${guest.ui_toString()}`, "start-stop")) {
+                try {
+                    await guest.shutdown();
+                }
+                catch (e) {
+                    // Don't care, i.e. if it is interrupted or the task timed out
+                }
+            }
+        })
+    }
+
+    _stopGuestInteractively(item: any) {
+        spawnWithErrorHandling(async () => {
+            const guest: Guest = this.datacenter._getItemForResourceRecord(item) as Guest || throwError("Item not found");
+            guest instanceof Guest || throwError("wrong item type");
+
+            if(this.userConfig.shutdownGuestWithoutConfirm || await this._showConfirmDialog(t`Confirm stop ${guest.ui_toString()}`, "start-stop")) {
+                await guest.stop();
+            }
+        })
+    }
+
+    _rebootGuestInteractively(item: any) {
+        spawnWithErrorHandling(async () => {
+            const guest: Guest = this.datacenter._getItemForResourceRecord(item) as Guest || throwError("Item not found");
+            guest instanceof Guest || throwError("wrong item type");
+
+            if(this.userConfig.shutdownGuestWithoutConfirm || await this._showConfirmDialog(t`Reboot ${guest.ui_toString()}`, "start-stop")) {
+                try {
+                    await guest.reboot();
+                }
+                catch (e) {
+                    // Don't care, i.e. if it is interrupted or the task timed out
+                }
+            }
+        })
+    }
+
+    _resetGuestInteractively(item: any) {
+        spawnWithErrorHandling(async () => {
+            const guest: Guest = this.datacenter._getItemForResourceRecord(item) as Guest || throwError("Item not found");
+            guest instanceof Guest || throwError("wrong item type");
+
+            if(this.userConfig.shutdownGuestWithoutConfirm || await this._showConfirmDialog(t`Reset ${guest.ui_toString()}`, "start-stop")) {
+                await guest.reset();
+            }
+        })
+    }
+
+
 
     /**
      * Export these functions to classic pve code

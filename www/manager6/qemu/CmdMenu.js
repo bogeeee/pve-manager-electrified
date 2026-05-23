@@ -69,7 +69,9 @@ Ext.define('PVE.qemu.CmdMenu', {
                 iconCls: 'fa fa-fw fa-pause',
                 hidden: stopped || suspended,
                 disabled: stopped || suspended,
-                handler: () => confirmedVMCommand('suspend', undefined, 'qmpause'),
+                handler: () => {
+                    window.electrifiedApp._pauseGuestInteractively(info);
+                },
             },
             {
                 text: gettext('Hibernate'),
@@ -77,7 +79,9 @@ Ext.define('PVE.qemu.CmdMenu', {
                 hidden: stopped || suspended,
                 disabled: stopped || suspended,
                 tooltip: gettext('Suspend to disk'),
-                handler: () => confirmedVMCommand('suspend', { todisk: 1 }),
+                handler: () => {
+                    window.electrifiedApp._suspendGuestInteractively(info);
+                },
             },
             {
                 text: gettext('Resume'),
@@ -89,7 +93,9 @@ Ext.define('PVE.qemu.CmdMenu', {
                 text: gettext('Shutdown'),
                 iconCls: 'fa fa-fw fa-power-off',
                 disabled: stopped || suspended,
-                handler: () => confirmedVMCommand('shutdown'),
+                handler: () => {
+                    window.electrifiedApp._shutdownGuestInteractively(info);
+                },
             },
             {
                 text: gettext('Stop'),
@@ -97,11 +103,7 @@ Ext.define('PVE.qemu.CmdMenu', {
                 disabled: stopped,
                 tooltip: Ext.String.format(gettext('Stop {0} immediately'), 'VM'),
                 handler: () => {
-                    Ext.create('PVE.GuestStop', {
-                        nodename: info.node,
-                        vm: info,
-                        autoShow: true,
-                    });
+                    window.electrifiedApp._stopGuestInteractively(info);
                 },
             },
             {
@@ -109,14 +111,18 @@ Ext.define('PVE.qemu.CmdMenu', {
                 iconCls: 'fa fa-fw fa-refresh',
                 disabled: stopped,
                 tooltip: Ext.String.format(gettext('Reboot {0}'), 'VM'),
-                handler: () => confirmedVMCommand('reboot'),
+                handler: () => {
+                    window.electrifiedApp._rebootGuestInteractively(info);
+                },
             },
             {
                 text: gettext('Reset'),
                 iconCls: 'fa fa-fw fa-bolt',
                 disabled: stopped,
                 tooltip: Ext.String.format(gettext('Reset {0}'), 'VM'),
-                handler: () => confirmedVMCommand('reset'),
+                handler: () => {
+                    window.electrifiedApp._resetGuestInteractively(info);
+                },
             },
             {
                 xtype: 'menuseparator',
