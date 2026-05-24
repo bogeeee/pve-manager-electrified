@@ -92,10 +92,14 @@
     .x-treelist-row-over {
         background-color: #eeeeee !important;
     }
+
+    .x-menu-header {
+        background-color: #747474 !important;
+    }
 }
 
 .treeRow-row-contextMenu {
-    outline: 1px solid #767171;
+    outline: 1px solid #7d7d7d;
 }
 
 .electrified_hide_while_initializing {
