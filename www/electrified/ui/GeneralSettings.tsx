@@ -30,7 +30,7 @@ import {
     spawnAsync,
     throwError,
     spawnWithErrorHandling,
-    capitalize
+    capitalize, InfoTooltip
 } from "../util/util";
 import {getElectrifiedApp, gettext, t} from "../globals";
 import _ from "underscore";
@@ -45,9 +45,9 @@ export async function showGeneralSettings(scrollToSectionName?:string) {
     const result = await showBlueprintDialog({title: t`Settings`, style: {width: "1250px", height: "800px"}},(props) => {
         const app = getElectrifiedApp();
         const datacenterConfig = watched(app.datacenterConfig);
-        const useConfig = watched(app.userConfig);
+        const userConfig = watched(app.userConfig);
         const state = useWatchedState(new class {
-
+            offerRawFieldTreeColumns_changed = 0;
         })
         const targetedSectionRef = useRef<HTMLElement>();
 
@@ -57,11 +57,18 @@ export async function showGeneralSettings(scrollToSectionName?:string) {
                 (targetedSectionRef.current || throwError("section not available")).scrollIntoView({behavior: "smooth", block: "start"})
             }
         },[])
-
         return <div>
             <div className={Classes.DIALOG_BODY} style={{height: "700px", width:"100%", overflowY: "auto", marginLeft: 0, marginRight: 0, paddingLeft: "16px", paddingRight: "16px"}}>
+                {/* Start / stop*/}
                 <h2 ref={scrollToSectionName === "start-stop"?(targetedSectionRef as any):undefined}>{t`Start / stop`}</h2>
-                <div><input type="checkbox" {...bind(useConfig.shutdownGuestWithoutConfirm)} />&#160;{t`Shutdown / stop / reboot / reset guests without confirm`}</div>
+                <div><input type="checkbox" {...bind(userConfig.shutdownGuestWithoutConfirm)} />&#160;{t`Shutdown / stop / reboot / reset guests without confirm`}</div>
+
+                {/* Offer resource-tree columns for raw fields
+                The value can't be stored in the userConfig because it is needed before the userConfig is initialized.
+                */}
+                <h2 ref={scrollToSectionName === "gerneral_ui"?(targetedSectionRef as any):undefined}>{t`UI (misc)`}</h2>
+                <div><input type="checkbox" checked={window.localStorage.getItem("electrified_offerRawFieldTreeColumns") === "true"} onChange={(event) => {window.localStorage.setItem("electrified_offerRawFieldTreeColumns", String(event.currentTarget.checked)); state.offerRawFieldTreeColumns_changed++}} />&#160;<i>{t`Offer resource-tree columns for raw fields.`}</i><InfoTooltip><div>{t`They can be activated here:`}<br/><br/><img src="/images/screenshot_resourceTree_raw_fields.png"/></div></InfoTooltip></div>
+                {state.offerRawFieldTreeColumns_changed?<div style={{paddingLeft: "20px"}}><Icon icon={"warning-sign"}/>{t`You need to reload the page to see the changes`}</div>:undefined}
             </div>
 
             <div className={Classes.DIALOG_FOOTER}>

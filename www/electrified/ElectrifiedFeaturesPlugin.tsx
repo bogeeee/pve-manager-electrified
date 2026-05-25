@@ -1,4 +1,4 @@
-import {ConfigTab, ContextMenuItem, Plugin} from "./Plugin"
+import {ConfigTab, ContextMenuItem, Plugin, TreeColumn} from "./Plugin"
 import React, {CSSProperties, ReactNode} from "react";
 import {bind, binding, load, READS_INSIDE_LOADER_FN, useWatchedState, ValueOnObject, watched} from "react-deepwatch"
 import {
@@ -524,10 +524,52 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
                     }
 
                 },
-            }]
+            },
+            // Raw fields:
+            ...(window.localStorage.getItem("electrified_offerRawFieldTreeColumns") === "true"?this.getRawFieldTreeColumns():[])
+            ]
     }
 
 
+
+    getRawFieldTreeColumns(): TreeColumn[] {
+        return (window as any).PVE.data.ResourceStore.model.fields.map((modelField: any) => {
+            const name = modelField.name as string;
+            return {
+                /**
+                 * Column header text
+                 */
+                text: `${name} (raw)`,
+
+                /**
+                 * This is the key for, when saving and restoring the state (width / show / hide)
+                 */
+                key: `rawfield_${name}`,
+
+                defaultWidth: 180,
+
+                /**
+                 * Hide by default (state will be saved in the localstorage)
+                 */
+                hidden: true,
+
+                cellStyle: { paddingTop: "5px", paddingBottom: "5px"},
+
+                /**
+                 * React component function that renders the cell. It will be wrapped in a {@link watchedComponent} with suspense and error handling.
+                 * <p>
+                 * Note, that **the whole resource tree, which is a legacy Extjs component, is completely rebuild every ~3 seconds** and all cell component's are recreated from scratch. So their state is lost! Meaning, it's not possible to show an ui like a dropdown box there.
+                 * Write me, if you need improvement here. In theory, it's possible to handle all situations and only rebuild when i.e. a new vm is added or removed.
+                 * </p>
+                 */
+                cellRenderFn: (props: {item: object, rowIndex: number, colIndex: number, rawItemRecord: Record<string, unknown>}) => {
+                    return <span>{props.rawItemRecord?.[name] as string | number | boolean}</span>
+                },
+
+
+            }
+        })
+    }
 
     getGuestMenuItems(guest: Guest): (ContextMenuItem | "menuseparator")[] {
         return [
