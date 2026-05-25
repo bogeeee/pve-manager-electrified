@@ -295,6 +295,10 @@ export class Plugin {
 
     }
 
+    /**
+     * Additional columns that are offered in the resource tree (if the user activates them)
+     * For an example, see {@see ElectrifiedFeaturesPlugin#getResourceTreeColumns} or {@see ElectrifiedFeaturesPlugin#getCommandButtonsColumn}
+     */
     getResourceTreeColumns(): TreeColumn[] {
         return [];
     }
