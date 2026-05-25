@@ -25,7 +25,7 @@ import {
     newDefaultMap,
     ObjectHTMLSelect, RememberChoiceButton, RetryableError, retryTilSuccess,
     showBlueprintDialog,
-    showMuiDialog, sleep,
+    showMuiDialog, sleep, spawnWithErrorHandling,
     throwError, toError
 } from "./util/util";
 import _ from "underscore";
@@ -186,6 +186,8 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
         }
 
         return [
+            // Command buttons:
+            this.getCommandButtonsColumn(),
             // CPU bars:
             {
                 text: t`CPU bars`,
@@ -532,7 +534,158 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
             ]
     }
 
+    getCommandButtonsColumn(): TreeColumn {
+        const app = getElectrifiedApp();
+        type ButtonDef = {
+            text: string,
+            key: string,
+            iconCls: string,
+            hidden: (guest: Guest) => boolean,
+            disabled: (guest: Guest) => boolean,
+            handler: (guest: Guest) => Promise<void>,
+        };
 
+        const buttonDefs: ButtonDef[] = [
+            {
+                text: t`Start`,
+                key: "start",
+                iconCls: 'fa-play',
+                hidden: (guest: Guest) => false,
+                disabled: (guest: Guest) => guest.status === "running",
+                handler: async (guest) => {
+                    await guest.startOrResume();
+                },
+            },
+
+            {
+                text: t`Pause`,
+                key: "pause",
+                iconCls: 'fa-pause',
+                hidden: (guest: Guest) => !(guest instanceof Qemu),
+                disabled: (guest: Guest) => guest.status !== "running",
+                handler: async (guest: Guest) => {
+                    if(app.userConfig.shutdownGuestWithoutConfirm || await app._showConfirmDialog(t`Pause ${guest.ui_toString()}`, "start-stop")) {
+                        await guest.suspend();
+                    }
+                },
+            },
+
+            {
+                text: t`Hibernate`,
+                key: "hibernate",
+                iconCls: 'fa-download',
+                hidden: (guest: Guest) => !(guest instanceof Qemu),
+                disabled: (guest: Guest) => guest.status === "stopped" || guest.status === "suspended",
+                handler: async (guest: Guest) => {
+                    if(app.userConfig.shutdownGuestWithoutConfirm || await app._showConfirmDialog(t`Hibernate ${guest.ui_toString()}`, "start-stop")) {
+                        await guest.suspend(true);
+                    }
+                },
+            },
+            {
+                text: t`Shutdown`,
+                key: "shutdown",
+                iconCls: 'fa-power-off',
+                hidden: (guest: Guest) => false,
+                disabled: (guest: Guest) => guest.status !== "running",
+                handler: async (guest: Guest) => {
+                    if(app.userConfig.shutdownGuestWithoutConfirm || await app._showConfirmDialog(t`Shutdown ${guest.ui_toString()}`, "start-stop")) {
+                        try {
+                            await guest.shutdown();
+                        }
+                        catch (e) {
+                            // Don't care, i.e. if it is interrupted or the task timed out
+                        }
+                    }
+                },
+            },
+            {
+                text: t`Stop`,
+                key: "stop",
+                iconCls: 'fa-stop',
+                hidden: (guest: Guest) => false,
+                disabled: (guest: Guest) => guest.status === "stopped",
+                handler: async (guest: Guest) => {
+                    if(app.userConfig.shutdownGuestWithoutConfirm || await app._showConfirmDialog(t`Stop ${guest.ui_toString()}`, "start-stop")) {
+                        await guest.stop();;
+                    }
+                },
+            },
+            {
+                text: t`Reboot`,
+                key: "reboot",
+                iconCls: 'fa-refresh',
+                hidden: (guest: Guest) => false,
+                disabled: (guest: Guest) => guest.status !== "running",
+                handler: async (guest: Guest) => {
+                    if(app.userConfig.shutdownGuestWithoutConfirm || await app._showConfirmDialog(t`Reboot ${guest.ui_toString()}`, "start-stop")) {
+                        try {
+                            await guest.reboot();
+                        }
+                        catch (e) {
+                            // Don't care, i.e. if it is interrupted or the task timed out
+                        }
+                    }
+                },
+            },
+            {
+                text: t`Reset`,
+                key: "reset",
+                iconCls: 'fa-bolt',
+                hidden: (guest: Guest) => !(guest instanceof Qemu),
+                disabled: (guest: Guest) => guest.status === "stopped",
+                handler: async (guest: Guest) => {
+                    if(app.userConfig.shutdownGuestWithoutConfirm || await app._showConfirmDialog(t`Reset ${guest.ui_toString()}`, "start-stop")) {
+                        await guest.reset();
+                    }
+                },
+            },
+
+        ]
+
+        return {
+            text: t`Commands`,
+            key: "command_buttons",
+            cellStyle: {paddingTop: "1px", paddingBottom: "1px"},
+            cellRenderFn: (props: { item: object, rowIndex: number, colIndex: number, rawItemRecord: Record<string, unknown> }) => {
+                const guest = props.item as Guest;
+                if(guest === null || !(guest instanceof Guest)) {
+                    return;
+                }
+
+                return <ButtonGroup style={{minHeight: "initial", minWidth: "initial", height:"100%"}}>
+                    {buttonDefs.filter(b => !b.hidden(guest)).map(buttonDef =>
+                        <Button key={buttonDef.key} style={{minHeight: "initial", minWidth: "initial", height:"100%", width: "24px"}} disabled={buttonDef.disabled(guest)} onClick={() => spawnWithErrorHandling(async () => await buttonDef.handler(guest))}>
+                            <span className={`fa fa-fw ${buttonDef.iconCls}`}/>
+                        </Button>
+                    )}
+                </ButtonGroup>
+                /*
+                return <div style={{display: "flex", flexDirection: "row", height: "100%", alignItems: "center", gap: "0px"}}>
+                    {buttonDefs.map(buttonDef => {
+                            return <div class={`x-unselectable x-btn-default-toolbar-small`} style={{height: "23px", width:"23px", display:"block"}}>
+                                <span onClick={() => spawnWithErrorHandling(async () => await buttonDef.handler())}
+                                   className={`fa fa-fw ${buttonDef.iconCls}`}/>
+                            </div>
+
+                        })}
+                </div>
+                */
+            },
+            showConfig() {
+                const result = showMuiDialog(t`CPU bar configuration`, {}, (props) => {
+                    return <React.Fragment>
+                        <DialogContent>
+
+                        </DialogContent>
+                        <DialogActions>
+                            <Button type="submit" onClick={() => props.resolve(true)}>{t`Close`}</Button>
+                        </DialogActions>
+                    </React.Fragment>
+                });
+            },
+        }
+    }
 
     getRawFieldTreeColumns(): TreeColumn[] {
         return (window as any).PVE.data.ResourceStore.model.fields.map((modelField: any) => {

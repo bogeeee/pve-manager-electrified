@@ -1070,6 +1070,19 @@ export abstract class Guest extends ModelBase implements NotificationTarget {
         getElectrifiedApp().currentNode.execCommand`${this.manageCmd} start ${this.id}`;
     }
 
+    async resume() {
+        await this.parent.awaitTask(await this.parent.api2fetch("POST", `/${this.type}/${this.id}/status/resume`,{}) as string);
+    }
+
+    async startOrResume() {
+        if(this.status === "suspended" || this.status === "paused") {
+            await(this.resume());
+        }
+        else {
+            await(this.start());
+        }
+    }
+
     async shutdown() {
         await this.parent.awaitTask(await this.parent.api2fetch("POST", `/${this.type}/${this.id}/status/shutdown`,{}) as string);
     }
