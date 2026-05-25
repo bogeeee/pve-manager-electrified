@@ -7,7 +7,7 @@ import {checkForDuplicates, Clazz, spawnWithErrorHandling, throwError} from "./u
 import {retsync2promise} from "proxy-facades/retsync";
 import {getElectrifiedApp} from "./globals";
 import {WatchedProxyFacade} from "proxy-facades";
-import {ReactNode} from "react";
+import {CSSProperties, ReactNode} from "react";
 import {isRendering} from "react-deepwatch"
 import _ from "underscore"
 import {Datacenter} from "./model/Datacenter";
@@ -647,6 +647,11 @@ export type TreeColumn = {
      * </p>
      */
     cellRenderFn: (props: {item: object, rowIndex: number, colIndex: number, rawItemRecord: Record<string, unknown>}) => ReactNode
+
+    cellStyle: {
+        paddingTop: string
+        paddingBottom: string
+    } & CSSProperties
 
     /**
      * Called, when the user clicks on the config gear icon.

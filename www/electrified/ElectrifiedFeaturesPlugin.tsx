@@ -190,6 +190,7 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
             {
                 text: t`CPU bars`,
                 key: "cpu_bars",
+                cellStyle: {paddingTop: "5px", paddingBottom: "5px"},
                 cellRenderFn: (props: { item: object, rowIndex: number, colIndex: number, rawItemRecord: Record<string, unknown> }) => {
                     function getSummedUpBars(nodes2guests: Map<Node, Set<Guest>>, showUnusedBackground: boolean) {
                         const layers: Layer[] = [];
@@ -429,6 +430,7 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
                 text: t`Host CPU usage`,
                 key: "cpu_text",
                 hidden: true,
+                cellStyle: {paddingTop: "5px", paddingBottom: "5px"},
                 cellRenderFn: (props: { item: object, rowIndex: number, colIndex: number, rawItemRecord: Record<string, unknown> }) => {
                     /**
                      * @returns Cpu formatted to a fixed width + the core symbol

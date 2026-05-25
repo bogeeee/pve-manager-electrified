@@ -64,6 +64,7 @@ export const ReactResourceTree = watchedComponent((props: {classicResourceTree: 
         return {
             key: col.initialConfig.columnId,
             width: col.width,
+            cellStyle: col.cellStyle,
             CellComponent: getElectrifiedApp()._createResourceTreeCellComponent(electrifiedPluginColumn)
         }
     })]
@@ -135,7 +136,7 @@ class TreeDataNode {
  * Params:
  * stateRef: gets filled with the state. So this is a cheap way of controlling it from the non-react outside world
  */
-export const TreeTable = watchedComponent((props: {root: TreeDataNode, stateRef: MutableRefObject<any>, onNodeClick?: (node: TreeDataNode) => void, onNodeDoubleClick?: (node: TreeDataNode, event: any) => void, onNodeContextMenu?: (node: TreeDataNode, event: any) => Promise<void>, getIconCls:(node:TreeDataNode) => string, getToolTip?: (node:TreeDataNode) => ReactNode, cols: {key: string, width: number, CellComponent: (props: {node: TreeDataNode}) => ReactNode}[] }) => {
+export const TreeTable = watchedComponent((props: {root: TreeDataNode, stateRef: MutableRefObject<any>, onNodeClick?: (node: TreeDataNode) => void, onNodeDoubleClick?: (node: TreeDataNode, event: any) => void, onNodeContextMenu?: (node: TreeDataNode, event: any) => Promise<void>, getIconCls:(node:TreeDataNode) => string, getToolTip?: (node:TreeDataNode) => ReactNode, cols: {key: string, width: number, cellStyle?: CSSProperties, CellComponent: (props: {node: TreeDataNode}) => ReactNode}[] }) => {
     const state = useWatchedState(new class {
         expandedIds= new Set<string>();
         selectedId?: string = undefined;
@@ -268,7 +269,7 @@ export const TreeTable = watchedComponent((props: {root: TreeDataNode, stateRef:
                             {/* Other columns: */}
                             {props.cols.slice(1).map(col => {
                                 return <td key={col.key} className="x-grid-cell x-grid-td x-unselectable" style={{width: `${col.width}px`}} role="gridcell" tabIndex={-1}>
-                                    <div unselectable="on" className="x-grid-cell-inner " style={{textAlign: "left"}}>
+                                    <div unselectable="on" className="x-grid-cell-inner " style={{textAlign: "left", height: "24px", transform: "translate(0)", ...(col.cellStyle || {})}}>
                                         <col.CellComponent node={node}/>
                                     </div>
                                 </td>
