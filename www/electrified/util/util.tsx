@@ -647,12 +647,14 @@ export async function showBlueprintDialog<T>(dialogProps: Partial<BlueprintDialo
                     const enhancedContentWidthPx = (consts.maskImageRightSourceWidth - shiftSparkToTheLeft) * xScaleFactor;
                     const dialog = contentDiv.parentElement!;
                     const body = dialog!.querySelector(".bp6-dialog-body") as HTMLElement;
-                    const originalBodyOffsetWidth = body.offsetWidth;
+                    const originalBodyOffsetWidth = body?.offsetWidth;
 
                     dialog.style.width = `${dialog.offsetWidth + enhancedContentWidthPx}px`;
 
                     const margin = 16;
-                    body.style.width = `${originalBodyOffsetWidth - 2 * margin}px`
+                    if(body) {
+                        body.style.width = `${originalBodyOffsetWidth - 2 * margin}px`
+                    }
 
 
 
@@ -682,14 +684,14 @@ export async function showBlueprintDialog<T>(dialogProps: Partial<BlueprintDialo
                     resolve(undefined);
                 }}>
                 <ThemeProvider theme={muiTheme}>
-                    <ErrorBoundary fallbackRender={ErrorState}>
-                        <div className={"electrifiedBlueprintDialogContent"} style={{width: "100%", height: "100%"}}>
-                            <WatchedContentComponentFn close={close} resolve={(result) => {
-                                close();
-                                resolve(result);
-                            }}/>
-                        </div>
-                    </ErrorBoundary>
+                    <div className={"electrifiedBlueprintDialogContent"} style={{width: "100%", height: "100%"}}>
+                        <ErrorBoundary fallbackRender={ErrorState}>
+                        <WatchedContentComponentFn close={close} resolve={(result) => {
+                            close();
+                            resolve(result);
+                        }}/>
+                        </ErrorBoundary>
+                    </div>
                 </ThemeProvider>
                 </BlueprintDialog>
 
