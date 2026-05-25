@@ -692,7 +692,7 @@ export abstract class Guest extends ModelBase implements NotificationTarget {
      *
      * @param plainValue the value from the resource
      */
-    _getImproveStatus(plainValue: string) {
+    _getImprovedStatus(plainValue: string) {
         const max_electrifiedStats_age = 5000;
         if((plainValue === "stopped" || plainValue === "unknown") && this.electrifiedStats?.pid && (this.electrifiedStats.clientTimestamp + max_electrifiedStats_age) > new Date().getTime()) {
             return "running";
@@ -704,7 +704,7 @@ export abstract class Guest extends ModelBase implements NotificationTarget {
     }
 
     get status(): "running" | "stopped" {
-        return this._getImproveStatus(this.rawDataRecord["status"] as string) as any;
+        return this._getImprovedStatus(this.rawDataRecord["status"] as string) as any;
     }
 
     isRunning() {

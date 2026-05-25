@@ -331,7 +331,7 @@ Ext.define('PVE.data.ResourceStore', {
                             if (!window.electrifiedApp.initialized) {
                                 return;
                             }
-                            return window.electrifiedApp.datacenter.getGuest(record.data.vmid)?._getImproveStatus(value);
+                            return window.electrifiedApp.datacenter.getGuest(record.data.vmid)?._getImprovedStatus(value);
                         }
                     }
 
