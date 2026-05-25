@@ -692,7 +692,7 @@ export abstract class Guest extends ModelBase implements NotificationTarget {
      *
      * @param plainValue the value from the resource
      */
-    _getImprovedStatus(plainValue: string) {
+    _getImprovedStatus(plainValue: string | undefined) {
         const max_electrifiedStats_age = 5000;
         if((plainValue === "stopped" || plainValue === "unknown") && this.electrifiedStats?.pid && (this.electrifiedStats.clientTimestamp + max_electrifiedStats_age) > new Date().getTime()) {
             return "running";
@@ -703,8 +703,11 @@ export abstract class Guest extends ModelBase implements NotificationTarget {
         return plainValue;
     }
 
-    get status(): "running" | "stopped" {
-        return this._getImprovedStatus(this.rawDataRecord["status"] as string) as any;
+    /**
+     * After hibernating, it was sometimes seen that this.rawDataRecord = undefined (how come??), so undefined may be returned in that case
+     */
+    get status(): "prelaunch" | "running" | "stopped" | "suspended" | "paused"| undefined {
+        return this._getImprovedStatus(this.rawDataRecord?.["status"] as string) as any;
     }
 
     isRunning() {
