@@ -109,3 +109,9 @@
 .bp6-button:disabled, .bp6-button.bp6-disabled {
     cursor: initial !important; /* The not-allowed cursor is too distracting */
 }
+
+#versioninfo-innerCt {
+    /* Move it 1px down. Looks better. It's may be an optical thing with the logo in front of it*/
+    position: relative;
+    top: 1px;
+}
