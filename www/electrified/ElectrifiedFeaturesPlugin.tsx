@@ -545,103 +545,104 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
             handler: (guest: Guest) => Promise<void>,
         };
 
-        const buttonDefs: ButtonDef[] = [
-            {
-                text: t`Start`,
-                key: "start",
-                iconCls: 'fa-play',
-                hidden: (guest: Guest) => false,
-                disabled: (guest: Guest) => guest.status === "running",
-                handler: async (guest) => {
-                    await guest.startOrResume();
+        const buttonGroupsAndDefs: {buttons: ButtonDef[]}[] = [{
+            buttons: [
+                {
+                    text: t`Start`,
+                    key: "start",
+                    iconCls: 'fa-play',
+                    hidden: (guest: Guest) => false,
+                    disabled: (guest: Guest) => guest.status === "running",
+                    handler: async (guest) => {
+                        await guest.startOrResume();
+                    },
                 },
-            },
 
-            {
-                text: t`Pause`,
-                key: "pause",
-                iconCls: 'fa-pause',
-                hidden: (guest: Guest) => !(guest instanceof Qemu),
-                disabled: (guest: Guest) => guest.status !== "running",
-                handler: async (guest: Guest) => {
-                    if(app.userConfig.shutdownGuestWithoutConfirm || await app._showConfirmDialog(t`Pause ${guest.ui_toString()}`, "start-stop")) {
-                        await guest.suspend();
-                    }
+                {
+                    text: t`Pause`,
+                    key: "pause",
+                    iconCls: 'fa-pause',
+                    hidden: (guest: Guest) => !(guest instanceof Qemu),
+                    disabled: (guest: Guest) => guest.status !== "running",
+                    handler: async (guest: Guest) => {
+                        if (app.userConfig.shutdownGuestWithoutConfirm || await app._showConfirmDialog(t`Pause ${guest.ui_toString()}`, "start-stop")) {
+                            await guest.suspend();
+                        }
+                    },
                 },
-            },
 
-            {
-                text: t`Hibernate`,
-                key: "hibernate",
-                iconCls: 'fa-download',
-                hidden: (guest: Guest) => !(guest instanceof Qemu),
-                disabled: (guest: Guest) => guest.status === "stopped" || guest.status === "suspended",
-                handler: async (guest: Guest) => {
-                    if(app.userConfig.shutdownGuestWithoutConfirm || await app._showConfirmDialog(t`Hibernate ${guest.ui_toString()}`, "start-stop")) {
-                        await guest.suspend(true);
-                    }
-                },
-            },
-            {
-                text: t`Shutdown`,
-                key: "shutdown",
-                iconCls: 'fa-power-off',
-                hidden: (guest: Guest) => false,
-                disabled: (guest: Guest) => guest.status !== "running",
-                handler: async (guest: Guest) => {
-                    if(app.userConfig.shutdownGuestWithoutConfirm || await app._showConfirmDialog(t`Shutdown ${guest.ui_toString()}`, "start-stop")) {
-                        try {
-                            await guest.shutdown();
+                {
+                    text: t`Hibernate`,
+                    key: "hibernate",
+                    iconCls: 'fa-download',
+                    hidden: (guest: Guest) => !(guest instanceof Qemu),
+                    disabled: (guest: Guest) => guest.status === "stopped" || guest.status === "suspended",
+                    handler: async (guest: Guest) => {
+                        if (app.userConfig.shutdownGuestWithoutConfirm || await app._showConfirmDialog(t`Hibernate ${guest.ui_toString()}`, "start-stop")) {
+                            await guest.suspend(true);
                         }
-                        catch (e) {
-                            // Don't care, i.e. if it is interrupted or the task timed out
+                    },
+                },
+                {
+                    text: t`Shutdown`,
+                    key: "shutdown",
+                    iconCls: 'fa-power-off',
+                    hidden: (guest: Guest) => false,
+                    disabled: (guest: Guest) => guest.status !== "running",
+                    handler: async (guest: Guest) => {
+                        if (app.userConfig.shutdownGuestWithoutConfirm || await app._showConfirmDialog(t`Shutdown ${guest.ui_toString()}`, "start-stop")) {
+                            try {
+                                await guest.shutdown();
+                            } catch (e) {
+                                // Don't care, i.e. if it is interrupted or the task timed out
+                            }
                         }
-                    }
+                    },
                 },
-            },
-            {
-                text: t`Stop`,
-                key: "stop",
-                iconCls: 'fa-stop',
-                hidden: (guest: Guest) => false,
-                disabled: (guest: Guest) => guest.status === "stopped",
-                handler: async (guest: Guest) => {
-                    if(app.userConfig.shutdownGuestWithoutConfirm || await app._showConfirmDialog(t`Stop ${guest.ui_toString()}`, "start-stop")) {
-                        await guest.stop();;
-                    }
-                },
-            },
-            {
-                text: t`Reboot`,
-                key: "reboot",
-                iconCls: 'fa-refresh',
-                hidden: (guest: Guest) => false,
-                disabled: (guest: Guest) => guest.status !== "running",
-                handler: async (guest: Guest) => {
-                    if(app.userConfig.shutdownGuestWithoutConfirm || await app._showConfirmDialog(t`Reboot ${guest.ui_toString()}`, "start-stop")) {
-                        try {
-                            await guest.reboot();
+                {
+                    text: t`Stop`,
+                    key: "stop",
+                    iconCls: 'fa-stop',
+                    hidden: (guest: Guest) => false,
+                    disabled: (guest: Guest) => guest.status === "stopped",
+                    handler: async (guest: Guest) => {
+                        if (app.userConfig.shutdownGuestWithoutConfirm || await app._showConfirmDialog(t`Stop ${guest.ui_toString()}`, "start-stop")) {
+                            await guest.stop();
+                            ;
                         }
-                        catch (e) {
-                            // Don't care, i.e. if it is interrupted or the task timed out
+                    },
+                },
+                {
+                    text: t`Reboot`,
+                    key: "reboot",
+                    iconCls: 'fa-refresh',
+                    hidden: (guest: Guest) => false,
+                    disabled: (guest: Guest) => guest.status !== "running",
+                    handler: async (guest: Guest) => {
+                        if (app.userConfig.shutdownGuestWithoutConfirm || await app._showConfirmDialog(t`Reboot ${guest.ui_toString()}`, "start-stop")) {
+                            try {
+                                await guest.reboot();
+                            } catch (e) {
+                                // Don't care, i.e. if it is interrupted or the task timed out
+                            }
                         }
-                    }
+                    },
                 },
-            },
-            {
-                text: t`Reset`,
-                key: "reset",
-                iconCls: 'fa-bolt',
-                hidden: (guest: Guest) => !(guest instanceof Qemu),
-                disabled: (guest: Guest) => guest.status === "stopped",
-                handler: async (guest: Guest) => {
-                    if(app.userConfig.shutdownGuestWithoutConfirm || await app._showConfirmDialog(t`Reset ${guest.ui_toString()}`, "start-stop")) {
-                        await guest.reset();
-                    }
+                {
+                    text: t`Reset`,
+                    key: "reset",
+                    iconCls: 'fa-bolt',
+                    hidden: (guest: Guest) => !(guest instanceof Qemu),
+                    disabled: (guest: Guest) => guest.status === "stopped",
+                    handler: async (guest: Guest) => {
+                        if (app.userConfig.shutdownGuestWithoutConfirm || await app._showConfirmDialog(t`Reset ${guest.ui_toString()}`, "start-stop")) {
+                            await guest.reset();
+                        }
+                    },
                 },
-            },
 
-        ]
+            ]
+        }];
 
         return {
             text: t`Commands`,
@@ -654,13 +655,13 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
                     return;
                 }
 
-                return <ButtonGroup style={{minHeight: "initial", minWidth: "initial", height:"100%"}}>
-                    {buttonDefs.filter(b => !b.hidden(guest)).map(buttonDef =>
-                        <Button key={buttonDef.key} style={{minHeight: "initial", minWidth: "initial", height:"100%", width: "24px"}} disabled={buttonDef.disabled(guest)} onClick={() => spawnWithErrorHandling(async () => await buttonDef.handler(guest))}>
+                return buttonGroupsAndDefs.map(group => <ButtonGroup style={{minHeight: "initial", minWidth: "initial", height:"100%"}}>
+                    {group.buttons.filter(b => !b.hidden(guest)).map(buttonDef =>
+                        <Button key={buttonDef.key} style={{minHeight: "initial", minWidth: "initial", height:"100%", width: "24px"}} aria-label={buttonDef.text} disabled={buttonDef.disabled(guest)} onClick={() => spawnWithErrorHandling(async () => await buttonDef.handler(guest))}>
                             <span className={`fa fa-fw ${buttonDef.iconCls}`}/>
                         </Button>
                     )}
-                </ButtonGroup>
+                </ButtonGroup>);
                 /*
                 return <div style={{display: "flex", flexDirection: "row", height: "100%", alignItems: "center", gap: "0px"}}>
                     {buttonDefs.map(buttonDef => {
