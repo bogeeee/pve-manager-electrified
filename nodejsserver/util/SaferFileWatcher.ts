@@ -14,19 +14,19 @@ import _ from "underscore";
 export class SaferFileWatcher {
     file!: string;
 
-    directWatcher!: FSWatcher;
+    private directWatcher!: FSWatcher;
 
     /**
      * In case {@link directWatcher} silently fails to generate events
      */
-    fallbackPollingWatcher: FSWatcher;
+    private fallbackPollingWatcher: FSWatcher;
 
     /**
      * Keep track, so we can only fire events on actual changes. False = file does not exist
      */
     lastFileState?: Buffer | String[] | false;
 
-    listeners = new ClientCallbackSet<[stat: FileStats | false]>();
+    listeners = new ClientCallbackSet<[stat: FileStats | false]>() as Set<(stat: any | false) => void> // Bug workaround: 'as Set...' to net export the ClientCallbackSet type because typescript-rtti gets the imports wrong
 
     constructor(file: string, fallbackPollInterval: number) {
         this.file = file;
@@ -34,7 +34,7 @@ export class SaferFileWatcher {
         this.fallbackPollingWatcher = this.createWatchter({usePolling: true, interval: fallbackPollInterval});
     }
 
-    createWatchter(options: Partial<ChokidarOptions>) {
+    private createWatchter(options: any /* Rtti bug workaround: Partial<ChokidarOptions> -> any */) {
         const watcher = chokidar.watch(this.file, {
             ...options,
             persistent: false, atomic: true,
@@ -69,7 +69,7 @@ export class SaferFileWatcher {
 
                 this.lastFileState = currentFileState;
 
-                this.listeners.call(fileStat);
+                (this.listeners as any).call(fileStat);
 
             });
         });
