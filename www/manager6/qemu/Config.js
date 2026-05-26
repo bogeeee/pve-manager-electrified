@@ -29,7 +29,7 @@ Ext.define('PVE.qemu.Config', {
 
         me.statusStore = Ext.create('Proxmox.data.ObjectStore', {
             url: '/api2/json' + base_url + '/status/current',
-            interval: 1000,
+            interval: 500,
         });
 
         var vm_command = function (cmd, params) {
