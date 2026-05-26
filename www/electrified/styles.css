@@ -105,3 +105,7 @@
 .electrified_hide_while_initializing {
     opacity: 0; /* hide. Don't use visibility: hidden because it removes the auto-focus from inputs */
 }
+
+.bp6-button:disabled, .bp6-button.bp6-disabled {
+    cursor: initial !important; /* The not-allowed cursor is too distracting */
+}
