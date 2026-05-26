@@ -24,7 +24,7 @@ import chokidar from "chokidar";
 import {ClientCallbackSet} from "restfuncs-server";
 import {Buffer} from "node:buffer";
 import {Readable as ReadableStream} from "stream";
-import {SaferFileWatcher} from "./util/SaferFileWatcher";
+import {SaferFileWatcher} from "./util/SaferFileWatcher.js";
 
 //import {ServerSocketConnection} from "restfuncs-server";
 type ServerSocketConnection = any; // Bug workaround: Don't know why the above line causes typescript-rtti to emit an `import ... from /dist/commonjs/index`. Does not look different than with i.e. ServerSesssion
