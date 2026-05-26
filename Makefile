@@ -177,6 +177,7 @@ IDE_prod_run_nodejsserver: IDE_rsync_project_to_targt_pve_host
     systemctl daemon-reload; \
     systemctl restart pveproxy.service;\
 	cd nodejsserver; \
+	fuser -n tcp -k 8006; \
 	npm run start; \
 	";
 
