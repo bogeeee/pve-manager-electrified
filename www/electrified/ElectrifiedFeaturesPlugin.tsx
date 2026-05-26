@@ -646,6 +646,7 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
         return {
             text: t`Commands`,
             key: "command_buttons",
+            width: 185,
             cellStyle: {paddingTop: "1px", paddingBottom: "1px"},
             cellRenderFn: (props: { item: object, rowIndex: number, colIndex: number, rawItemRecord: Record<string, unknown> }) => {
                 const guest = props.item as Guest;

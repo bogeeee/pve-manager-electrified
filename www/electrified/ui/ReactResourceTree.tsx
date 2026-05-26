@@ -54,7 +54,7 @@ export const ReactResourceTree = watchedComponent((props: {classicResourceTree: 
     }
 
     const treeColumn = {
-        width: classicResourceTree.visibleColumns[0].width || 200, // Default to 200 when starting with fresh localstorage / not from saved state
+        width: classicResourceTree.visibleColumns[0].width,
         CellComponent: watchedComponent((props: {node: TreeDataNode}) => {
             return <span dangerouslySetInnerHTML={{ __html: classicResourceTree.visibleColumns[0].initialConfig.renderer(undefined, undefined, props.node) }} /> ;
         })

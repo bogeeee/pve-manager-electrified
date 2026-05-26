@@ -80,6 +80,7 @@ Ext.define('PVE.tree.ResourceTree', {
             flex: 1,
             dataIndex: 'text',
             stateId:"col-name",
+            width: 200,
             renderer: function (val, meta, rec) {
                 let info = rec.data;
 
