@@ -133,6 +133,19 @@ Ext.define('PVE.tree.ResourceTree', {
     ];
     },
 
+    /**
+     * Fix: The reported width of the column is not the actual width when entering fresh with cleared localstorage and when resizing afterwards
+     */
+    fixColumnWidths() {
+        var me = this;
+        this.getVisibleColumns().forEach(col => {
+            const domWidth = col.getEl()?.dom.offsetWidth;
+            if(domWidth) {
+                col.setWidth(domWidth);
+            }
+        })
+    },
+
     useArrows: true,
 
     // private
@@ -573,6 +586,11 @@ Ext.define('PVE.tree.ResourceTree', {
             store: store,
             viewConfig: {
                 animate: false, // note: animate cause problems with applyState
+                listeners: {
+                    resize() {
+                        me.fixColumnWidths();
+                    }
+                }
             },
             listeners: {
                 destroy: function () {
@@ -585,6 +603,9 @@ Ext.define('PVE.tree.ResourceTree', {
                     me.visibleColumns = me.getVisibleColumns();
                 },
                 columnshow() {
+                    me.visibleColumns = me.getVisibleColumns();
+                },
+                columnmove() {
                     me.visibleColumns = me.getVisibleColumns();
                 }
             },
@@ -673,6 +694,7 @@ Ext.define('PVE.tree.ResourceTree', {
         const me = this;
         const electrifiedApp = window.electrifiedApp;
 
+        me.fixColumnWidths();
         me.visibleColumns = me.getVisibleColumns();
 
         const origTreeViewEl = me.down("treeview").getEl().dom;
