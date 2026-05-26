@@ -636,6 +636,14 @@ export type TreeColumn = {
      */
     flex?: number | string
 
+    /**
+     * The initial / default width
+     */
+    width?: number;
+
+    /**
+     * @deprecated use {@link width}
+     */
     defaultWidth?: number;
 
     /**
