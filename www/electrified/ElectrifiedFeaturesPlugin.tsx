@@ -88,6 +88,16 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
             width: 4
         };
 
+        resourceTreeCommandButtons = {
+            start: true,
+            pause: false,
+            hibernate: false,
+            shutdown: true,
+            stop: true,
+            reboot: true,
+            reset: true,
+        };
+
         fastClone= {
             start: false,
             /**
@@ -545,10 +555,11 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
             handler: (guest: Guest) => Promise<void>,
         };
 
-        const buttonGroupsAndDefs: {buttons: ButtonDef[]}[] = [{
+        const buttonGroupsAndDefs: {key: string, buttons: ButtonDef[]}[] = [{
+            key: "powerManagement",
             buttons: [
                 {
-                    text: t`Start`,
+                    text: t`Start/resume`,
                     key: "start",
                     iconCls: 'fa-play',
                     hidden: (guest: Guest) => false,
@@ -647,16 +658,17 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
         return {
             text: t`Commands`,
             key: "command_buttons",
-            width: 185,
+            width: 140,
             cellStyle: {paddingTop: "1px", paddingBottom: "1px"},
             cellRenderFn: (props: { item: object, rowIndex: number, colIndex: number, rawItemRecord: Record<string, unknown> }) => {
                 const guest = props.item as Guest;
+                const userConfig = watched(app.userConfig);
                 if(guest === null || !(guest instanceof Guest)) {
                     return;
                 }
 
-                return buttonGroupsAndDefs.map(group => <ButtonGroup style={{minHeight: "initial", minWidth: "initial", height:"100%"}}>
-                    {group.buttons.filter(b => !b.hidden(guest)).map(buttonDef =>
+                return buttonGroupsAndDefs.map(group => <ButtonGroup key={group.key} style={{minHeight: "initial", minWidth: "initial", height:"100%"}}>
+                    {group.buttons.filter(b => ((userConfig.resourceTreeCommandButtons as any)[b.key] === true) && !b.hidden(guest)).map(buttonDef =>
                         <Button key={buttonDef.key} style={{minHeight: "initial", minWidth: "initial", height:"100%", width: "24px"}} aria-label={buttonDef.text} disabled={buttonDef.disabled(guest)} onClick={() => spawnWithErrorHandling(async () => await buttonDef.handler(guest))}>
                             <span className={`fa fa-fw ${buttonDef.iconCls}`}/>
                         </Button>
@@ -675,10 +687,19 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
                 */
             },
             showConfig() {
-                const result = showMuiDialog(t`CPU bar configuration`, {}, (props) => {
+                const result = showMuiDialog(t`Show/hide command buttons`, {}, (props) => {
+                    const userConfig = watched(app.userConfig);
                     return <React.Fragment>
                         <DialogContent>
-
+                            {buttonGroupsAndDefs.map(group => <div key={group.key}>
+                                {group.buttons.map(buttonDef =>
+                                    <div key={buttonDef.key} style={{display: "fley"}}>
+                                        <input type="checkbox" {...bind((userConfig.resourceTreeCommandButtons as any)[buttonDef.key])}/>
+                                        <span className={`fa fa-fw ${buttonDef.iconCls}`}/>
+                                        <span>{buttonDef.text}</span>
+                                    </div>
+                                )}
+                            </div>)}
                         </DialogContent>
                         <DialogActions>
                             <Button type="submit" onClick={() => props.resolve(true)}>{t`Close`}</Button>
