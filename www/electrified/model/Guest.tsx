@@ -1120,7 +1120,7 @@ export abstract class Guest extends ModelBase implements NotificationTarget {
     }
 
     async startOrResume() {
-        if(this.status === "suspended" || this.status === "paused") {
+        if(this.status === "suspended" || this.status === "paused" || this.status === "prelaunch") {
             await(this.resume());
         }
         else {
