@@ -168,6 +168,11 @@ export abstract class Guest extends ModelBase implements NotificationTarget {
         currentCpuUsage?: MeteredValue
     }
 
+    lastStatusAction?: {
+        timestamp: number,
+        action: "pause" | "start" | "resume"
+    }
+
     get ui_type() {
         return t`guest`;
     }
@@ -693,12 +698,28 @@ export abstract class Guest extends ModelBase implements NotificationTarget {
      * @param plainValue the value from the resource
      */
     _getImprovedStatus(plainValue: string | undefined) {
-        const max_electrifiedStats_age = 5000;
-        if((plainValue === "stopped" || plainValue === "unknown") && this.electrifiedStats?.pid && (this.electrifiedStats.clientTimestamp + max_electrifiedStats_age) > new Date().getTime()) {
+        const now = new Date().getTime();
+        // Note: You see different magic numbers here, but the status update take indeed different amounts of max-time to arrive
+
+        if((plainValue === "stopped" || plainValue === "unknown") && this.electrifiedStats?.pid && (this.electrifiedStats.clientTimestamp + 5000) > now) {
             return "running";
         }
-        if(plainValue === "running" && !this.electrifiedStats && this.parent?.electrifiedStats && (this.parent.electrifiedStats.clientTimestamp + max_electrifiedStats_age) > new Date().getTime()) {
+        if(plainValue === "running" && !this.electrifiedStats && this.parent?.electrifiedStats && (this.parent.electrifiedStats.clientTimestamp + 5000) > now) {
             return "stopped";
+        }
+
+        if(this.lastStatusAction && this.lastStatusAction.timestamp + 10000 > now) {
+            if (plainValue === "running" && this.lastStatusAction.action === "pause" ) {
+                return "paused";
+            }
+
+            if (plainValue === "paused" && this.lastStatusAction.action === "resume") {
+                return "running";
+            }
+
+            if (plainValue === "prelaunch" && this.lastStatusAction.action === "resume") {
+                return "running";
+            }
         }
         return plainValue;
     }
@@ -1082,14 +1103,19 @@ export abstract class Guest extends ModelBase implements NotificationTarget {
     }
 
     async suspend(todisk = false) {
+        if(!todisk) { // Pause?
+            this.lastStatusAction = {timestamp: new Date().getTime(), action: "pause"}
+        }
         await this.parent.awaitTask(await this.parent.api2fetch("POST", `/${this.type}/${this.id}/status/suspend`,{todisk}) as string);
     }
 
     async start() {
+        this.lastStatusAction = {timestamp: new Date().getTime(), action: "start"}
         getElectrifiedApp().currentNode.execCommand`${this.manageCmd} start ${this.id}`;
     }
 
     async resume() {
+        this.lastStatusAction = {timestamp: new Date().getTime(), action: "resume"}
         await this.parent.awaitTask(await this.parent.api2fetch("POST", `/${this.type}/${this.id}/status/resume`,{}) as string);
     }
 
