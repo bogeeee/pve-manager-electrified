@@ -536,7 +536,16 @@ export class PveClusterTask {
 
     duration!: number;
 
-    endtime!: Date | null
+    /**
+     * Save as number because react-deepwatch still has a bug for Date handling
+     */
+    _endtime?: number;
+    get endtime(): Date | null {
+        return this._endtime?new Date(this._endtime):null;
+    }
+    set endtime(value) {
+        this._endtime = value?.getTime();
+    }
 
     node?: string
     pid?: number
@@ -548,7 +557,7 @@ export class PveClusterTask {
     starttime!: Date;
 
     /*
-     * I.e. "unexpected status"
+     * Ok, or error status I.e. "unexpected status"
      */
     status!: string;
 
@@ -569,6 +578,10 @@ export class PveClusterTask {
 
     get running() {
         return this.endtime === null;
+    }
+
+    get finishedSuccessful() {
+        return !this.running && this.status == "OK"
     }
 
     constructor(initialFields: Partial<PveClusterTask>) {

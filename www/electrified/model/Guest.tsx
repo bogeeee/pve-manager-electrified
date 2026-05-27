@@ -721,6 +721,12 @@ export abstract class Guest extends ModelBase implements NotificationTarget {
                 return "running";
             }
         }
+
+        const tasks = this.parent.parent.tasks.byTargetId.get(String(this.id)) || [];
+        if(tasks.some(task => task.type.endsWith("stop") && task.finishedSuccessful && task.endtime?.getTime() + 1000 > now && !(this.lastStatusAction && this.lastStatusAction.timestamp > task.endtime?.getTime()) )) { // A stop task finished not long ago (and not other button was pressed in the meanwhile) ?
+            return "stopped" // Prevent flickering
+        }
+
         return plainValue;
     }
 
