@@ -26,7 +26,7 @@ export class Datacenter extends ModelBase implements NotificationTarget{
      */
     tasks = new class {
         running: PveClusterTask[] = []
-        runningByTargetId = new Map<string, PveClusterTask[]>();
+        byTargetId = new Map<string, PveClusterTask[]>();
         get all(): PveClusterTask[] {
             throw new Error("Not yet implemented / costs too much performance. Say so if needed.")
         }
@@ -135,12 +135,10 @@ export class Datacenter extends ModelBase implements NotificationTarget{
             const data = item.data;
             const task = new PveClusterTask(data);
 
-            if(task.running) {
-                newTasksObj.running.push(task);
-                if(task.id) {
-                    newTasksObj.runningByTargetId.has(task.id) || newTasksObj.runningByTargetId.set(task.id, []); // Fill default value
-                    newTasksObj.runningByTargetId.get(task.id)!.push(task);
-                }
+            newTasksObj.running.push(task);
+            if(task.id) {
+                newTasksObj.byTargetId.has(task.id) || newTasksObj.byTargetId.set(task.id, []); // Fill default value
+                newTasksObj.byTargetId.get(task.id)!.push(task);
             }
         }
 

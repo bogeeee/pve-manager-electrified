@@ -716,7 +716,7 @@ export abstract class Guest extends ModelBase implements NotificationTarget {
      * @see #status
      */
     get status_extended() {
-        const runningTaks = this.parent.parent.tasks.runningByTargetId.get(String(this.id));
+        const runningTaks = this.parent.parent.tasks.byTargetId.get(String(this.id))?.filter(t => t.running) || [];
         if(runningTaks?.some(t => t.type?.endsWith("shutdown") && this.status !== "stopped")) {
             return "shutting_down";
         }
