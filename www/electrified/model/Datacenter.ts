@@ -60,6 +60,7 @@ export class Datacenter extends ModelBase implements NotificationTarget{
         this._storages = new Map<string, Storage>();
 
         this._nodes.set((window as any).Proxmox.NodeName, app.currentNode); // Must re-use this instance  / don't let it auto-crate a new one
+        app.currentNode._parent = this;
 
         await this._handleResourceStoreDataChanged();
         app._resourceStore.on("datachanged", () => spawnAsync(() => this._handleResourceStoreDataChanged()));
@@ -115,7 +116,7 @@ export class Datacenter extends ModelBase implements NotificationTarget{
 
                 // Create if not exists:
                 if (!this._nodes.has(name)) {
-                    const node = await Node.create({name});
+                    const node = await Node.create({name, _parent: this});
                     await node._initWhenLoggedOn(this);
                     this._nodes.set(name, node); // Create it
                 }

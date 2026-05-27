@@ -13,6 +13,7 @@ import {ModelBase} from "./ModelBase";
 import {preserve} from "react-deepwatch";
 import {GuestsContainerBase} from "./GuestsContainerBase";
 import {Notification, NotificationTarget} from "../Notification";
+import type{Datacenter} from "./Datacenter";
 
 /**
  * A PVE-Node. All fields are live updated.
@@ -333,8 +334,9 @@ export class Node extends GuestsContainerBase implements NotificationTarget {
         return this.name;
     }
 
-    get parent(): NotificationTarget {
-        return getElectrifiedApp().datacenter;
+    _parent?: Datacenter
+    get parent(): Datacenter {
+        return this._parent || throwError("Datacenter not yet initialized");
     }
 
     /**
