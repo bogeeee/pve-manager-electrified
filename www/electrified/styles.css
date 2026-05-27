@@ -115,3 +115,32 @@
     position: relative;
     top: 1px;
 }
+
+
+@media (prefers-color-scheme: dark) {
+    .bp6-button:not([class*=bp6-intent-]) {
+        background-color: #404040 !important;
+        color: #f2f2f2 !important;
+        box-shadow: inset 0 0 0 1px #595959, 0 1px 2px rgba(17, 20, 24, 0.1) !important;
+    }
+    .bp6-button.bp6-disabled {
+        background-color: #333333 !important;
+        box-shadow: inset 0 0 0 1px #404040, 0 1px 2px rgba(17, 20, 24, 0.1) !important;
+        color: #8c8c8c !important;
+    }
+
+    .bp6-dialog-header {
+        background-color: #262626
+    }
+
+    .bp6-dialog-body input, .bp6-dialog-body select, .bp6-dialog-body select:hover, .bp6-dialog-body textarea {
+        background-color: #333333;
+        color: #f2f2f2;
+    }
+
+    .bp6-dialog-body {
+        color: #f2f2f2
+    }
+}
+
+
