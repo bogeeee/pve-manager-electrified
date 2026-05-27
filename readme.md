@@ -24,8 +24,7 @@ Also, open source does not develop it's self. Developers need motivation, so wri
 - **CPU usage bars** in the tree. Updated in realtime.[^1]  
   ![](docs/images/Screenshot_cpu_bars.png)  
   [^1]: Realtime = 1 second interval. As this comes with some cost, on systems with many lxcs, the interval will increase automatically.
-- **A plugin system** that allows to easily [create and publish UI plugins](https://github.com/bogeeee/pve-manager-electrified/blob/main/docs/plugin-development.md).  
-  ![](docs/images/Screenshot_plugin_manager.png)
+- **Power management buttons** in the tree. _also in the screenshot above._ Faster power-status feedback.
 - **Instant cloning** of guests. 
   - Uses ZFS's copy-on-write mechanism, so the clones happen instantly and no disk space is used.
   - Allows cloning of **snapshots**, so you can have a quick peak into an older state of your vm.
@@ -35,6 +34,8 @@ Also, open source does not develop it's self. Developers need motivation, so wri
     
   The mentioned clone features work with ZFS only.
 - Dialog on conflicting hardware resources (i.e. usb, gpu) when starting a guest. Useful when switching between guests with one exclusive GPU.  
+- **A plugin system** that allows to easily [create and publish UI plugins](https://github.com/bogeeee/pve-manager-electrified/blob/main/docs/plugin-development.md).  
+  ![](docs/images/Screenshot_plugin_manager.png)
 - PLANNED: Show real thin **disk usage** in the tree.
 - PLANNED: **Docker support**.
 - PLANNED: **Assistants for several small optimizations for home-lab usage:** Gpu passthrough; Dynamic ip; Prevent ssd wear-down; Install microcode update packages; Fix zfs memory settings; Fix disk stalling; Warn on simultaneous USB device use; Show password prompts for encrypted disks;
