@@ -705,9 +705,28 @@ export abstract class Guest extends ModelBase implements NotificationTarget {
 
     /**
      * After hibernating, it was sometimes seen that this.rawDataRecord = undefined (how come??), so undefined may be returned in that case
+     * @see #status_extended
      */
     get status(): "prelaunch" | "running" | "stopped" | "suspended" | "paused"| undefined {
         return this._getImprovedStatus(this.rawDataRecord?.["status"] as string) as any;
+    }
+
+    /**
+     * Electrified status that gives you more info (while {@link status} stays backward compatible with classic code
+     * @see #status
+     */
+    get status_extended() {
+        const runningTaks = this.parent.parent.tasks.runningByTargetId.get(String(this.id));
+        if(runningTaks?.some(t => t.type?.endsWith("shutdown") && this.status !== "stopped")) {
+            return "shutting_down";
+        }
+        if(runningTaks?.some(t => t.type?.endsWith("reboot") && this.status !== "stopped")) {
+            return "rebooting";
+        }
+        if(runningTaks?.some(t => t.type === "qmstop" || t.type === "lxcstop")) {
+            return "stopping";
+        }
+        return undefined;
     }
 
     isRunning() {

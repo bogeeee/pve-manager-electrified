@@ -30,7 +30,7 @@ import ex = CSS.ex;
  * plays together with it = controlled in both directions
  */
 export const ReactResourceTree = watchedComponent((props: {classicResourceTree: any, onNodeClick: (node: TreeDataNode) => void, onNodeDoubleClick: (node: TreeDataNode, event: any) => void, onNodeContextMenu: (node: TreeDataNode, event: any) => Promise<void>}) => {
-
+    const app = getElectrifiedApp();
     const classicResourceTree = props.classicResourceTree;
 
     // Hand the tree state to classicResourceTree.reactTreeState:
@@ -46,6 +46,22 @@ export const ReactResourceTree = watchedComponent((props: {classicResourceTree: 
         if(node.id === "root") {
             iconClass = `fa-server ${iconClass}`
         }
+
+        // Handle extended / more electrified states:
+        if(app.initialized) {
+            let item = app.datacenter._getItemForResourceRecord(node.data);
+            if (item !== null && item instanceof Guest) {
+                item = watched(item);
+                if (item.status_extended === "shutting_down") {
+                    iconClass += " shutting_down";
+                }
+                if (item.status_extended === "rebooting") {
+                    iconClass += " rebooting";
+                }
+            }
+        }
+
+
         return iconClass;
     }
 

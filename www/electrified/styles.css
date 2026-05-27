@@ -116,6 +116,20 @@
     top: 1px;
 }
 
+/* the suspend symbol */
+.x-tree-icon-custom.shutting_down:after,
+.x-grid-icon-custom.shutting_down:after {
+    content: "\f019";
+    color: #21bf4b;
+    font-size: 0.9em;
+}
+
+.x-tree-icon-custom.rebooting:after,
+.x-grid-icon-custom.rebooting:after {
+    content: "\f021";
+    color: #21bf4b;
+    font-size: 0.9em;
+}
 
 /**** Blueprint ****/
 @media (prefers-color-scheme: light) {

@@ -1,6 +1,6 @@
 import {AsyncConstructableClass} from "../util/AsyncConstructableClass";
 import {Guest} from "./Guest";
-import {FetchError, spawnAsync, throwError} from "../util/util";
+import {FetchError, newDefaultMap, spawnAsync, throwError} from "../util/util";
 import {Node} from "./Node"
 import {getElectrifiedApp, t} from "../globals";
 import {ModelBase} from "./ModelBase";
@@ -10,6 +10,7 @@ import {Storage} from "./Storage"
 import _ from "underscore"
 
 import {Notification, NotificationTarget} from "../Notification";
+import {preserve} from "react-deepwatch";
 
 
 export class Datacenter extends ModelBase implements NotificationTarget{
@@ -18,6 +19,18 @@ export class Datacenter extends ModelBase implements NotificationTarget{
      */
     static ELECTRIFIED_GUEST_STATS_REFRESH_INTERVAL = 250; // In ms
     static STATUS_REFRESH_INTERVAL = 3000; // In ms
+    static TASKS_STORE_REFRESH_INTERVAL = 500; // In ms. PVE default is 3000
+
+    /**
+     * The tasks that you see in the south panel (not the clusterlog)
+     */
+    tasks = new class {
+        running: PveClusterTask[] = []
+        runningByTargetId = new Map<string, PveClusterTask[]>();
+        get all(): PveClusterTask[] {
+            throw new Error("Not yet implemented / costs too much performance. Say so if needed.")
+        }
+    }
 
     _nodes!: Map<string, Node>;
     _pools!: Map<string, Pool>;
@@ -103,6 +116,36 @@ export class Datacenter extends ModelBase implements NotificationTarget{
 
             })
         }, Datacenter.ELECTRIFIED_GUEST_STATS_REFRESH_INTERVAL); // Refresh status regularly
+
+        this._taskStore.rstore.interval = Datacenter.TASKS_STORE_REFRESH_INTERVAL; // Boost the refresh rate
+        this._taskStore.on("datachanged", () => this._updateTasksFromPveTaskStore()); // Subscribe to task store
+        this._updateTasksFromPveTaskStore(); // refresh once now
+    }
+
+    get _taskStore() {
+        return getElectrifiedApp().workspace.down("pveClusterTasks").getStore(); // Note: There is pveClusterTasks and pveClusterTasks
+    }
+
+    /**
+     * Takes the items from the pve task store and populates this.tasks
+     */
+    _updateTasksFromPveTaskStore() {
+        const newTasksObj: this["tasks"] = new (this.tasks.constructor as any)
+        for(const item of this._taskStore.getData().getRange()) {
+            const data = item.data;
+            const task = new PveClusterTask(data);
+
+            if(task.running) {
+                newTasksObj.running.push(task);
+                if(task.id) {
+                    newTasksObj.runningByTargetId.has(task.id) || newTasksObj.runningByTargetId.set(task.id, []); // Fill default value
+                    newTasksObj.runningByTargetId.get(task.id)!.push(task);
+                }
+            }
+        }
+
+        preserve(this.tasks,newTasksObj,{destroyObsolete: false, ignoresIds: true});
+
     }
 
     protected async _handleResourceStoreDataChanged() {
@@ -480,5 +523,57 @@ export class Datacenter extends ModelBase implements NotificationTarget{
         else {
             return record as (Record<string, unknown> & typeof record);
         }
+    }
+}
+
+export class PveClusterTask {
+    /**
+     * Id of the item which the task is about. I.e. the guest's id. I.e. "820"
+     */
+    id!: string;
+
+    get key() {
+        return this.upid
+    }
+
+    duration!: number;
+
+    endtime!: Date | null
+
+    node?: string
+    pid?: number
+    /**
+     * I.e. "1"
+     */
+    saved?: "1"
+
+    starttime!: Date;
+
+    /*
+     * I.e. "unexpected status"
+     */
+    status!: string;
+
+    /**
+     * I.e. "startall"
+     */
+    type!: string;
+
+    /**
+     * I.e. "UPID:pveWohnungTest:0001D387:0008D22C:6A16CA41:startall::root@pam:"
+     */
+    upid!:string
+
+    /**
+     * I.e. "root@pam"
+     */
+    user?: string
+
+    get running() {
+        return this.endtime === null;
+    }
+
+    constructor(initialFields: Partial<PveClusterTask>) {
+        _.extend(this, initialFields)
     }
 }

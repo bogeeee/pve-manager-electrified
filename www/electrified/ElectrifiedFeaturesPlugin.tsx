@@ -599,7 +599,7 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
                     key: "shutdown",
                     iconCls: 'fa-power-off',
                     hidden: (guest: Guest) => false,
-                    disabled: (guest: Guest) => guest.status !== "running",
+                    disabled: (guest: Guest) => !(guest.status === "running" && guest.status_extended !== "shutting_down" && guest.status_extended !== "rebooting" && guest.status_extended !== "stopping") ,
                     handler: async (guest: Guest) => {
                         if (app.userConfig.shutdownGuestWithoutConfirm || await app._showConfirmDialog(t`Shutdown ${guest.ui_toString()}`, "start-stop")) {
                             try {
@@ -628,7 +628,7 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
                     key: "reboot",
                     iconCls: 'fa-refresh',
                     hidden: (guest: Guest) => false,
-                    disabled: (guest: Guest) => guest.status !== "running",
+                    disabled: (guest: Guest) => !(guest.status === "running" && guest.status_extended === undefined),
                     handler: async (guest: Guest) => {
                         if (app.userConfig.shutdownGuestWithoutConfirm || await app._showConfirmDialog(t`Reboot ${guest.ui_toString()}`, "start-stop")) {
                             try {
@@ -644,7 +644,7 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
                     key: "reset",
                     iconCls: 'fa-bolt',
                     hidden: (guest: Guest) => !(guest instanceof Qemu),
-                    disabled: (guest: Guest) => guest.status === "stopped",
+                    disabled: (guest: Guest) => !(guest.status !== "stopped" && guest.status_extended !== "shutting_down"),
                     handler: async (guest: Guest) => {
                         if (app.userConfig.shutdownGuestWithoutConfirm || await app._showConfirmDialog(t`Reset ${guest.ui_toString()}`, "start-stop")) {
                             await guest.reset();
