@@ -1,3 +1,13 @@
+pve-manager-electrified (9.8.0) trixie; urgency=medium
+  * New logo, new look / styling
+  * Faster status feedback in the resource tree and less quirks
+  * Improve Shutdown, Stop, Reboot, Reset actions: Add Configuration option to skip the confirmations; Faster/enforced style.
+  * Command buttons in the resource tree
+  * Minor: offer raw field columns in the resource tree
+  * Bugfix: Error when running in a cluster: "Error: Using the electrified client is currently only possible for the current node"
+  * Several stability improvements
+ -- PVE-electrified crew <crew@pve-electrified.net>  Tue, 26 May 2026 00:00:06 +0200
+
 pve-manager-electrified (9.7.0) trixie; urgency=medium
   * Bugfix: Mac addresses noch randomized on clone -> Only do one config write before taking initial snapshot
   * Bugfix: Error reading config when guest has pending changes
