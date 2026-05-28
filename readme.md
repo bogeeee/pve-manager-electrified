@@ -24,7 +24,7 @@ Also, open source does not develop it's self. Developers need motivation, so wri
 - **CPU usage bars** in the tree. Updated in realtime.[^1]  
   ![](docs/images/Screenshot_cpu_bars.png)  
   [^1]: Realtime = 1 second interval. As this comes with some cost, on systems with many lxcs, the interval will increase automatically.
-- **Power management buttons** in the tree. _also in the screenshot above._ Faster power-status feedback.
+- **Power management buttons** in the tree. _also in the screenshot above._ Faster power-state feedback.
 - **Instant cloning** of guests. 
   - Uses ZFS's copy-on-write mechanism, so the clones happen instantly and no disk space is used.
   - Allows cloning of **snapshots**, so you can have a quick peak into an older state of your vm.
