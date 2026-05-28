@@ -15,12 +15,26 @@
     background-color: #C8C8C8;
 }
 
+.x-grid-row-selected .cpu-bar-unused {
+    background-color: #B0B0B0
+}
+
 .cpu-bar-host {
     background-color: #E7CC00FF;
 }
 
 .cpu-bar-cpu {
     background-color: #666;
+}
+
+.bars-style-B.cpu-bars-container {
+    gap: 3px;
+}
+.bars-style-B .cpu-bar-unused {
+    outline: 1px solid #8e8a8a;
+}
+.bars-style-B.cpu-bars-container-no-background .cpu-bar-host, .bars-style-B.cpu-bars-container-no-background .cpu-bar-cpu {
+    outline: 1px solid #8e8a8a;
 }
 
 @media (prefers-color-scheme: dark) {

@@ -85,7 +85,9 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
                 guest: true,
             },
 
-            width: 4
+            width: 4,
+
+            styleVariant: "A"
         };
 
         resourceTreeCommandButtons = {
@@ -204,6 +206,7 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
                 key: "cpu_bars",
                 cellStyle: {paddingTop: "5px", paddingBottom: "5px"},
                 cellRenderFn: (props: { item: object, rowIndex: number, colIndex: number, rawItemRecord: Record<string, unknown> }) => {
+                    const getContainerClassName = (hasBackround: boolean) => `cpu-bars-container ${thisPlugin.userConfig.cpuBars.styleVariant?`bars-style-${thisPlugin.userConfig.cpuBars.styleVariant}`:""} cpu-bars-container-${hasBackround?"with":"no"}-background`;
                     function getSummedUpBars(nodes2guests: Map<Node, Set<Guest>>, showUnusedBackground: boolean) {
                         const layers: Layer[] = [];
                         let nodes = [...nodes2guests.keys()];
@@ -269,7 +272,7 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
                             }
                         }
 
-                        return <div className="cpu-bars-container">{getBars(layers)}</div>;
+                        return <div className={getContainerClassName(showUnusedBackground)}>{getBars(layers)}</div>;
                     }
                     function getSummedUpBarsForPool(pool: Pool) {
                         const layers: Layer[] = [];
@@ -319,7 +322,7 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
                             }
                         }
 
-                        return <div className="cpu-bars-container">{getBars(layers)}</div>;
+                        return <div className={getContainerClassName(thisPlugin.userConfig.cpuBars.showBackground.pool)}>{getBars(layers)}</div>;
                     }
 
 
@@ -341,7 +344,7 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
                                 end: item.electrifiedStats.currentCpuUsage.value,
                                 cssClass: "cpu-bar-cpu",
                             });
-                            return <div style={{opacity: getOpacity(item.electrifiedStats)}} className="cpu-bars-container">{getBars(layers)}</div>
+                            return <div style={{opacity: getOpacity(item.electrifiedStats)}} className={getContainerClassName(thisPlugin.userConfig.cpuBars.showBackground.guest)}>{getBars(layers)}</div>
                         }
                     } else if(item instanceof this.app.classes.model.Node) {
                         const node = item;
@@ -423,6 +426,12 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
                                     {[{key: "datacenter", text: t`Datacenter`}, {key: "pool", text: t`Pools`}, {key: "node", text: t`Nodes`}, {key: "guest", text: t`Guests`}].map(item =>
                                         <div>&#160;<input type="checkbox" {...bind((plugin.userConfig.cpuBars.showBackground as any)[item.key])} /> {item.text}</div>
                                     )}
+
+                                    <br/>{t`Bar style`}:&#160;
+                                    <select {...bind(plugin.userConfig.cpuBars.styleVariant)}>
+                                        <option key="default" value={undefined}>Default</option>
+                                        <option key="B" value={"B"}>B</option>
+                                    </select>
 
                                     <br/>{t`Bar width`}:
                                     <Slider {...bind(plugin.userConfig.cpuBars.width)} min={1} max={8} stepSize={1}/>

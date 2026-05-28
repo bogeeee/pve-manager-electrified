@@ -259,7 +259,7 @@ export const TreeTable = watchedComponent((props: {root: TreeDataNode, stateRef:
                 const TreeCellComponent = props.cols[0].CellComponent;
                 return <table key={node.id} ref={isSelected(node)?selectedHtmlRowRef as any:undefined} role="presentation" data-recordindex="0" className={`x-grid-item`} cellPadding="0" cellSpacing="0" style={{ width:0}} onClick={() => {state.selectId(node.id,false); setTimeout(() => {props.onNodeClick?.(node); })}} onDoubleClick={(event) => {props.onNodeDoubleClick?.(node,event)}} onContextMenu={(event) => onContextMenu(node, event)} onMouseEnter={(event) => onMouseEnter(node, event)} onMouseLeave={(event) => onMouseLeave(node, event)}>
                     <tbody>
-                        <tr className={`x-grid-tree-node${isLeaf(node)?"-leaf":(isExpanded(node)?"-expanded":"")}  x-grid-row`} role="row" data-qtip="" data-qtitle="" aria-level={row.level+1} aria-expanded={isExpanded(row.node)}>
+                        <tr className={`x-grid-tree-node${isLeaf(node)?"-leaf":(isExpanded(node)?"-expanded":"")}  x-grid-row ${isSelected(node)?"x-grid-row-selected":""}`} role="row" data-qtip="" data-qtitle="" aria-level={row.level+1} aria-expanded={isExpanded(row.node)}>
                             {/* Tree column */}
                             <td key={"treeColumn"} className="x-grid-cell x-grid-td x-grid-cell-treecolumn x-grid-cell-first x-unselectable" style={{width:`${props.cols[0].width || throwError("width not set")}px`}} role="gridcell" tabIndex={-1}>
                                 <div unselectable="on" className="x-grid-cell-inner x-grid-cell-inner-treecolumn" style={{textAlign: "left"}}>
