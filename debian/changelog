@@ -1,3 +1,11 @@
+pve-manager-electrified (9.9.0) trixie; urgency=medium
+  * Even faster status feedback for command buttons.
+  * Show status icon for shutting-down and rebooting states
+  * Fix styles for dark theme
+  * Improve button colors for light theme
+  * Offer alternative CPU bar styles
+ -- PVE-electrified crew <crew@pve-electrified.net>  Thu, 28 May 2026 00:00:06 +0200
+
 pve-manager-electrified (9.8.0) trixie; urgency=medium
   * New logo, new look / styling
   * Faster status feedback in the resource tree and less quirks
