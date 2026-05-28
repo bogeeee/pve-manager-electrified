@@ -26,7 +26,7 @@
 .cpu-bar-cpu {
     background-color: #666;
 }
-
+/* Style B */
 .bars-style-B.cpu-bars-container {
     gap: 3px;
 }
@@ -36,6 +36,17 @@
 .bars-style-B.cpu-bars-container-no-background .cpu-bar-host, .bars-style-B.cpu-bars-container-no-background .cpu-bar-cpu {
     outline: 1px solid #8e8a8a;
 }
+
+/* Style C */
+.bars-style-C .cpu-bar-host {
+    background-color:#FA8000
+}
+
+/* Style D */
+.bars-style-D .cpu-bar-cpu {
+    background-color: #21bf4b;
+}
+
 
 @media (prefers-color-scheme: dark) {
     .cpu-bar-unused {

@@ -431,6 +431,8 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
                                     <select {...bind(plugin.userConfig.cpuBars.styleVariant)}>
                                         <option key="default" value={undefined}>Default</option>
                                         <option key="B" value={"B"}>B</option>
+                                        <option key="C" value={"C"}>C: {t`red bars for host's own cpu`}</option>
+                                        <option key="D" value={"D"}>D</option>
                                     </select>
 
                                     <br/>{t`Bar width`}:
