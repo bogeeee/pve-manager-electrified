@@ -752,7 +752,9 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
                  * </p>
                  */
                 cellRenderFn: (props: {item: object, rowIndex: number, colIndex: number, rawItemRecord: Record<string, unknown>}) => {
-                    return <span>{props.rawItemRecord?.[name] as string | number | boolean}</span>
+                    const record = (props.item as any).rawDataRecord || props.rawItemRecord;
+                    const isLiveUpdated = record !== props.rawItemRecord
+                    return <span style={{opacity: isLiveUpdated?1:0.3}}>{record[name] as string | number | boolean}</span>
                 },
 
 

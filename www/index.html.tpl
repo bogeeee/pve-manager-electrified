@@ -35,6 +35,7 @@
     $INCLUDE_MANAGER6_NONMODULE_SCRIPTS$
 
     <script type="text/javascript" src="/manager6/OnlineHelpInfo.js?ver=$CACHEBREAKER$"></script>
+    <script>window.diagnosis_onlineHelpInfoSuccessfullyLoaded = (pveOnlineHelpInfo !== undefined || proxmoxOnlineHelpInfo !== undefined)</script>
 
     <script type="text/javascript" src="/pve2/ext6/locale/locale-[% lang %].js?ver=$CACHEBREAKER$"></script>
 
