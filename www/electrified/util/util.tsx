@@ -720,7 +720,7 @@ export function SmallErrorBoundary(props: {children: ReactNode}) {
             })
         }
 
-        return <Tooltip content={"Click to show full error"}>
+        return <Tooltip content={`${props.error.message || ""}. ${gettext(`Click to show full error`)}`}>
             <a style={{cursor: "pointer"}} onClick={onClick}>
                 <Icon icon={"error"} size={14}/>
             </a>
