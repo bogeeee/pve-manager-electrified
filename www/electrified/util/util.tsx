@@ -667,7 +667,9 @@ export async function showBlueprintDialog<T>(dialogProps: Partial<BlueprintDialo
 
                     // Align footer:
                     const footerDiv = dialog!.querySelector(".bp6-dialog-footer") as HTMLElement;
-                    footerDiv.style.width = `${footerDiv.offsetWidth + (-consts.maskImageRightSourceWidth + (footerDiv.offsetHeight < (170 * xScaleFactor)?lowerSpikeXPosition:0)) * xScaleFactor}px`
+                    if(footerDiv) {
+                        footerDiv.style.width = `${footerDiv.offsetWidth + (-consts.maskImageRightSourceWidth + (footerDiv.offsetHeight < (170 * xScaleFactor) ? lowerSpikeXPosition : 0)) * xScaleFactor}px`
+                    }
 
                     dialog.style.backgroundColor = "initial";
                     dialog.style.boxShadow = "initial";
