@@ -28,7 +28,7 @@ import {
     ObjectHTMLSelect,
     sleep,
     coolBackgroundMask,
-    coolBackgroundMask_remove, RememberChoiceButton
+    coolBackgroundMask_remove, RememberChoiceButton, SmallErrorBoundary
 } from "./util/util";
 import {generated_pluginList as pluginList} from "../_generated_pluginList";
 import {
@@ -898,31 +898,13 @@ export class Application extends AsyncConstructableClass{
             return <Component {...props} item={item} rawItemRecord={props.node.data}/>
         });
 
-        const errorRender= (props: { error: Error }) => {
-            fixErrorStack(props.error)
-            const fullError = errorToString(props.error);
-
-            const onClick = () => {
-                showResultText(fullError, props.error.message, "error");
-                setTimeout(() => { // not in the thread that's caught by reacts error handler
-                    throw props.error // ### Don't look here, this line is just the error reporter! ### / Show error to console so the javascript source mapping will be resolved
-                })
-            }
-
-            return <Tooltip content={"Click to show full error"}>
-                <a style={{cursor: "pointer"}} onClick={onClick}>
-                    <Icon icon={"error"} size={14}/>
-                </a>
-            </Tooltip>
-        }
-
         /**
          * Outer result component with error boundary
          * @param props
          * @constructor
          */
         const Result = (props: any)=> {
-            return <ErrorBoundary fallbackRender={errorRender}><OuterComponent {...props}/></ErrorBoundary>
+            return <SmallErrorBoundary><OuterComponent {...props}/></SmallErrorBoundary>
         }
         return Result;
     }

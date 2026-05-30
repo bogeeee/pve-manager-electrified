@@ -703,6 +703,32 @@ export async function showBlueprintDialog<T>(dialogProps: Partial<BlueprintDialo
     })
 }
 
+/**
+ * ... renders as a small inline "(!)" symbol
+ * @param props
+ * @constructor
+ */
+export function SmallErrorBoundary(props: {children: ReactNode}) {
+    const errorRender= (props: { error: Error }) => {
+        fixErrorStack(props.error)
+        const fullError = errorToString(props.error);
+
+        const onClick = () => {
+            showResultText(fullError, props.error.message, "error");
+            setTimeout(() => { // not in the thread that's caught by reacts error handler
+                throw props.error // ### Don't look here, this line is just the error reporter! ### / Show error to console so the javascript source mapping will be resolved
+            })
+        }
+
+        return <Tooltip content={"Click to show full error"}>
+            <a style={{cursor: "pointer"}} onClick={onClick}>
+                <Icon icon={"error"} size={14}/>
+            </a>
+        </Tooltip>
+    }
+    return <ErrorBoundary fallbackRender={errorRender}>{props.children}</ErrorBoundary>
+}
+
 
 /**
  * More friendly way to show a modal MUI dialog. The dialog is also draggable and resizable. Usage:
