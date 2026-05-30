@@ -1555,3 +1555,67 @@ export function coolBackgroundMask_remove(el: HTMLElement) {
 
     }
 }
+
+/**
+ * Wraps a ValueOnObject and prevents hammering writes by making sure, there's a minimum interval kept between the writes
+ * Usage in a watchedComponent
+ * <pre></code></code>
+ * const state = useWatchedState(new class {
+ *       bufferedValue = new WriteBufferedValueOnObject(binding(myObj, myProperty),1000);
+ * })
+ * ...
+ * <input type="text> {...bind(state.bufferedValue.value)} />
+ * </pre>
+ */
+export class WriteBufferedValueOnObject<T> implements ValueOnObject<T> {
+    // ** Config: **
+
+    orig: ValueOnObject<T>;
+    minIntervalMs: number
+
+    // ** State: **
+    lastTimeSet?: number;
+    stagingValue?: {value: T}
+
+
+    constructor(orig: ValueOnObject<T>, maxDelayMs: number) {
+        this.orig = orig;
+        this.minIntervalMs = maxDelayMs;
+    }
+
+    get value() {
+        if(this.stagingValue) {
+            return this.stagingValue.value;
+        }
+        else {
+            return this.orig.value;
+        }
+    }
+
+    set value(newValue: T) {
+        if(this.stagingValue) {
+            this.stagingValue.value = newValue; // Just take it over
+            return;
+        }
+
+        const now = new Date().getTime();
+        if(!this.lastTimeSet || this.lastTimeSet + this.minIntervalMs < now) { // no staging needed?
+            // Set immediately:
+            this.lastTimeSet = now;
+            this.orig.value = newValue;
+        }
+        else {
+            // Set value later via staging:
+            this.stagingValue = {
+                value: newValue,
+            }
+            setTimeout(() => {
+                let newValue = this.stagingValue!.value;
+                this.lastTimeSet = new Date().getTime();
+                this.stagingValue = undefined;
+                this.orig.value = newValue;
+
+            }, this.minIntervalMs - (now - this.lastTimeSet))
+        }
+    }
+}

@@ -146,6 +146,7 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
      */
     nodeConfig: ElectrifiedJsonConfig = {
         plugins: [],
+        ramHeadroomWhenStartingGuestsInMib: 2000,
     }
 
     /**
@@ -161,6 +162,12 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
             filter: NotificationFilter,
             settings: NotificationSettings
         }[] = [];
+        /**
+         * For, when starting new guests and calculating the available memory:
+         * 0 = Only look at guests actual used memory. Ignore the risk that the balloonable memory will grow.
+         * 1 = Assume, all running guests take all their balooned memory
+         */
+        ramHeadroomWhenStartingGuests_balooningRiskFaktor = 0.4;
     }
 
     /**

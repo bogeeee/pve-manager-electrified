@@ -14,6 +14,7 @@ import {preserve} from "react-deepwatch";
 import {GuestsContainerBase} from "./GuestsContainerBase";
 import {Notification, NotificationTarget} from "../Notification";
 import type{Datacenter} from "./Datacenter";
+import {ElectrifiedJsonConfig} from "../../../nodejsserver/Common";
 
 /**
  * A PVE-Node. All fields are live updated.
@@ -337,6 +338,17 @@ export class Node extends GuestsContainerBase implements NotificationTarget {
     _parent?: Datacenter
     get parent(): Datacenter {
         return this._parent || throwError("Datacenter not yet initialized");
+    }
+
+    /**
+     * Config from: /etc/pve/nodes/[nodename]/electrified.json
+     * ... Note: Not associated as a watchable field. You must wrap it in `watched(...)` if needed.
+     */
+    get config(): ElectrifiedJsonConfig {
+        if(getElectrifiedApp().currentNode.name !== this.name) {
+            throwError('Getting the config for a different node is not yet implemented');
+        }
+        return getElectrifiedApp().nodeConfig;
     }
 
     /**

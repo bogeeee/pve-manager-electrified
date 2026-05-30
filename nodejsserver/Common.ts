@@ -8,4 +8,9 @@ export class ElectrifiedJsonConfig {
         version: string,
         codeLocation: "local"|"datacenter"|"npm",
     }[] = []
+
+    /**
+     * Refuse to start guests when the node has not enough ram
+     */
+    ramHeadroomWhenStartingGuestsInMib?: number = 2000;
 }
