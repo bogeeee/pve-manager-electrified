@@ -34,6 +34,7 @@ import {ExpressMemoryStoreExt} from "./util/ExpressMemoryStoreExt.js";
 import {ElectrifiedJsonConfig} from "./Common.js";
 import {GuestCpuMeters} from "./GuestCpuMeters.js";
 import  gracefulFs from "graceful-fs";
+import _ from "underscore";
 
 
 // Enable these for better error diagnosis during development:
@@ -606,15 +607,34 @@ class AppServer {
             return filePath.startsWith(this.config.clusterPackagesBaseDir) && !filePath.match(new RegExp('^' + this.config.clusterPackagesBaseDir +'/[^/]*/node_modules'))// Deep under dir, except the node_modules folder ?
         });
 
-        // Watch the npm plugin config:
-        watchInner(ElectrifiedJsonConfig.filePath, (filePath) => filePath === ElectrifiedJsonConfig.filePath);
+        // Watch the npm plugin config (only the plugins field from the config):
+        let getCfg = () => {
+            try {
+                return JSON.parse(fs.readFileSync(ElectrifiedJsonConfig.filePath, {encoding: "utf8"})) as ElectrifiedJsonConfig
+            }
+            catch (e) {
+                return {} as ElectrifiedJsonConfig
+            }
+        }
+        let lastCfg = getCfg();
+        watchInner(ElectrifiedJsonConfig.filePath, (filePath) => filePath === ElectrifiedJsonConfig.filePath, async () => {
+            await sleep(100); // wait til it is fully written
+            const newCfg = getCfg();
+            try {
+                return !_.isEqual(lastCfg.plugins, newCfg.plugins); // Compare only the plugins.
+            }
+            finally {
+                lastCfg = newCfg;
+            }
+        });
 
         /**
          * Watches targetDir for creation and changes to paths where includeFn returns true
          * @param targetDir
          * @param includeFn
+         * @param contentHasChangedFn this can veto the handleChange() call
          */
-        function watchInner(targetDir: string, includeFn:(filePath: string) =>  boolean) {
+        function watchInner(targetDir: string, includeFn:(filePath: string) =>  boolean, contentHasChangedFn?: () => Promise<boolean>) {
             const watcher = chokidar.watch(path.dirname(targetDir), {
                 persistent: false, atomic: true,
                 ignored: (filePath, stats) => {
@@ -626,10 +646,13 @@ class AppServer {
                 ignoreInitial: true
             });
             ['add', 'change', 'unlink', 'addDir', 'unlinkDir'].forEach(eventName => {
-                (watcher as any).on(eventName, (path?: any) => {
+                (watcher as any).on(eventName, (path?: any) => spawnAsync(async () => {
                     //console.log(`Path: ${eventName} ${path}`);
+                    if(contentHasChangedFn && !await contentHasChangedFn()) {
+                        return;
+                    }
                     handleChange()
-                });
+                },false));
             });
         }
     }
