@@ -151,7 +151,7 @@ export class Datacenter extends ModelBase implements NotificationTarget{
         {
             const nodesSeenInResourceStore = new Set<string>()
             for (const nodeDesc of getElectrifiedApp()._resourceStore.getNodes()) {
-                const name = nodeDesc.node as string || throwError("Name not set");
+                const name = nodeDesc.node as string || throwError("Name not set"); // Note: "Name not set" has been observed
 
                 nodesSeenInResourceStore.add(name);
 
@@ -169,6 +169,13 @@ export class Datacenter extends ModelBase implements NotificationTarget{
             // Delete nodes that don't exist anymore:
             [...this._nodes.keys()].forEach(name => {
                 if (!nodesSeenInResourceStore.has(name)) {
+                    // Health check:
+                    if(name === getElectrifiedApp().currentNode.name) {
+                        console.warn(`Current node ${name} not seen in resource store. Unusual -> refusing to delete it from the model. If you have renamed this node, reload this page`);
+                        return;
+                    }
+
+                    console.warn(`Deleting node ${name} because it was not seen in the resource store. Did you rename it or remove it from the cluster? Please reload the page to make sure, pve-electrified runs stable.`);
                     this._nodes.delete(name);
                 }
             })
