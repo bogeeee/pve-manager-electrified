@@ -1164,6 +1164,14 @@ export abstract class Guest extends ModelBase implements NotificationTarget {
         await this.parent.awaitTask(await this.parent.api2fetch("POST", `/${this.type}/${this.id}/status/reset`,{}) as string);
     }
 
+    async _showNotEnoughRamDialog() {
+        // **Notes about the memory related fields from the resource store:**
+        // Node's field mem: Use After researching for half an hour, it seems that this is the net mem and does not include freeable caches. so we can hapily use this for calculations
+        // Use the field "mem" for lxcs and "memuse" for qemu
+        // Ballooning Qemu guests have the field "memuse". These are, considering vague sources, caches by the host. Actually they don't get tried to be freed by the oom-killer (may be only 10% of it). So we must fully count it as non-freeable ram.
+
+    }
+
     /**
      * ... displays a Dialog when there are resource conflicts (or not enough resources) before actually starting it.
      */
