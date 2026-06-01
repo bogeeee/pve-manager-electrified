@@ -44,9 +44,17 @@ export class File {
     /**
      * We save the result of getStringContent (redundantly), so react-deepwatch can track live changes
      * encoding -> content
+     * This is what's currently seen on disk and confirmed written
      * @protected
+     * @see cache_stringContent_unawaitedWrites
      */
     protected cache_stringContent = new Map<BufferEncoding, string>();
+
+    /**
+     * Like {@link cache_stringContent}, but contains the latest, uncommitted (un-awaited) content
+     * @protected
+     */
+    protected cache_stringContent_unCommitted = new Map<BufferEncoding, string>();
 
     protected cache_dirContent?: ReturnType<File["getDirectoryContents"]>
 
@@ -55,10 +63,14 @@ export class File {
     protected changeListeners = new Set<(() => void)>();
 
     getStringContent(encoding: BufferEncoding): string {
-        checkThatCallerHandlesRetsync();
+        checkThatCallerHandlesRetsync(); // TODO: Do we need this when dealing with unconfirmed writes and when the content is already loaded?
 
         if(!this.exists) {
             throw new Error(`File does not exist: ${this.path}`);
+        }
+
+        if(this.cache_stringContent_unCommitted.has(encoding)) { // Cache hit?
+            return this.cache_stringContent_unCommitted.get(encoding)!;
         }
 
         if(this.cache_stringContent.has(encoding)) { // Cache hit?
@@ -75,7 +87,7 @@ export class File {
         }, this.cache_stringContent, `getStringContent_${encoding}`);
     }
 
-    protected setStringContent_writeOperation?: {newValue: string, encoding: BufferEncoding, promise: Promise<void>, onFileChangedHandler: () => boolean};
+    protected setStringContent_writeOperation?: {newValue: string, encoding: BufferEncoding, promise: Promise<void>, onFileChangedHandler: () => boolean, onFinishedFn?: () => void};
     protected lastChangeEventTime?: Date;
 
     /**
@@ -87,30 +99,66 @@ export class File {
     }
 
     /**
-     * Writes the string content utf8 encoded
+     * Writes the string content utf8 encoded. Does not wait til it's written
      * @param value
      * @see setStringContent
      */
     set content(value: string) {
-        this.setStringContent(value, "utf8")
+        this.setStringContent(value, "utf8", false)
     }
 
     protected removeOperation?: Promise<void>
 
-    setStringContent(newValue:string, encoding: BufferEncoding) {
+    /**
+     * @param newValue
+     * @param encoding
+     * @param awaitCommit true = will wait in retsync style, til theo content is written and confirmed. false = will schedule it for write and getStringContent will return the latest content
+     */
+    setStringContent(newValue:string, encoding: BufferEncoding, awaitCommit=true) {
         const thisFile = this;
+
         // Validity check:
         if(newValue === undefined) {
             throw new Error("Illegal argument: undefined");
         }
 
-        checkThatCallerHandlesRetsync();
+        if(awaitCommit) {
+            checkThatCallerHandlesRetsync();
 
-        if(this.cache_stringContent.get(encoding) === newValue) { // Nothing has changed / already up2date ?
-            return;
+            if(this.cache_stringContent.get(encoding) === newValue) { // Nothing has changed / already up2date ?
+                return;
+            }
+
+            promise2retsync(this._setStringContent_inner(newValue, encoding));
         }
+        else {
+            const doWrite = () => spawnWithErrorHandling(async () => {
+                try {
+                    await this._setStringContent_inner(newValue, encoding);
+                }
+                finally {
+                    thisFile.cache_stringContent_unCommitted.delete(encoding)
+                }
+            });
+            thisFile.cache_stringContent_unCommitted.set(encoding, newValue);
+            if(this.setStringContent_writeOperation) { // Another operation is already in progress?
+                this.setStringContent_writeOperation.onFinishedFn = doWrite
+            }
+            else {
+                doWrite();
+            }
+        }
+    }
 
-        if(this.setStringContent_writeOperation?.encoding === encoding && this.setStringContent_writeOperation?.newValue === newValue) { // Write operation is already in progress ?
+    /**
+     * Creates a setStringContent_writeOperation (if really needed) and awaits it
+     * @param newValue
+     * @param encoding
+     */
+    _setStringContent_inner(newValue:string, encoding: BufferEncoding) {
+        const thisFile = this;
+
+        if(this.setStringContent_writeOperation?.encoding === encoding && this.setStringContent_writeOperation?.newValue === newValue) { // Write operation for same value is already in progress ?
 
         }
         else {
@@ -123,6 +171,7 @@ export class File {
                 encoding= encoding;
                 fileChangeConfirmedPromise= new ExternalPromise<void>();
                 promise: Promise<void>;
+                onFinishedFn?: () => Promise<void>
                 constructor() {
                     this.promise = (async () => {
                         try {
@@ -144,6 +193,7 @@ export class File {
                         }
                         finally {
                             thisFile.setStringContent_writeOperation = undefined; // We dont' need it anymore, so let's clear the memory which holds a big string
+                            this.onFinishedFn?.();
                         }
                     })();
                 }
@@ -160,8 +210,7 @@ export class File {
                 }
             }
         }
-
-        promise2retsync(this.setStringContent_writeOperation.promise);
+        return this.setStringContent_writeOperation.promise;
     }
 
     /**
@@ -303,7 +352,7 @@ export class File {
     constructor(node: Node, path: string) {
         this.node = node;
         this.path = path;
-        this._jsonObject_watchedProxyFacade.onAfterChange(() => spawnWithErrorHandling(() => retsync2promise(() => this.writeJsonObjectToDisk(this.cache_jsonObject as object))));
+        this._jsonObject_watchedProxyFacade.onAfterChange(() => this.writeJsonObjectToDisk(this.cache_jsonObject as object, false));
         this._jsonObject_safe_watchedProxyFacade.onAfterChange(() => this.writeJsonObjectToDisk(this.cache_jsonObject as object));
     }
 
@@ -327,8 +376,8 @@ export class File {
     protected _jsonObject_watchedProxyFacade = new WatchedProxyFacade();
     protected _jsonObject_safe_watchedProxyFacade = new WatchedProxyFacade();
 
-    writeJsonObjectToDisk(jsonObject: object) {
-        this.setStringContent(JSON.stringify(jsonObject, undefined, 4), "utf8"); // Write to disk
+    writeJsonObjectToDisk(jsonObject: object, awaitCommit = true) {
+        this.setStringContent(JSON.stringify(jsonObject, undefined, 4), "utf8", awaitCommit); // Write to disk
     }
 
     /**
@@ -416,7 +465,7 @@ export class File {
 
 
         if(!_.isEqual(this.cache_jsonObject, newObject)) { // Version on disk is different?
-            this.writeJsonObjectToDisk(newObject);
+            this.writeJsonObjectToDisk(newObject, true);
             this.cache_jsonObject = newObject;
         }
         this.cache_jsonObject = newObject;
@@ -465,6 +514,7 @@ export class File {
         cleanResource(this, `stats`);
 
         this.cache_stringContent = new Map<BufferEncoding, string>();
+        this.cache_stringContent_unCommitted = new Map<BufferEncoding, string>();
 
         this.cache_jsonObject = undefined;
 

@@ -400,7 +400,7 @@ export abstract class Guest extends ModelBase implements NotificationTarget {
         }
         const configObj = new Map( [...this.snapshotRoot.snapshots.entries()].map(([section, guest]) => [section, guest._configRecord]) );
         const configContent = Guest._sections2Record_to_configString(configObj as any);
-        this.configFile.content = configContent;
+        this.configFile.setStringContent(configContent, "utf-8", true);
     }
 
     /**
