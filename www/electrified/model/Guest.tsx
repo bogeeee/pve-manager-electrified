@@ -1117,7 +1117,7 @@ export abstract class Guest extends ModelBase implements NotificationTarget {
 
     async start() {
         this.lastStatusAction = {timestamp: new Date().getTime(), action: "start"}
-        getElectrifiedApp().currentNode.execCommand`${this.manageCmd} start ${this.id}`;
+        await this.parent.awaitTask(await this.parent.api2fetch("POST", `/${this.type}/${this.id}/status/start`,{}) as string);
     }
 
     async resume() {
