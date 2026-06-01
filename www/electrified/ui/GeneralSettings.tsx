@@ -44,11 +44,7 @@ const RamHeadroomInput = watchedComponent((props: {node: Node}) => {
     const {node} = props;
     const nodeCfg = watched(node.config);
 
-    const state = useWatchedState(new class {
-        bufferedValue = new WriteBufferedValueOnObject(binding(nodeCfg.ramHeadroomWhenStartingGuestsInMib),1000);
-    })
-
-    return <NumericInput value={state.bufferedValue.value} onValueChange={(val) => state.bufferedValue.value = val} min={0} max={999999999} style={{width: "80px"}}/>
+    return <NumericInput value={nodeCfg.ramHeadroomWhenStartingGuestsInMib} onValueChange={(val) => nodeCfg.ramHeadroomWhenStartingGuestsInMib = val} min={0} max={999999999} style={{width: "80px"}}/>
 })
 
 export async function showGeneralSettings(scrollToSectionName?:string) {
