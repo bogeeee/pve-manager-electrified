@@ -134,7 +134,7 @@ Ext.define('PVE.data.ResourceStore', {
                             if (record.data.type === "qemu" || record.data.type === "lxc") {
                                 const fixedName = window.electrifiedApp._fix_nameHints.get(record.data.vmid);
                                 if(fixedName) {
-                                    text += ` ${fixedName}`;
+                                    text += ` (${fixedName})`;
                                 }
                             }
                         }
