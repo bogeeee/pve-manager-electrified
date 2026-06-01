@@ -1,3 +1,8 @@
+pve-manager-electrified (9.9.1) trixie; urgency=medium
+  * Stability fix: Cpu bars disappeared -> Warn / check validity when nodes were deleted
+  * Minor stabilty/bugfixes / changed file handling (affecting fast-clone). see git log.
+ -- PVE-electrified crew <crew@pve-electrified.net>  Mon, 01 Jun 2026 00:00:06 +0200
+
 pve-manager-electrified (9.9.0) trixie; urgency=medium
   * Even faster status feedback for command buttons.
   * Show status icon for shutting-down and rebooting states
