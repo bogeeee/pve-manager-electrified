@@ -42,27 +42,30 @@ export const ReactResourceTree = watchedComponent((props: {classicResourceTree: 
 
 
     const getIconCls = (node:TreeDataNode) => {
-        let iconClass = PVE.Utils.get_object_icon_class(node.data.type, node.data);
-        if(node.id === "root") {
-            iconClass = `fa-server ${iconClass}`
-        }
+        try {
+            let iconClass = PVE.Utils.get_object_icon_class(node.data.type, node.data);
+            if (node.id === "root") {
+                iconClass = `fa-server ${iconClass}`
+            }
 
-        // Handle extended / more electrified states:
-        if(app.initialized) {
-            let item = app.datacenter._getItemForResourceRecord(node.data);
-            if (item !== null && item instanceof Guest) {
-                item = watched(item);
-                if (item.status_extended === "shutting_down") {
-                    iconClass += " shutting_down";
-                }
-                if (item.status_extended === "rebooting") {
-                    iconClass += " rebooting";
+            // Handle extended / more electrified states:
+            if (app.initialized) {
+                let item = app.datacenter._getItemForResourceRecord(node.data);
+                if (item !== null && item instanceof Guest) {
+                    item = watched(item);
+                    if (item.status_extended === "shutting_down") {
+                        iconClass += " shutting_down";
+                    }
+                    if (item.status_extended === "rebooting") {
+                        iconClass += " rebooting";
+                    }
                 }
             }
+            return iconClass;
         }
-
-
-        return iconClass;
+        catch (e) {
+            return "fa-exclamation"
+        }
     }
 
     const getToolTip = (node:TreeDataNode) => {

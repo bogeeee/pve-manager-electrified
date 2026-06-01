@@ -28,7 +28,7 @@ import {
     ObjectHTMLSelect,
     sleep,
     coolBackgroundMask,
-    coolBackgroundMask_remove, RememberChoiceButton, SmallErrorBoundary
+    coolBackgroundMask_remove, RememberChoiceButton, SmallErrorBoundary, toError
 } from "./util/util";
 import {generated_pluginList as pluginList} from "../_generated_pluginList";
 import {
@@ -894,8 +894,13 @@ export class Application extends AsyncConstructableClass{
             if(!watched(this)._datacenter) {
                 return <span style={{color: "#555"}}><img src="/images/E_small.png" height="12px"/><i>{t`'ing...`}</i></span>
             }
-            const item = this.datacenter._getItemForResourceRecord(props.node.data);
-            return <Component {...props} item={item} rawItemRecord={props.node.data}/>
+            try {
+                const item = watched(this.datacenter)._getItemForResourceRecord(props.node.data);
+                return <Component {...props} item={item} rawItemRecord={props.node.data}/>
+            }
+            catch (e) {
+                return <i>{toError(e).message}</i> /* Quickly handle error because in case a guest is not yet found after clone, the react-error-boundary seems like staying in this state forever / does not revocer when the model changes back to a **valid** state */
+            }
         });
 
         /**
