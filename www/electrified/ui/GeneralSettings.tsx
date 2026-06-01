@@ -36,7 +36,7 @@ import {getElectrifiedApp, gettext, t} from "../globals";
 import _ from "underscore";
 import {Table, TableBody, TableCell, TableContainer, TableHead, TableRow} from "@mui/material";
 import clone from "clone";
-import type {Application} from "../Application";
+import {Application} from "../Application";
 import {instanceOf} from "prop-types";
 import {Node} from "../model/Node"
 
@@ -71,13 +71,17 @@ export async function showGeneralSettings(scrollToSectionName?:string) {
                 {/* Start / stop*/}
                 <h2 ref={scrollToSectionName === "start-stop"?(targetedSectionRef as any):undefined}>{t`Start / stop`}</h2>
                 <div><input type="checkbox" {...bind(userConfig.shutdownGuestWithoutConfirm)} />&#160;{t`Shutdown / stop / reboot / reset guests without confirm`}</div>
-                {/* Ram conflict dialog: */}
-                <h3 ref={scrollToSectionName === "ram-conflict-dialog"?(targetedSectionRef as any):undefined}>{t`Ram conflict dialog`}</h3>
-                <i>{t`Will pop up a warning dialog when starting guests and these criteria are not met:`}</i><br/>
-                {datacenter.nodes.map(node => {
-                    const textHeadroom = t`Ensure XXX MiB free headroom when starting guests`;
-                    return <div style={{display: "flex", gap: "3px", alignItems: "center", paddingLeft: "4px"}}><span className={`fa fa-fw fa-${node.faIcon}`}/> <strong>{node.name}:</strong> {textHeadroom.substring(0, textHeadroom.indexOf("XXX"))}<SmallErrorBoundary><RamHeadroomInput node={node}/></SmallErrorBoundary>{textHeadroom.substring(textHeadroom.indexOf("XXX")+3)}
-                </div>})}
+
+                {Application.FEATURE_RAM_CONFLICT_DIALOG && <div>
+                    {/* Ram conflict dialog: */}
+                        <h3 ref={scrollToSectionName === "ram-conflict-dialog"?(targetedSectionRef as any):undefined}>{t`Ram conflict dialog`}</h3>
+                        <i>{t`Will pop up a warning dialog when starting guests and these criteria are not met:`}</i><br/>
+                    {datacenter.nodes.map(node => {
+                        const textHeadroom = t`Ensure XXX MiB free headroom when starting guests`;
+                        return <div style={{display: "flex", gap: "3px", alignItems: "center", paddingLeft: "4px"}}><span className={`fa fa-fw fa-${node.faIcon}`}/> <strong>{node.name}:</strong> {textHeadroom.substring(0, textHeadroom.indexOf("XXX"))}<SmallErrorBoundary><RamHeadroomInput node={node}/></SmallErrorBoundary>{textHeadroom.substring(textHeadroom.indexOf("XXX")+3)}
+                        </div>})}
+                </div>
+                }
 
 
                 {/* Offer resource-tree columns for raw fields

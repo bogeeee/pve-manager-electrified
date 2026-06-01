@@ -76,6 +76,8 @@ let app: Application | undefined = undefined;
 
 export class Application extends AsyncConstructableClass{
 
+    static FEATURE_RAM_CONFLICT_DIALOG = false; // In development
+
     protected static _ExtComponents: Record<string, any> = {};
 
     protected _datacenter?: Datacenter
