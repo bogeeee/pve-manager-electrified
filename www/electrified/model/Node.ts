@@ -14,7 +14,7 @@ import {preserve} from "react-deepwatch";
 import {GuestsContainerBase} from "./GuestsContainerBase";
 import {Notification, NotificationTarget} from "../Notification";
 import type{Datacenter} from "./Datacenter";
-import {ElectrifiedJsonConfig} from "../../../nodejsserver/Common";
+import {ElectrifiedJsonConfig} from "pveme-nodejsserver/Common";
 
 /**
  * A PVE-Node. All fields are live updated.
