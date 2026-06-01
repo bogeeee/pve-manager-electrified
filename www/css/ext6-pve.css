@@ -126,6 +126,13 @@
 .x-grid-icon-custom.offline {
     color: #cfcfcf;
 }
+/* ... better contrast behind selected row bar */
+.x-grid-row-selected .x-tree-icon-custom.stopped,
+.x-grid-row-selected .x-grid-icon-custom.stopped,
+.x-grid-row-selected .x-tree-icon-custom.offline,
+.x-grid-row-selected .x-grid-icon-custom.offline {
+    color: #B0B0B0
+}
 
 /* the small icons */
 .x-tree-icon-custom:after,
