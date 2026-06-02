@@ -521,6 +521,8 @@ export class File {
         this.cache_dirContent = undefined
         cleanResource(this, `getDirectoryContents`);
 
+        this.changeListeners.clear();
+
         if(this.watchesForChanges) {
             await this.node.electrifiedApi.offFileChanged(this.path, this.changeOnDiskHandler);
             this.watchesForChanges = false;
