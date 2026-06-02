@@ -43,9 +43,9 @@ export class SaferFileWatcher {
         });
         ['add', 'change', 'unlink', 'addDir', 'unlinkDir'].forEach(async (eventName) => {
             (watcher as any).on(eventName, async (trigger_path?: any) => {
-                //console.log("change event. Path: " + file + "; trigger_path:" + trigger_path + ": " + eventName + ", watcher.interval: " + watcher.interval + ",  stat: " + JSON.stringify(fileStat));
-
                 const fileStat = await ElectrifiedSession.getFileStat(this.file);
+
+                //console.log("change event. Path: " + this.file + "; trigger_path:" + trigger_path + ": " + eventName + ", watcher.interval: " + options.interval + ",  stat: " + JSON.stringify(fileStat));
 
                 const getFileState = async ()=> {
                     try {
