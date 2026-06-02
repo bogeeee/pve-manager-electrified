@@ -29,6 +29,7 @@ import {Button, ButtonGroup, Checkbox, Classes, InputGroup, Intent} from "@bluep
 import {DeviceFilePassthrough} from "./hardware/DeviceFilePassthrough";
 import {Usb} from "./hardware/Usb";
 import {HostPci} from "./hardware/HostPci";
+import {invalidateObject} from "proxy-facades";
 
 export abstract class Guest extends ModelBase implements NotificationTarget {
     //@ts-ignore
@@ -1170,6 +1171,11 @@ export abstract class Guest extends ModelBase implements NotificationTarget {
         // Use the field "mem" for lxcs and "memuse" for qemu
         // Ballooning Qemu guests have the field "memuse". These are, considering vague sources, caches by the host. Actually they don't get tried to be freed by the oom-killer (may be only 10% of it). So we must fully count it as non-freeable ram.
 
+    }
+
+    _cleanup() {
+        this.configFile.cleanup();
+        invalidateObject(this, "Guest has been deleted");
     }
 
     /**

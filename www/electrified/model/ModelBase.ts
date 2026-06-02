@@ -37,6 +37,13 @@ export class ModelBase extends AsyncConstructableClass {
         this.updateListeners.forEach(l => l());
     }
 
+    /**
+     * Cleans up resources after this object was deleted
+     */
+    _cleanup() {
+
+    }
+
     get clazz(): this["classType"] {
         return this.constructor as any;
     }
