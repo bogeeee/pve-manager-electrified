@@ -163,7 +163,7 @@ export class Node extends GuestsContainerBase implements NotificationTarget {
         while(true) {
             const statusResult: any = await this.api2fetch("GET", `/tasks/${id}/status`);
             if(statusResult.status !== "running") {
-                if(statusResult.exitstatus === "OK") {
+                if(statusResult.exitstatus === "OK" || (statusResult.exitstatus as string)?.match(/WARNINGS: [0-9]+/)) {
                     return;
                 }
                 throw new Error(`Task ${id} failed. Exit status: ${statusResult.exitstatus}`);
