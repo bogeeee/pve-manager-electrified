@@ -296,6 +296,7 @@ export const TreeTable = watchedComponent((props: {root: TreeDataNode, stateRef:
                                     </div>
                                 </td>
                             })}
+                            <td key={"spacerEnd"} style={{width: "11px"}}/>
 
                         </tr>
                     </tbody>
