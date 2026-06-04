@@ -1682,3 +1682,11 @@ export function ignoreErr<T>(fn: () => T) {
         return undefined;
     }
 }
+
+export type ClassOf<T> = {
+    new(...args: unknown[]): T
+}
+
+export function isSubclassOf(Subclass: ClassOf<any>, Parent: ClassOf<any>): boolean {
+    return Subclass === Parent || (Object.getPrototypeOf(Subclass) && isSubclassOf(Object.getPrototypeOf(Subclass), Parent));
+}

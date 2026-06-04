@@ -1,9 +1,9 @@
 import {AsyncConstructableClass} from "../util/AsyncConstructableClass";
 import {Guest} from "./Guest";
-import {FetchError, newDefaultMap, spawnAsync, sum, throwError} from "../util/util";
+import {ClassOf, FetchError, isSubclassOf, newDefaultMap, spawnAsync, sum, throwError, toError} from "../util/util";
 import {Node} from "./Node"
 import {getElectrifiedApp, t} from "../globals";
-import {ModelBase} from "./ModelBase";
+import {ModelBase, objectIsDestroyed} from "./ModelBase";
 import {ExternalPromise} from "restfuncs-common";
 import {Pool} from "./Pool";
 import {Storage} from "./Storage"
@@ -11,6 +11,9 @@ import _ from "underscore"
 
 import {Notification, NotificationTarget} from "../Notification";
 import {preserve} from "react-deepwatch";
+import type {Plugin} from "../Plugin";
+import {RecordedRead, WatchedProxyFacade} from "proxy-facades";
+import createRBTree from "functional-red-black-tree";
 
 
 export class Datacenter extends ModelBase implements NotificationTarget{
@@ -604,5 +607,397 @@ export class PveClusterTask {
 
     constructor(initialFields: Partial<PveClusterTask>) {
         _.extend(this, initialFields)
+    }
+}
+
+/**
+ * ... a task instance is created for each runForEach ModelBase instance. Therefore, you can also store item associated runtime/cache fields here.
+ * You can let it run in a regular interval or make it immediately react to relevant model changes, using {@link DiagnosisTask#watched} or both.
+ * All time values in the config are in milliseconds.
+ * <p>
+ *     Example:
+ * </p>
+ * <pre><code>
+     async earlyInit(): Promise<void> {
+        const thisPlugin = this;
+
+        class LowRamNotification extends Notification {
+            get title() {return t`Low on ram`}
+        }
+
+        (class LowRamDiagnosisTask extends DiagnosisTask<Datacenter> {
+            static plugin = thisPlugin;
+            static producesNotifications = [LowRamNotification];
+            static runForEach = Node;
+            static runInRegularInterval = undefined; // No need, we watch what we need
+            static initialEstimatedDuration=4; // 4ms
+
+            async run(node: Node) {
+                console.log(`Diagnosis task running for ${node}`)
+                node = this.watched(node);
+                // ...watch every other object that we need. I.e. this.watched(getElectrifiedApp().datacenter)
+
+                if(node.mem > node.maxmem * 0.8) {
+                    new LowRamNotification({
+                        plugin: thisPlugin,
+                        about: node,
+                        textContent: t`Node ${node.name} is low on ram`,
+                    }).registerAndShow();
+                }
+            }
+        }).registerInApp();
+    }
+ *
+ * </code></pre>
+ *
+ * @see Notification
+ */
+export abstract class DiagnosisTask<M extends ModelBase> {
+    /**
+     * So the user know which plugin provides this (or is to blame if stuff gets slow ;) )
+     */
+    static plugin: Plugin;
+
+    /**
+     * In ms
+     */
+    static runInRegularInterval?: number
+
+    static maxInterval = 30 * 60 * 1000
+
+    /**
+     * To be nice and not consume too much cpu, we specify to what fraction of the time this should be throttled
+     * I.e. 0.001 means, if consumes max. 0.1% cpu (or other resources) of the host/client.
+     * Overrules {@link runInRegularInterval} but not  {@link maxInterval}
+     * @see niceFactor
+     */
+    static maxTimeFraction = 0.001;
+
+    /**
+     * Like {@link maxTimeFraction} but for, when a watched object was changed
+     */
+    static maxTimeFraction_forTriggeredEvents = 0.05;
+
+    /**
+     * The higher the value, the nicer and less priority does it take over other tasks
+     */
+    static niceFactor = 1;
+
+
+    static runForEach: ClassOf<ModelBase>;
+
+    static producesNotifications: (typeof Notification)[]
+
+    static tasksForItems = new WeakMap<ModelBase, DiagnosisTask<any>>()
+
+
+
+    /**
+     * To prevent triggering too much or to give it some time (i.e. till the config file writes are settled)
+     */
+    static minDelayWhenTriggered = 0;
+
+    /**
+     *
+     */
+    static initialEstimatedDuration: number = undefined as any as number;
+
+    _itemRef: WeakRef<M>
+
+    diag_lastError?: Error;
+    static diag_lastErroredTask?: DiagnosisTask<any>;
+
+    _currentRun?: {
+        startTime: number;
+        /**
+         * Re-run needed because the model has changed while running
+         */
+        needsRerun?: boolean;
+    }
+
+    /**
+     * In ms
+     */
+    _lastRunDuration?: number;
+
+    get item(): M | undefined {
+        return this._itemRef.deref();
+    }
+
+    constructor(item: M) {
+        this._itemRef = new WeakRef(item);
+
+        if(objectIsDestroyed(item)) {
+            return;
+        }
+
+        this.scheduleForNow(); // The scheduler will then also schedule it for later after the first run
+    }
+
+    static _createAndScheduleTask(item: ModelBase) {
+        if(objectIsDestroyed(item)) {
+            return;
+        }
+
+        //@ts-ignore
+        const taskInstance = new this(item);
+    }
+
+    get isRunning() {
+        return !!this._currentRun
+    }
+
+    get estimatedDuration(): number {
+        if(this._currentRun) {
+            const currentDuration = performance.now() - this._currentRun.startTime;
+            return Math.max(currentDuration, this._lastRunDuration || this.clazz.initialEstimatedDuration || 0);
+        }
+        else {
+            return this._lastRunDuration || this.clazz.initialEstimatedDuration || 0
+        }
+    }
+
+    get _scheduler() {
+        return getElectrifiedApp().diagnosisTaskScheduler;
+    }
+
+    static validate() {
+        this.plugin || throwError(`You must specify the plugin field`);
+        this.runForEach || throwError(`You must specify the runForEach field`);
+        //@ts-ignore
+        if(!(isSubclassOf(this.runForEach, ModelBase))) {
+            throwError(`The (runForEach-) class ${this.runForEach.name || this.runForEach} is not supported`);
+        }
+        this.producesNotifications || throwError(`You must specify the producesNotifications field`);
+    }
+
+
+    /**
+     * Registers it in the application
+     */
+    static registerInApp() {
+        this.validate();
+        getElectrifiedApp().diagnosisTasksClasses.add(this);
+    }
+
+    /**
+     * While running, make
+     * @see watched. You should watch the item or other objects while running to automatically trigger a re-run
+     * @param item
+     */
+    abstract run(item: M): Promise<void>;
+
+    _cleanUp() {
+        this._cleanUpBeforeNextRun();
+    }
+
+    _cleanUpBeforeNextRunFns: (() => void)[] = [];
+    _cleanUpBeforeNextRun() {
+        this._cleanUpBeforeNextRunFns.forEach(f => f());
+    }
+
+    _runtime_proxyFacade?: WatchedProxyFacade;
+
+    /**
+     * User this.watched(obj) to get a proxy of any object that watches for any deep changes and triggers another run
+     * Also make sure to not write into these proxied objects to prevent an endless triggering of this task.
+     * @param obj
+     */
+    watched<T extends object>(obj: T): T {
+        this._runtime_proxyFacade || throwError(`Cannot use watched while this task is not running. Has the run(...) method finished in the meanwhile and you're calling from an async fork`)
+        return this._runtime_proxyFacade!.getProxyFor(obj);
+    }
+
+    async _runOnce() {
+        if(this._currentRun) {
+            return; // Prevent running twice in parralel
+        }
+
+        this._cleanUpBeforeNextRun();
+
+        const item = this.item;
+        if(!item || objectIsDestroyed(item)) { // Item was garbage collected or destroyed in the meanwhile ?
+            this._cleanUp();
+            return;
+        }
+
+        // Create facade that watches all reads and triggers the rerun:
+        const facade = this._runtime_proxyFacade = new WatchedProxyFacade();
+        const readListener = (read: RecordedRead) => {
+            // Subscribe / unsubscribe to when something changes:
+            read.onAfterChange(this._handleModelChangedFn,true);
+            this._cleanUpBeforeNextRunFns.push(() => read.offAfterChange(this._handleModelChangedFn))
+        };
+        facade.onAfterRead(readListener);
+
+        try {
+            this._currentRun = {
+                startTime: performance.now()
+            }
+
+            await this.run(item);
+            this.diag_lastError = undefined;
+        }
+        catch (e) {
+            this.diag_lastError = toError(e);
+            this.clazz.diag_lastErroredTask = this;
+            throw e;
+        }
+        finally {
+            this._currentRun || throwError("Illegal state. Is run running twice in parrallel?")
+            this._lastRunDuration = performance.now() - this._currentRun!.startTime;
+            if(this._currentRun!.needsRerun) {
+                this.scheduleForNow();
+            }
+            this._currentRun = undefined;
+            facade.offAfterRead(readListener)
+            this._runtime_proxyFacade = undefined;
+        }
+
+        if(!this.clazz.initialEstimatedDuration) {
+            throwError(`The static field initialEstimatedDuration was not specified in your DiagnosisTask. You can use the following value / this run was benchmarked to initialEstimatedDuration=${this._lastRunDuration}`)
+        }
+    }
+
+    _handleModelChanged() {
+        if(this._currentRun) {
+            this._currentRun.needsRerun = true; // This will schedule it after the run
+        }
+        else {
+            this._cleanUpBeforeNextRun(); // Now that we
+            this.scheduleForNow();
+        }
+    }
+    _handleModelChangedFn = this._handleModelChanged.bind(this);
+
+    /**
+     * Schedules the next run for now / asap. According to estimatedDuration, nice factor and the other tasks this can be delayed a bit
+     */
+    scheduleForNow() {
+        let delay = this.estimatedDuration / this.clazz.maxTimeFraction_forTriggeredEvents
+        if(getElectrifiedApp().debug) {
+            delay = Math.min(2000, delay); // This prevents accidentially increasing measured last duration because hanging in the debugger
+        }
+        if(!this._lastRunDuration) { // Task is running the first time ?
+            delay = Math.random() * delay; // We could immediately start but let's rather smooth the task-run room by randomizing
+        }
+        this._scheduler.scheduleTask(new Schedule(performance.now() + Math.max(delay, this.clazz.minDelayWhenTriggered), delay * this.clazz.niceFactor), this);
+    }
+
+    /**
+     * Schedules in the configured interval
+     */
+    scheduleRegularly() {
+        const item = this.item;
+        if(!item || objectIsDestroyed(item)) { // Item was garbage collected or destroyed in the meanwhile ?
+            this._cleanUp();
+            return;
+        }
+
+        if(this.clazz.runInRegularInterval) {
+            const delay = Math.min(this.clazz.maxInterval, Math.max(this.clazz.runInRegularInterval, this.estimatedDuration / this.clazz.maxTimeFraction))
+            this._scheduler.scheduleTask(new Schedule(performance.now() + delay, delay * this.clazz.niceFactor), this);
+        }
+    }
+
+    get clazz() {
+        return this.constructor as typeof DiagnosisTask;
+    }
+}
+
+let idGen = 1;
+
+/**
+ * Comparabe specification when and how nice we want to start the next run
+ */
+class Schedule {
+    id = idGen++;
+
+    /**
+     * Ideal
+     */
+    idealStartTime: number
+
+    /**
+     * How much can we delay it?
+     */
+    priorityDelay: number
+
+
+    constructor(idealStartTime: number, priorityDelay: number) {
+        this.idealStartTime = idealStartTime;
+        this.priorityDelay = priorityDelay;
+    }
+}
+
+
+export class DiagnosisTaskScheduler {
+    tasks = createRBTree<Schedule, DiagnosisTask<any>>(DiagnosisTaskScheduler.compare) // This lib provides a sortable data structure (in place / without re-sorting the whole thing each time)
+    task2schedule = new WeakMap<DiagnosisTask<any>, Schedule>();
+    processNextTimer?: any;
+
+    /**
+     * Which task should be run first ?
+     * @param a
+     * @param b
+     */
+    static compare(a: Schedule, b: Schedule): number {
+        const result = (a.idealStartTime + a.priorityDelay) - (b.idealStartTime + b.priorityDelay);
+        if(result === 0) {
+            return a.id - b.id; // Different instances must never return 0
+        }
+        return result
+    }
+
+    processNext() {
+        const now = performance.now();
+
+        const retryLater = (delay: number)=> {
+            clearTimeout(this.processNextTimer); // Clear any other timers
+            this.processNextTimer = setTimeout(() => this.processNext(), delay);
+        }
+
+        // Fetch first entries from the tasks list:
+        const iterator = this.tasks.begin;
+        const mostUrgendSchedule = iterator.key
+        const mostUrgentTask = iterator.value
+        if(!(mostUrgendSchedule && mostUrgentTask)) { // Task list is empty?
+            return;
+        }
+
+        if(mostUrgendSchedule.idealStartTime > now) { // Not yet ready to start?
+            retryLater(mostUrgendSchedule.idealStartTime - now);
+            return;
+        }
+
+        // Run task and process next:
+        this.tasks = this.tasks.remove(mostUrgendSchedule);
+        spawnAsync(async () => {
+            try {
+                await mostUrgentTask._runOnce();
+            }
+            catch (e) {
+                console.error(toError(e));
+            }
+            finally {
+                mostUrgentTask.scheduleRegularly(); // Re-schedule (if it has an interval)
+            }
+
+            this.processNext();
+        }, false)
+
+    }
+
+    scheduleTask(schedule: Schedule, task: DiagnosisTask<any>) {
+        const existingSchedule = this.task2schedule.get(task);
+        if(existingSchedule) {
+            this.tasks = this.tasks.remove(existingSchedule); // Don't let the task be scheduled twice
+        }
+
+        this.task2schedule.set(task, schedule);
+        this.tasks = this.tasks.insert(schedule, task);
+        getElectrifiedApp().initializedAndLoggedOnPromise.then( // Wait till ...
+            () => this.processNext()
+        );
     }
 }

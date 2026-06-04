@@ -3,11 +3,12 @@ import type {Guest} from "../Guest";
 import {throwError} from "../../util/util";
 import {Notification, NotificationTarget} from "../../Notification";
 import {t} from "../../globals";
+import {ModelBase} from "../ModelBase";
 
 /**
  * ...also used for generic hardware when there is no subclass for it
  */
-export class Hardware extends AsyncConstructableClass implements NotificationTarget {
+export class Hardware extends ModelBase implements NotificationTarget {
 
     /**
      * Index from the config.

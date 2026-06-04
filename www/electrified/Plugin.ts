@@ -31,6 +31,7 @@ export class Plugin {
     /**
      * Called, when classic components have been defined but are not started yet.
      * Use this hook, to modify them.
+     * Or to register your DiagnosisTask classes.
      * <p>
      *     this.app has not been fully initialized at that time.
      * </p>

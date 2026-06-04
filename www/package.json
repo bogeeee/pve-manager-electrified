@@ -41,6 +41,8 @@
     "react-is": "=16.13.1",
     "scheduler":  "<=0.26.0",
     "underscore": "^1.13.7",
-    "@types/underscore": "^1.11.4"
+    "@types/underscore": "^1.11.4",
+    "functional-red-black-tree": "^1.0.1",
+    "@types/functional-red-black-tree": "^1.0.6"
   }
 }

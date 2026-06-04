@@ -43,7 +43,7 @@ import {Guest} from "./model/Guest";
 import {Qemu} from "./model/Qemu";
 import {Lxc} from "./model/Lxc";
 import {Node} from "./model/Node";
-import {Datacenter} from "./model/Datacenter";
+import {Datacenter, DiagnosisTask, DiagnosisTaskScheduler} from "./model/Datacenter";
 import {AsyncConstructableClass} from "./util/AsyncConstructableClass";
 import type {ElectrifiedSession} from "pveme-nodejsserver/ElectrifiedSession";
 import {showPluginManager} from "./ui/PluginManager";
@@ -194,11 +194,25 @@ export class Application extends AsyncConstructableClass{
      */
     toaster!: ToasterWrapper;
 
+    /**
+     * Registered diagnosisTasks
+     */
+    diagnosisTasksClasses = new Set<typeof DiagnosisTask<any>>();
+
+    diagnosisTaskScheduler = new DiagnosisTaskScheduler();
+
     private _plugins=  new Map<PluginClass, Plugin>();
 
     webBuildState!: Awaited<ReturnType<ElectrifiedSession["getWebBuildState"]>>
 
     initializedAndLoggedOnPromise = new ExternalPromise<void>()
+
+    /**
+     * @returns true if it uses the vite dev server
+     */
+    get debug() {
+        return !this.webBuildState.builtWeb.buildOptions.buildStaticFiles;
+    }
 
     /**
      * The live model of things in the datacenter live means, as soon, as the state on the server changes, i.e. a corresponding config file changes, it will be file-watched and pushed to here immediately.
@@ -283,7 +297,7 @@ export class Application extends AsyncConstructableClass{
 
         (window as any).electrifiedApp = app = this; // Make available for other modules
 
-        this.currentNode = await Node.create({name: (window as any).Proxmox.NodeName || throwError("Proxmox.NodeName not set")});
+        this.currentNode = await Node.create({name: (window as any).Proxmox.NodeName || throwError("Proxmox.NodeName not set"), _skip_handleAddedAndInitialized: true /* we call this later */});
 
         const electrifiedApi = this.currentNode.electrifiedApi;
 
@@ -346,6 +360,7 @@ export class Application extends AsyncConstructableClass{
 
             await this.currentNode._initWhenLoggedOn();
 
+            this.currentNode._handleAddedAndInitialized();
 
             this._datacenter = await Datacenter.create();
 

@@ -1213,7 +1213,7 @@ export abstract class Guest extends ModelBase implements NotificationTarget {
 
     _cleanup() {
         this.configFile.cleanup();
-        invalidateObject(this, "Guest has been deleted");
+        super._cleanup();
     }
 
     /**

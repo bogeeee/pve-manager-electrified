@@ -108,7 +108,7 @@ export class Notification {
     type: "warning" | "info" = "warning"
 
     /**
-     * Can be either specified here, or by implementing {@see PopupComponent}
+     * Can be either specified here, or by implementing {@see Content}
      */
     textContent?: string
 
