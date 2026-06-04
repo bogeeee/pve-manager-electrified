@@ -196,3 +196,11 @@
 }
 
 
+#draggable-dialog-title {
+    border-bottom: 1px solid #c9C9C9;
+    margin-bottom: 16px;
+}
+
+.MuiModal-backdrop {
+    background-color: rgba(0, 0, 0, 0.3) !important;
+}
