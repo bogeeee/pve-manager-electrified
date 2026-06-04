@@ -570,7 +570,8 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
     getMemBarTreeColumn() {
         return createValueBarTreeColumn({
             text: t`Mem bars`,
-            key: "ram_bars",
+            key: "mem_bars",
+            width: 140,
             valueFn: (item) => {
                 return item.mem;
             },
@@ -700,6 +701,7 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
             key: "command_buttons",
             width: 140,
             cellStyle: {paddingTop: "1px", paddingBottom: "1px"},
+            hidden: true,
             cellRenderFn: (props: { item: object, rowIndex: number, colIndex: number, rawItemRecord: Record<string, unknown> }) => {
                 const guest = props.item as Guest;
                 const userConfig = watched(app.userConfig);
