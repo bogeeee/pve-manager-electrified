@@ -369,7 +369,7 @@ export function createValueBarTreeColumn(colDef: {
                 const itemMax = colDef.maxValueFn(item) as number;
                 let referenceMax: number | undefined = undefined;
                 if(config.poolsScale === "datacenterMax") {
-                    referenceMax = colDef.valueFn(datacenter) || throwError(`colDef.valueFn did not return a value for datacenter`);
+                    referenceMax = colDef.maxValueFn(datacenter) || throwError(`colDef.maxValueFn did not return a value for datacenter`);
                 }
                 else if(config.poolsScale === "highestPool") {
                     referenceMax = highest(datacenter.pools.map(p => colDef.maxValueFn(p) || colDef.valueFn(p) || 0));
