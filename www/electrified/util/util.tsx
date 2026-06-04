@@ -1174,17 +1174,18 @@ export async function confirm(title: string, message: string | ReactNode, icon: 
  * @return
  */
 export async function messageBox(title: string, message: string | ReactNode, icon: string = "info-sign") {
-    return (await showBlueprintDialog({title: <div style={{paddingLeft: "4px"}}><Icon icon={icon as any} />{title}</div>}, (props) => {
+    return (await showBlueprintDialog({title: <div style={{paddingLeft: "4px"}}><Icon icon={icon as any} />{title}</div>, niceElectrifiedStyle: false}, (props) => {
         return <div>
             <div className={Classes.DIALOG_BODY}>
-
-                {message}
+                <form onKeyDown={(event) => {if(event.key === "Enter") { event.preventDefault();props.resolve(true) }}}>
+                    {message}
+                </form>
             </div>
 
             <div className={Classes.DIALOG_FOOTER}>
                 <div className={Classes.DIALOG_FOOTER_ACTIONS}>
                     <ButtonGroup>
-                        <Button onClick={() => props.resolve(true)} intent={Intent.PRIMARY}>{gettext("OK")}</Button>
+                        <Button onClick={() => props.resolve(true)} intent={Intent.PRIMARY} autoFocus={true}>{gettext("OK")}</Button>
                     </ButtonGroup>
                 </div>
             </div>
