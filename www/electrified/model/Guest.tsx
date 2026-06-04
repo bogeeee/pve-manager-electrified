@@ -825,11 +825,11 @@ export abstract class Guest extends ModelBase implements NotificationTarget {
         await this.liveGuest._reReadFromConfig();
     }
 
-    async delete() {
+    async delete(purge = false, destroyUnreferencedDisks=false,) {
         if(this.isSnapshot()) {
             return await this.deleteSnapshot();
         }
-        const taskId = await this.node.api2fetch("DELETE", `/${this.type}/${this.id}`, {}) as string;
+        const taskId = await this.node.api2fetch("DELETE", `/${this.type}/${this.id}`, {purge, "destroy-unreferenced-disks": destroyUnreferencedDisks, ...(this.type === "lxc"?{force: true}:{}) }) as string;
         await this.node.awaitTask(taskId);
     }
 

@@ -730,7 +730,7 @@ export class Application extends AsyncConstructableClass{
                             if(item.type === "qemu" && item.isRunning()) {
                                 await item.stop();
                             }
-                            await this.currentNode.awaitTask(await this.currentNode.api2fetch("DELETE", `/${item.type}/${item.id}`,{purge: state.purge, "destroy-unreferenced-disks": state.destroyUnreferencedDisks, ...(item.type === "lxc"?{force: true}:{}) }) as string);
+                            await item.delete(state.purge, state.destroyUnreferencedDisks);
                             props.resolve(true);
                         })
                     }
