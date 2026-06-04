@@ -210,3 +210,7 @@
     height: 14px;
     top: 4px
 }
+
+.x-treelist-item-text {
+    margin-right: 8px;
+}
