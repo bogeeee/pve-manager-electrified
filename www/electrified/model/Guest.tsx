@@ -249,8 +249,8 @@ export abstract class Guest extends ModelBase implements NotificationTarget {
             throw new Error("Config parsing/serializing functions do not deliver consistent result for " + configFile.path + ". Reserialized output:\n" + Guest._sections2Record_to_configString(sections2record));
         }
 
-        const hasPending = sections2record.has("PENDING"); // Pending changes are saved in a [PENDING] section. We will ignore them and just flag that fact
-        sections2record.delete("PENDING");
+        const hasPending = sections2record.has("PENDING") || sections2record.has("pve:pending"); // Pending changes are saved in a [PENDING] section. We will ignore them and just flag that fact
+        sections2record.delete("PENDING"); sections2record.delete("pve:pending");
 
         // Create guest instances and add them to snapshotRoot:
         const snapshotRoot = new SnapshotRoot();
