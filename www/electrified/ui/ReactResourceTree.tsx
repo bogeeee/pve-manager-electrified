@@ -441,7 +441,10 @@ export function createValueBarTreeColumn(colDef: {
                     return <div key={layerKey++} className={layer.cssClass} style={{position: "absolute", width: "100%", height: "100%", clipPath: `inset(0 ${(1 - layer.start - layer.amount) * 100}% 0 ${layer.start * 100}%)`, overflow: "hidden", paddingLeft: "4px", paddingRight: "4px"}}>
                             {text}
                         </div>
-                })}</div></div></HoverTooltip>
+                })}
+                    {/* Output at least a super small 1px wide bar for valueForThisItem. Otherwise when the value is too small and only the background is shown, this looks confusing*/}
+                    <div key="min1pxValue" className="cpu-bar-cpu" style={{position: "absolute", width: "1px", height: "100%"}}/>
+                </div></div></HoverTooltip>
             }
         },
         showConfig() {
