@@ -783,6 +783,20 @@ export abstract class Guest extends ModelBase implements NotificationTarget {
         return this._mem;
     }
 
+    async unlock(ignoreAlreadyUnlocked=false) {
+        try {
+            await this.parent.execCommand`${this.manageCmd} unlock ${this.id}`;
+        }
+        catch (e) {
+            if(ignoreAlreadyUnlocked && toError(e).message.match(/Command failed with exit code 255:.*no lock found/s)) {
+                // Ignore
+            }
+            else {
+                throw e;
+            }
+        }
+    }
+
     /**
      *
      * @param snapname
@@ -814,7 +828,19 @@ export abstract class Guest extends ModelBase implements NotificationTarget {
         this.isSnapshot() || throwError(`rollBack not called on a snapshot`)
         const taskId = await this.node.api2fetch("POST", `/${this.type}/${this.id}/snapshot/${this.snapshotName}/rollback`, {start}) as string;
         if(!start) {
-            await this.node.awaitTask(taskId);
+            try {
+                await this.node.awaitTask(taskId);
+            }
+            catch (e) {
+                // Bug workaround: Rollback fails for lxcs that depend on snapshots from other guests:
+                if(toError(e).message.match(/zfs error: cannot set property for '.*': use 'none' to disable quota\/refquota/)) {
+                    await this.liveGuest.unlock(true); // ..., cause after the above error, the guest is still locked
+                     // Ignore error
+                }
+                else {
+                    throw e;
+                }
+            }
         }
     }
 

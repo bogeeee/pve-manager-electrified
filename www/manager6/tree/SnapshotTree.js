@@ -98,7 +98,15 @@ Ext.define('PVE.guest.SnapshotTree', {
         },
 
         rollback: function () {
-            this.snapshotAction('rollback', 'POST');
+            let me = this;
+            // Instead of the snapshotAction method, use the electrifiedApp which has a bug workaround for: : Rollback fails for lxcs that depend on snapshots from other guests with message: "zfs error: cannot set property for '...': use 'none' to disable quota/refquota"
+            let vm = me.getViewModel();
+            let snapname = vm.get('selected');
+            if (!snapname) {
+                return;
+            }
+            let vmid = vm.get('vmid');
+            window.electrifiedApp._rollBackGuestSnapshot(vmid, snapname);
         },
         cloneToNewGuest: function () {
             const me = this;

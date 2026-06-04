@@ -946,6 +946,15 @@ export class Application extends AsyncConstructableClass{
         })
     }
 
+    _rollBackGuestSnapshot(guestId: number, snapshotName: string) {
+        spawnWithErrorHandling(async () => {
+            const guest = this.datacenter.getGuest(guestId) || throwError("Guest does not exist");
+            const snapshot = await guest.snapshotRoot.snapshots.get(snapshotName) || throwError("Snapshot does not exist");
+            await snapshot.rollBack(false);
+            messageBox(t`Rollback successful`,"");
+        })
+    }
+
     _ui_autoInstallCoolBackgroundMask(rootNode: HTMLElement, cssSelector: string, colorClass: string) {
         const activeElements = new Set<HTMLElement>();
         const interval = setInterval(() => {
