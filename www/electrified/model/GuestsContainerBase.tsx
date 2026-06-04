@@ -95,8 +95,11 @@ export abstract class GuestsContainerBase extends ModelBase{
         // Delete guests that don't exist anymore:
         [...this._guests.keys()].forEach(id => {
             if(!guestsSeenInResourceStore.has(id)) {
-                this._guests.get(id)?._cleanup();
                 this._guests.delete(id);
+                if(this.type === "node") {
+                    this._guests.get(id)?._cleanup();
+                }
+
             }
         })
     }
