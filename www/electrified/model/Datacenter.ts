@@ -242,6 +242,9 @@ export class Datacenter extends ModelBase implements NotificationTarget{
             })
         }
 
+        this.nodes.forEach(node => node._handleResourceStoreDataChanged(this));
+        this.pools.forEach(pool => pool._handleResourceStoreDataChanged(this));
+
         this._fireUpdate();
     }
 
