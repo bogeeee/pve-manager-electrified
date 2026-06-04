@@ -1,3 +1,8 @@
+pve-manager-electrified (9.10.0) trixie; urgency=medium
+  * Mem bars column in the resource tree
+  * Several small bugfixes. see git log.
+ -- PVE-electrified crew <crew@pve-electrified.net>  Thu, 04 Jun 2026 00:00:08 +0200
+
 pve-manager-electrified (9.9.3) trixie; urgency=medium
   * Bugfix: Build error
  -- PVE-electrified crew <crew@pve-electrified.net>  Mon, 01 Jun 2026 00:00:08 +0200
