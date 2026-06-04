@@ -25,6 +25,7 @@
 
 .cpu-bar-cpu {
     background-color: #666;
+    color: white;
 }
 /* Style B */
 .bars-style-B.cpu-bars-container {

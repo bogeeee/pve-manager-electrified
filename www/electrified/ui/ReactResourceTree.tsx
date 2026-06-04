@@ -9,12 +9,12 @@ import {Guest} from "../model/Guest";
 import {Node} from "../model/Node";
 import {
     coolBackgroundMask, coolBackgroundMask_remove,
-    getUniqueName, HoverTooltip,
+    getUniqueName, highest, HoverTooltip,
     ObjectHTMLSelect,
     RememberChoiceButton,
     RetryableError,
     retryTilSuccess,
-    showBlueprintDialog,
+    showBlueprintDialog, showMuiDialog,
     sleep,
     throwError,
     toError
@@ -24,6 +24,9 @@ import {Storage} from "../model/Storage"
 import {retsync2promise} from "proxy-facades/retsync";
 import {Qemu} from "../model/Qemu";
 import ex = CSS.ex;
+import {TreeColumn} from "../Plugin";
+import {DialogActions, DialogContent, DialogContentText} from "@mui/material";
+import type {Datacenter} from "../model/Datacenter";
 
 /**
  * The Tree-Table body in the pve resource tree (=classicResourceTree)
@@ -301,6 +304,200 @@ export const TreeTable = watchedComponent((props: {root: TreeDataNode, stateRef:
         }
     </>
 });
+
+/**
+ * See i.e. the config for the ram bars in the resource tree
+ */
+export class ValueBarTreeColumnConfig {
+    nodeScale: "self" | "highestNodeMax" | "datacenterMax" = "self";
+    guestsScale: "highestGuestActual" | "highestGuestMax" | "highestSiblingActual" | "highestSiblingMax" | "parentActual" | "parentMax" = "highestGuestMax";
+    poolsScale: "highestPool" | "datacenterMax" = "highestPool";
+    showUnusedRamBackground= {
+        datacenter: true,
+        pool: true,
+        node: true,
+        guest: true,
+    };
+    styleVariant: string = "A"
+}
+
+/**
+ * Use this helper to simply create **bar** columns in the resource tree, like the "Mem bars".
+ * For usage a usage example, see {@link ElectrifiedFeaturesPlugin#getMemBarTreeColumn}
+ * @param colDef
+ */
+export function createValueBarTreeColumn(colDef: {
+    valueFn:(item: ValueBarItem) => number | undefined,
+    maxValueFn:(item: ValueBarItem) => number | undefined,
+    formatTextFn: (value: number) => string,
+    configKey: string,
+} & Omit<TreeColumn, "cellRenderFn" | "cellStyle">): TreeColumn {
+    const app = getElectrifiedApp();
+    return  {
+        cellStyle: {paddingTop: "5px", paddingBottom: "5px"},
+        cellRenderFn: (props: { item: object, rowIndex: number, colIndex: number, rawItemRecord: Record<string, unknown>, node: any }) => {
+            const item = props.item;
+            //@ts-ignore
+            const config = watched(app.userConfig)[colDef.configKey] as ValueBarTreeColumnConfig;
+            const datacenter =watched(app.datacenter);
+            if(item instanceof app.classes.model.Datacenter) {
+                const itemValue = colDef.valueFn(item) || 0;
+                const itemMax = colDef.maxValueFn(item) as number;
+                return getBars(itemValue, config.showUnusedRamBackground.datacenter?itemMax:undefined, itemMax)
+            }
+            else if(item instanceof app.classes.model.Node) {
+                const itemValue = colDef.valueFn(item) || 0;
+                const itemMax = colDef.maxValueFn(item) as number;
+                let referenceMax: number | undefined = undefined;
+                if(config.nodeScale === "self") {
+                    referenceMax = itemMax;
+                }
+                else if(config.nodeScale === "highestNodeMax") {
+                    referenceMax = highest(datacenter.nodes.map(n => colDef.maxValueFn(n) || throwError(`colDef.maxValueFn did not return a value for node`)))
+                }
+                else if(config.nodeScale === "datacenterMax") {
+                    referenceMax = colDef.maxValueFn(datacenter) || throwError(`colDef.maxValueFn did not return a value for datacenter`);
+                }
+                else {
+                    throw new Error(`Invalid config value for nodeScale: ${config.nodeScale}. Try to clear your browser's localstorage (key: "electrified_config") and reload the page`);
+                }
+                return getBars(itemValue, config.showUnusedRamBackground.node?itemMax:undefined, referenceMax)
+            }
+            else if (item instanceof app.classes.model.Pool) {
+                const itemValue = colDef.valueFn(item) || 0;
+                const itemMax = colDef.maxValueFn(item) as number;
+                let referenceMax: number | undefined = undefined;
+                if(config.poolsScale === "datacenterMax") {
+                    referenceMax = colDef.valueFn(datacenter) || throwError(`colDef.valueFn did not return a value for datacenter`);
+                }
+                else if(config.poolsScale === "highestPool") {
+                    referenceMax = highest(datacenter.pools.map(p => colDef.maxValueFn(p) || colDef.valueFn(p) || 0));
+                }
+                else {
+                    throw new Error(`Invalid config value for poolsScale: ${config.poolsScale}. Try to clear your browser's localstorage (key: "electrified_config") and reload the page`);
+                }
+                return getBars(itemValue, config.showUnusedRamBackground.pool?itemMax:undefined, referenceMax)
+            }
+            else if (item instanceof app.classes.model.Guest) {
+                const itemValue = colDef.valueFn(item) || 0;
+                const itemMax = colDef.maxValueFn(item) as number;
+                let referenceMax: number | undefined = undefined;
+                const parent = datacenter._getItemForResourceRecord(props.node.parentNode.data) as Node | Pool;
+                const siblings = props.node.parentNode.childNodes.map((n: any) => datacenter._getItemForResourceRecord(n.data) as Guest | unknown).filter((i:unknown) => i !== null && i instanceof app.classes.model.Guest) as Guest[]
+                if(config.guestsScale === "highestGuestActual") {
+                    referenceMax = highest(datacenter.nodes.flatMap(n => n.guests).map(g => colDef.valueFn(g) || 0));
+                }
+                else if(config.guestsScale === "highestGuestMax") {
+                    referenceMax = highest(datacenter.nodes.flatMap(n => n.guests).map(g => colDef.maxValueFn(g) || 0));
+                }
+                else if(config.guestsScale === "highestSiblingActual") {
+                    referenceMax = highest(siblings.map(g => colDef.valueFn(g) || 0));
+                }
+                else if(config.guestsScale === "highestSiblingMax") {
+                    referenceMax = highest(siblings.map(g => colDef.maxValueFn(g) || 0));
+                }
+                else if(config.guestsScale === "parentActual") {
+                    referenceMax = colDef.valueFn(parent);
+                }
+                else if(config.guestsScale === "parentMax") {
+                    referenceMax = colDef.maxValueFn(parent) || colDef.valueFn(parent);
+                }
+                else {
+                    throw new Error(`Invalid config value for guestsScale: ${config.guestsScale}. Try to clear your browser's localstorage (key: "electrified_config") and reload the page`);
+                }
+                return getBars(itemValue, config.showUnusedRamBackground.guest?itemMax:undefined, referenceMax)
+            }
+            else {
+                return undefined;
+            }
+            type Layer = {start: number, amount: number, cssClass: string, css?: CSSProperties};
+
+            function getBars(valueForThisItem: number, maxForThisItem: number | undefined, referenceMax: number | undefined) {
+                if(valueForThisItem === 0) {
+                    return;
+                }
+                const text = colDef.formatTextFn(valueForThisItem)
+                const toolTip = maxForThisItem?`${colDef.formatTextFn(valueForThisItem)} / ${colDef.formatTextFn(maxForThisItem)}`:undefined
+                const getContainerClassName = (hasBackround: boolean) => `cpu-bars-container ${config.styleVariant?`bars-style-${config.styleVariant}`:""} cpu-bars-container-${hasBackround?"with":"no"}-background`;
+
+                if(!referenceMax) {
+                    // Show just text without bars:
+                    return <HoverTooltip tooltip={toolTip} showHand={false} fullDiv={true}><div className={getContainerClassName(!!maxForThisItem)} style={{width: "100%"}}>{text}</div></HoverTooltip>
+                }
+
+                const layers = [{start: 0, amount: valueForThisItem /referenceMax, cssClass: "cpu-bar-cpu"}]
+                if(maxForThisItem) {
+                    layers.push({start: valueForThisItem /referenceMax, amount: (maxForThisItem - valueForThisItem) / referenceMax, cssClass: "cpu-bar-unused"});
+                }
+                {
+                    const maxval = highest(layers.map(l => l.start + l.amount));
+                    if (maxval < 1) {
+                        layers.push({start: maxval, amount: 1 - maxval, cssClass: "cpu-bar-fill-empty"})
+                    }
+                }
+                let layerKey = 0;
+                return <HoverTooltip tooltip={toolTip} showHand={false} fullDiv={true}><div className={getContainerClassName(!!maxForThisItem)} style={{width: "100%"}}><div className="cpu-bar" style={{height:"100%", width: "100%"}}>{layers.map(layer => {
+                    return <div key={layerKey++} className={layer.cssClass} style={{position: "absolute", width: "100%", height: "100%", clipPath: `inset(0 ${(1 - layer.start - layer.amount) * 100}% 0 ${layer.start * 100}%)`, overflow: "hidden", paddingLeft: "4px", paddingRight: "4px"}}>
+                            {text}
+                        </div>
+                })}</div></div></HoverTooltip>
+            }
+        },
+        showConfig() {
+            const result = showMuiDialog(t`${colDef.text} configuration`, {}, (props) => {
+                //@ts-ignore
+                const config = watched(app.userConfig)[colDef.configKey] as ValueBarTreeColumnConfig;
+                return <React.Fragment>
+                    <DialogContent>
+                        <DialogContentText>
+
+                            <h3 style={{margin: "0px"}}>{t`Background`}</h3> {t`Show unused/free background for`}:<br/>
+                            {[{key: "datacenter", text: t`Datacenter`}, {key: "pool", text: t`Pools`}, {key: "node", text: t`Nodes`}, {key: "guest", text: t`Guests`}].map(item =>
+                                <div>&#160;<input type="checkbox" {...bind((config.showUnusedRamBackground as any)[item.key])} /> {item.text}</div>
+                            )}
+
+                            <br/>{t`Bar scale for nodes`}:&#160;
+                            <select {...bind(config.nodeScale)}>
+                                <option key="self" value={"self"}>{t`Node's max value`}</option>
+                                <option key="highestNodeMax" value={"highestNodeMax"}>{t`Relative to highest node's max value`}</option>
+                                <option key="datacenterMax" value={"datacenterMax"}>{t`Relative to datacenter's max value`}</option>
+                            </select>
+
+                            <br/>{t`Bar scale for pools`}:&#160;
+                            <select {...bind(config.poolsScale)}>
+                                <option key="highestPool" value={"highestPool"}>{t`Relative to highest pool's value (sum of guests' actual)`}</option>
+                                <option key="datacenterMax" value={"datacenterMax"}>{t`Relative to datacenter's max value`}</option>
+                            </select>
+
+                            <br/>{t`Bar scale for guests`}:&#160;
+                            <select {...bind(config.guestsScale)}>
+                                <option key="highestGuestActual" value={"highestGuestActual"}>{t`Relative to highest guest(datacenter wide)'s actual value`}</option>
+                                <option key="highestGuestMax" value={"highestGuestMax"}>{t`Relative to highest guest(datacenter wide)'s max value`}</option>
+                                <option key="highestSiblingActual" value={"highestSiblingActual"}>{t`Relative to highest sibling's actual value`}</option>
+                                <option key="highestSiblingMax" value={"highestSiblingMax"}>{t`Relative to highest sibling's max value`}</option>
+                                <option key="parentActual" value={"parentActual"}>{t`Relative to parent (node/pool)'s actual value`}</option>
+                                <option key="parentMax" value={"parentMax"}>{t`Relative to parent (node/pool)'s max value (if available)`}</option>
+                            </select>
+
+                            <br/>{t`Bar style`}:&#160;
+                            <select {...bind(config.styleVariant)}>
+                                <option key="default" value={undefined}>Default</option>
+                                <option key="B" value={"B"}>B</option>
+                                <option key="D" value={"D"}>D</option>
+                            </select>
+                        </DialogContentText>
+                    </DialogContent>
+                    <DialogActions>
+                        <Button type="submit" onClick={() => props.resolve(true)} >{t`Close`}</Button>
+                    </DialogActions>
+                </React.Fragment>
+            });
+        },
+        ...colDef,
+    } as (TreeColumn /* my older Webstorm marks this as error otherwise */)
+}
+
+type ValueBarItem = Datacenter | Node | Pool | Guest
 
 //@ts-ignore
 var Ext = window.Ext;

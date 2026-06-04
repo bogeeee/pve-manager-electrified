@@ -128,7 +128,7 @@ export abstract class Guest extends ModelBase implements NotificationTarget {
     /**
      * Used memory in bytes
      */
-    mem!: number
+    _mem!: number
     /**
      * The amount of traffic in bytes that was sent to the guest over the network since it was started.
      */
@@ -651,11 +651,13 @@ export abstract class Guest extends ModelBase implements NotificationTarget {
      * @param fields fields from resource store (classic pve)
      */
     _updateFieldsFromResourceStore(fields: any) {
-        const fieldsToCopy: (keyof this)[] = ["cpu","disk","diskread", "diskwrite", "hastate", "maxcpu", "maxdisk", "maxmem", "mem", "netin", "netout", "uptime"];
+        const fieldsToCopy: (keyof this)[] = ["cpu","disk","diskread", "diskwrite", "hastate", "maxcpu", "maxdisk", "maxmem", "netin", "netout", "uptime"];
         for(const key of fieldsToCopy) {
             //@ts-ignore
             this[key] = fields[key];
         }
+
+        this._mem = fields["mem"];
 
         const booleanFieldsToCopy: (keyof this)[] = ["template"];
         for(const key of booleanFieldsToCopy) {
@@ -769,6 +771,16 @@ export abstract class Guest extends ModelBase implements NotificationTarget {
         catch (e) {
         }
         return `${id} (${this.type})`
+    }
+
+    /**
+     * Used memory in bytes. Note that here in electrified, for qemu, the memhost value is returned here instead. See {@link rawDataRecord} for the original value
+     */
+    get mem(): number {
+        if(!this.isRunning()) {
+            return 0; // isRunning is the more up2date source
+        }
+        return this._mem;
     }
 
     /**

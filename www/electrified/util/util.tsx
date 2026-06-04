@@ -1104,12 +1104,13 @@ export function InfoTooltip(props: {children: React.ReactElement} & Omit<Tooltip
 /**
  * Shows a Tooltip on hover
  * Usage: <HoverTooltip tooltip={"Here's a message"} showHand={true}>Hover me!</HoverTooltip>
- * @param props
+ * @param props set fullDiv i.e. if your children are also divs, so when you need full block divs spanning 100% instead of spans
  * @constructor
  */
-export function HoverTooltip(props: PopoverProps & {tooltip: React.ReactNode, children: React.ReactElement, showHand?:boolean}) {
+export function HoverTooltip(props: PopoverProps & {tooltip: React.ReactNode, children: React.ReactElement, showHand?:boolean, fullDiv?:boolean}) {
     const enabled = props.tooltip?true:false;
-    return <span style={{cursor: (enabled && props.showHand)?"pointer":undefined}}><Popover interactionKind={"hover-target"} enforceFocus={false /* no important use case*/} hoverOpenDelay={0} hoverCloseDelay={0} transitionDuration={50} {...props}
+    const fullDivStyle = props.fullDiv?{width: "100%", height: "100%", display: "block"}:{}
+    return <span style={{cursor: (enabled && props.showHand)?"pointer":undefined, ...fullDivStyle}}><Popover interactionKind={"hover-target"} enforceFocus={false /* no important use case*/} hoverOpenDelay={0} hoverCloseDelay={0} transitionDuration={50} targetProps={{style: fullDivStyle} as any} {...props}
         isOpen={enabled?undefined:false /* Enforce rendering the same tree also when disabled. The RememberChoiceButton's icon css transition does not work otherwise */}
                     content={<div style={{padding: "6px"}}>{props.tooltip}</div>}
     >
@@ -1618,4 +1619,56 @@ export class WriteBufferedValueOnObject<T> implements ValueOnObject<T> {
             }, this.minIntervalMs - (now - this.lastTimeSet))
         }
     }
+}
+
+/**
+ * Formats a value in 1024 based kilo/mega/giga K/M/G/... human readable format
+ * @param value
+ * @param unit
+ * @param unitLowest special case when not praefixed with k/M/G
+ */
+export function formatBinary(value: number, unit: string, unitLowest?: string) {
+    function dec(value: number) {
+        return new Intl.NumberFormat(undefined, {
+            maximumFractionDigits: value > 100?0:(value>10?1:2),
+            minimumFractionDigits: 0,
+        }).format(value);
+    }
+    if(value < 1024) {
+        return `${dec(value)} ${unitLowest || unit}`
+    }
+    if(value < (1024 * 1024)) {
+        return `${dec(value / 1024)} K${unit}`
+    }
+    if(value < (1024 * 1024 * 1024)) {
+        return `${dec(value / 1024 / 1024)} M${unit}`
+    }
+    else {
+        return `${dec(value / 1024 / 1024 / 1024)} G${unit}`
+    }
+}
+
+/**
+ *
+ * @param valueInBytes
+ * @returns value as human readable ... MiB or ... kiB
+ */
+export function formatMem(valueInBytes: number) {
+    return formatBinary(valueInBytes, "iB", "B");
+}
+
+export function sum(arr: number[]) {
+    let result = 0;
+    for(const n of arr) {
+        result+=n;
+    }
+    return result;
+}
+
+export function highest(arr: number[]) {
+    let result = Number.NEGATIVE_INFINITY;
+    for(const n of arr) {
+        result = Math.max(result, n);
+    }
+    return result;
 }

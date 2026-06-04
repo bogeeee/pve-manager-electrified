@@ -1,6 +1,6 @@
 import {AsyncConstructableClass} from "../util/AsyncConstructableClass";
 import {Guest} from "./Guest";
-import {FetchError, newDefaultMap, spawnAsync, throwError} from "../util/util";
+import {FetchError, newDefaultMap, spawnAsync, sum, throwError} from "../util/util";
 import {Node} from "./Node"
 import {getElectrifiedApp, t} from "../globals";
 import {ModelBase} from "./ModelBase";
@@ -422,6 +422,14 @@ export class Datacenter extends ModelBase implements NotificationTarget{
                 reject(e);
             }
         });
+    }
+
+    get mem() {
+        return sum(this.nodes.map(n => n.mem));
+    }
+
+    get maxmem() {
+        return sum(this.nodes.map(n => n.maxmem));
     }
 
     async _getBackupJobs() {

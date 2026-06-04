@@ -2,6 +2,7 @@ import {Guest} from "./Guest";
 import {GuestsContainerBase} from "./GuestsContainerBase";
 import {preserve} from "react-deepwatch";
 import {getElectrifiedApp} from "../globals";
+import {sum} from "../util/util";
 
 export class Pool extends GuestsContainerBase{
     name!: string;
@@ -52,6 +53,14 @@ export class Pool extends GuestsContainerBase{
         })
 
         this._guests.delete(guest.id); // Update model
+    }
+
+    get mem() {
+        return sum(this.guests.map(g => g.mem))
+    }
+
+    get maxmem() {
+        return undefined
     }
 
     /**

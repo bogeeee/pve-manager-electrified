@@ -141,4 +141,11 @@ export class Qemu extends Guest{
         this.vmstate = undefined;
     }
 
+    get mem() {
+        if(!this.isRunning()) {
+            return 0; // isRunning is the more up2date source
+        }
+        return this.memhost || 0;
+    }
+
 }

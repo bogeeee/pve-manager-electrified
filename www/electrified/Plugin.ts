@@ -658,7 +658,7 @@ export type TreeColumn = {
      * Write me, if you need improvement here. In theory, it's possible to handle all situations and only rebuild when i.e. a new vm is added or removed.
      * </p>
      */
-    cellRenderFn: (props: {item: object, rowIndex: number, colIndex: number, rawItemRecord: Record<string, unknown>}) => ReactNode
+    cellRenderFn: (props: {item: object, rowIndex: number, colIndex: number, rawItemRecord: Record<string, unknown>, node: any}) => ReactNode
 
     cellStyle: {
         paddingTop: string

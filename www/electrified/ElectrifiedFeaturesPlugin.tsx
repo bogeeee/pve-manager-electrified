@@ -20,6 +20,7 @@ import "./styles.css"
 import {Guest} from "./model/Guest";
 import {Node} from "./model/Node";
 import {
+    formatMem,
     getUniqueName,
     HoverTooltip,
     newDefaultMap,
@@ -46,6 +47,7 @@ import {Datacenter} from "./model/Datacenter";
 import {UserCapabilities} from "./Application";
 import {Notification, NotificationFilter, NotificationSettings} from "./Notification";
 import {Qemu} from "./model/Qemu";
+import {createValueBarTreeColumn, ValueBarTreeColumnConfig} from "./ui/ReactResourceTree";
 
 /**
  * Offers nice features.
@@ -89,6 +91,8 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
 
             styleVariant: "A"
         };
+
+        memBars = new ValueBarTreeColumnConfig();
 
         resourceTreeCommandButtons = {
             start: true,
@@ -557,10 +561,28 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
 
                 },
             },
+            this.getMemBarTreeColumn(),
             // Raw fields:
             ...(window.localStorage.getItem("electrified_offerRawFieldTreeColumns") === "true"?this.getRawFieldTreeColumns():[])
             ]
     }
+
+    getMemBarTreeColumn() {
+        return createValueBarTreeColumn({
+            text: t`Mem bars`,
+            key: "ram_bars",
+            valueFn: (item) => {
+                return item.mem;
+            },
+            maxValueFn: (item) => {
+                return item.maxmem
+            },
+            formatTextFn: formatMem,
+            configKey: "memBars",
+        });
+    }
+
+
 
     getCommandButtonsColumn(): TreeColumn {
         const app = getElectrifiedApp();

@@ -67,7 +67,7 @@ import {Notification}  from "./Notification";
 import {showNotificationSettings} from "./ui/NotificationSettings";
 import {ToasterWrapper} from "./ui/ToasterWrapper";
 import {CloneDialogResult, showCloneDialog} from "./ui/CloneDialog";
-import {ReactResourceTree} from "./ui/ReactResourceTree";
+import {createValueBarTreeColumn, ReactResourceTree, ValueBarTreeColumnConfig} from "./ui/ReactResourceTree";
 import {showGeneralSettings} from "./ui/GeneralSettings";
 
 ExternalPromise.diagnosis_recordCallstacks=true; // For debugging "socket connection has been closed" TODO: remove this line
@@ -163,6 +163,7 @@ export class Application extends AsyncConstructableClass{
         Plugin,
         Notification,
         CloneDialogResult,
+        ValueBarTreeColumnConfig,
     }
 
     util = {
@@ -179,6 +180,7 @@ export class Application extends AsyncConstructableClass{
             confirm,
             messageBox,
             ObjectHTMLSelect,
+            createValueBarTreeColumn,
         }
     }
 
