@@ -1,3 +1,7 @@
+pve-manager-electrified (9.10.1) trixie; urgency=medium
+  * Performance fix: Too many re-renders of the mem bar cells
+ -- PVE-electrified crew <crew@pve-electrified.net>  Thu, 04 Jun 2026 00:00:09 +0200
+
 pve-manager-electrified (9.10.0) trixie; urgency=medium
   * Mem bars column in the resource tree
   * Several small bugfixes. see git log.
