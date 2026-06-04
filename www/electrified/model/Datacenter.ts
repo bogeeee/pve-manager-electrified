@@ -625,7 +625,7 @@ export class PveClusterTask {
             get title() {return t`Low on ram`}
         }
 
-        (class LowRamDiagnosisTask extends DiagnosisTask<Datacenter> {
+        (class LowRamDiagnosisTask extends DiagnosisTask<Node> {
             static plugin = thisPlugin;
             static producesNotifications = [LowRamNotification];
             static runForEach = Node;
