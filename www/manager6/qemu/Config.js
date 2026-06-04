@@ -305,7 +305,7 @@ Ext.define('PVE.qemu.Config', {
                     filterChildItems: ["disk_io"],
                 },
                 {
-                    title: gettext('CPU Pressure Stall'),
+                    title: gettext('CPU Stall'),
                     groups: ['summary'],
                     xtype: 'pveGuestSummary',
                     iconCls: 'fa fa-fw fa-thermometer-half',
@@ -313,7 +313,7 @@ Ext.define('PVE.qemu.Config', {
                     filterChildItems: ["cpu_pressure"],
                 },
                 {
-                    title: gettext('IO Pressure Stall'),
+                    title: gettext('IO Stall'),
                     groups: ['summary'],
                     xtype: 'pveGuestSummary',
                     iconCls: 'fa fa-fw fa-thermometer-half',
@@ -321,7 +321,7 @@ Ext.define('PVE.qemu.Config', {
                     filterChildItems: ["io_pressure"],
                 },
                 {
-                    title: gettext('Memory Pressure Stall'),
+                    title: gettext('Memory Stall'),
                     groups: ['summary'],
                     xtype: 'pveGuestSummary',
                     iconCls: 'fa fa-fw fa-thermometer-half',

@@ -180,7 +180,7 @@ Ext.define('PVE.node.Config', {
                     filterChildItems: ["net_traffic"],
                 },
                 {
-                    title: gettext('CPU Pressure Stall'),
+                    title: gettext('CPU Stall'),
                     groups: ['summary'],
                     xtype: 'pveNodeSummary',
                     iconCls: 'fa fa-fw fa-thermometer-half',
@@ -188,7 +188,7 @@ Ext.define('PVE.node.Config', {
                     filterChildItems: ["cpu_pressure"],
                 },
                 {
-                    title: gettext('IO Pressure Stall'),
+                    title: gettext('IO Stall'),
                     groups: ['summary'],
                     xtype: 'pveNodeSummary',
                     iconCls: 'fa fa-fw fa-thermometer-half',
@@ -196,7 +196,7 @@ Ext.define('PVE.node.Config', {
                     filterChildItems: ["io_pressure"],
                 },
                 {
-                    title: gettext('Memory Pressure Stall'),
+                    title: gettext('Memory Stall'),
                     groups: ['summary'],
                     xtype: 'pveNodeSummary',
                     iconCls: 'fa fa-fw fa-thermometer-half',
