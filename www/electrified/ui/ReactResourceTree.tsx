@@ -9,7 +9,7 @@ import {Guest} from "../model/Guest";
 import {Node} from "../model/Node";
 import {
     coolBackgroundMask, coolBackgroundMask_remove,
-    getUniqueName, highest, HoverTooltip,
+    getUniqueName, highest, HoverTooltip, ignoreErr,
     ObjectHTMLSelect,
     RememberChoiceButton,
     RetryableError,
@@ -384,7 +384,7 @@ export function createValueBarTreeColumn(colDef: {
                 const itemMax = colDef.maxValueFn(item) as number;
                 let referenceMax: number | undefined = undefined;
                 const parent = datacenter._getItemForResourceRecord(props.node.parentNode.data) as Node | Pool;
-                const siblings = props.node.parentNode.childNodes.map((n: any) => datacenter._getItemForResourceRecord(n.data) as Guest | unknown).filter((i:unknown) => i !== null && i instanceof app.classes.model.Guest) as Guest[]
+                const siblings = props.node.parentNode.childNodes.map((n: any) => ignoreErr(() => datacenter._getItemForResourceRecord(n.data) as Guest | unknown) /* ignoreErr for the case that a guest was cloned and is not yet found. TODO: make errors recoverabe in react-deepwatch */).filter((i:unknown) => i !== null && i instanceof app.classes.model.Guest) as Guest[]
                 if(config.guestsScale === "highestGuestActual") {
                     referenceMax = highest(datacenter.nodes.flatMap(n => n.guests).map(g => colDef.valueFn(g) || 0));
                 }

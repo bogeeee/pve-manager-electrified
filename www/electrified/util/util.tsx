@@ -1672,3 +1672,12 @@ export function highest(arr: number[]) {
     }
     return result;
 }
+
+export function ignoreErr<T>(fn: () => T) {
+    try {
+        return fn()
+    }
+    catch (e) {
+        return undefined;
+    }
+}
