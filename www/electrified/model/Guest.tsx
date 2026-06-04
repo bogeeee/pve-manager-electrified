@@ -777,8 +777,8 @@ export abstract class Guest extends ModelBase implements NotificationTarget {
      * Used memory in bytes. Note that here in electrified, for qemu, the memhost value is returned here instead. See {@link rawDataRecord} for the original value
      */
     get mem(): number {
-        if(!this.isRunning()) {
-            return 0; // isRunning is the more up2date source
+        if(!(this.isRunning() || this.status === "paused")) {
+            return 0; // The status is the more up2date source
         }
         return this._mem;
     }
