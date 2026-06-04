@@ -36,7 +36,6 @@ import {getElectrifiedApp, gettext, t} from "../globals";
 import _ from "underscore";
 import {Table, TableBody, TableCell, TableContainer, TableHead, TableRow} from "@mui/material";
 import clone from "clone";
-import {Application} from "../Application";
 import {instanceOf} from "prop-types";
 import {Node} from "../model/Node"
 
@@ -72,7 +71,7 @@ export async function showGeneralSettings(scrollToSectionName?:string) {
                 <h2 ref={scrollToSectionName === "start-stop"?(targetedSectionRef as any):undefined}>{t`Start / stop`}</h2>
                 <div><input type="checkbox" {...bind(userConfig.shutdownGuestWithoutConfirm)} />&#160;{t`Shutdown / stop / reboot / reset guests without confirm`}</div>
 
-                {Application.FEATURE_RAM_CONFLICT_DIALOG && <div>
+                {app.FEATURE_RAM_CONFLICT_DIALOG && <div>
                     {/* Ram conflict dialog: */}
                         <h3 ref={scrollToSectionName === "ram-conflict-dialog"?(targetedSectionRef as any):undefined}>{t`Ram conflict dialog`}</h3>
                         <i>{t`Will pop up a warning dialog when starting guests and these criteria are not met:`}</i><br/>
