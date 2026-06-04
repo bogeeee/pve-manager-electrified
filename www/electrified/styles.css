@@ -205,3 +205,8 @@
 .MuiModal-backdrop {
     background-color: rgba(0, 0, 0, 0.3) !important;
 }
+
+.x-treelist-item-icon.pmx-icon {
+    height: 14px;
+    top: 4px
+}

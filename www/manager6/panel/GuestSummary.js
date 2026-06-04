@@ -76,6 +76,7 @@ Ext.define('PVE.guest.Summary', {
                 {
                     xtype: 'container',
                     height: 300,
+                    itemId: "status_notes",
                     layout: {
                         type: 'hbox',
                         align: 'stretch',
@@ -93,6 +94,7 @@ Ext.define('PVE.guest.Summary', {
                 {
                     xtype: 'proxmoxRRDChart',
                     title: gettext('CPU Usage'),
+                    itemId: "cpu_usage",
                     pveSelNode: me.pveSelNode,
                     fields: ['cpu'],
                     fieldTitles: [gettext('CPU usage')],
@@ -102,6 +104,7 @@ Ext.define('PVE.guest.Summary', {
                 {
                     xtype: 'proxmoxRRDChart',
                     title: gettext('Memory Usage'),
+                    itemId: 'mem_usage',
                     pveSelNode: me.pveSelNode,
                     fields: memoryStats.fields,
                     fieldTitles: memoryStats.fieldTitles,
@@ -119,6 +122,7 @@ Ext.define('PVE.guest.Summary', {
                 {
                     xtype: 'proxmoxRRDChart',
                     title: gettext('Network Traffic'),
+                    itemId: 'net_traffic',
                     pveSelNode: me.pveSelNode,
                     fields: ['netin', 'netout'],
                     fieldTitles: [gettext('Incoming'), gettext('Outgoing')],
@@ -127,6 +131,7 @@ Ext.define('PVE.guest.Summary', {
                 {
                     xtype: 'proxmoxRRDChart',
                     title: gettext('Disk IO'),
+                    itemId: 'disk_io',
                     pveSelNode: me.pveSelNode,
                     fields: ['diskread', 'diskwrite'],
                     fieldTitles: [gettext('Reads'), gettext('Writes')],
@@ -135,6 +140,7 @@ Ext.define('PVE.guest.Summary', {
                 {
                     xtype: 'proxmoxRRDChart',
                     title: gettext('CPU Pressure Stall'),
+                    itemId: 'cpu_pressure',
                     pveSelNode: me.pveSelNode,
                     fieldTitles: ['Some', 'Full'],
                     fields: ['pressurecpusome', 'pressurecpufull'],
@@ -145,6 +151,7 @@ Ext.define('PVE.guest.Summary', {
                 {
                     xtype: 'proxmoxRRDChart',
                     title: gettext('IO Pressure Stall'),
+                    itemId: 'io_pressure',
                     pveSelNode: me.pveSelNode,
                     fieldTitles: ['Some', 'Full'],
                     fields: ['pressureiosome', 'pressureiofull'],
@@ -155,6 +162,7 @@ Ext.define('PVE.guest.Summary', {
                 {
                     xtype: 'proxmoxRRDChart',
                     title: gettext('Memory Pressure Stall'),
+                    itemId: 'mem_pressure',
                     pveSelNode: me.pveSelNode,
                     fieldTitles: ['Some', 'Full'],
                     fields: ['pressurememorysome', 'pressurememoryfull'],
@@ -163,6 +171,10 @@ Ext.define('PVE.guest.Summary', {
                     unit: 'percent',
                 },
             );
+        }
+
+        if(me.config.filterChildItems) {
+            items = items.filter(i => me.config.filterChildItems.some(filterId => filterId === i.itemId));
         }
 
         Ext.apply(me, {
