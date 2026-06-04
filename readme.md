@@ -21,7 +21,7 @@ Also, open source does not develop it's self. Developers need motivation, so wri
 
 
 # Features
-- **CPU usage bars** in the tree. Updated in realtime.[^1]  
+- **Cpu und memory usage bars** in the tree. The cpu bars are updated in realtime.[^1]  
   ![](docs/images/Screenshot_cpu_bars.png)  
   [^1]: Realtime = 1 second interval. As this comes with some cost, on systems with many lxcs, the interval will increase automatically.
 - **Power management buttons** in the tree. _also in the screenshot above._ Faster power-state feedback.
