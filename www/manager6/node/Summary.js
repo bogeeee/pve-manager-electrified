@@ -138,6 +138,7 @@ Ext.define('PVE.node.Summary', {
 
         let nodeStatus = Ext.create('PVE.node.StatusView', {
             xtype: 'pveNodeStatus',
+            itemId: "status",
             rstore: rstore,
             width: 770,
             pveSelNode: me.pveSelNode,
@@ -162,6 +163,7 @@ Ext.define('PVE.node.Summary', {
                         {
                             xtype: 'proxmoxRRDChart',
                             title: gettext('CPU Usage'),
+                            itemId: "cpu_usage",
                             fields: ['cpu', 'iowait'],
                             fieldTitles: [gettext('CPU usage'), gettext('IO delay')],
                             unit: 'percent',
@@ -170,6 +172,7 @@ Ext.define('PVE.node.Summary', {
                         {
                             xtype: 'proxmoxRRDChart',
                             title: gettext('Server Load'),
+                            itemId: 'server_load',
                             fields: ['loadavg'],
                             fieldTitles: [gettext('Load average')],
                             store: rrdstore,
@@ -177,6 +180,7 @@ Ext.define('PVE.node.Summary', {
                         {
                             xtype: 'proxmoxRRDChart',
                             title: gettext('Memory usage'),
+                            itemId: 'mem_usage',
                             fields: [
                                 {
                                     yField: 'memtotal',
@@ -260,6 +264,7 @@ Ext.define('PVE.node.Summary', {
                         {
                             xtype: 'proxmoxRRDChart',
                             title: gettext('Network Traffic'),
+                            itemId: 'net_traffic',
                             fields: ['netin', 'netout'],
                             fieldTitles: [gettext('Incoming'), gettext('Outgoing')],
                             store: rrdstore,
@@ -267,6 +272,7 @@ Ext.define('PVE.node.Summary', {
                         {
                             xtype: 'proxmoxRRDChart',
                             title: gettext('CPU Pressure Stall'),
+                            itemId: 'cpu_pressure',
                             fieldTitles: ['Some'],
                             fields: ['pressurecpusome'],
                             colors: ['#FFD13E', '#A61120'],
@@ -276,6 +282,7 @@ Ext.define('PVE.node.Summary', {
                         {
                             xtype: 'proxmoxRRDChart',
                             title: gettext('IO Pressure Stall'),
+                            itemId: 'io_pressure',
                             fieldTitles: ['Some', 'Full'],
                             fields: ['pressureiosome', 'pressureiofull'],
                             colors: ['#FFD13E', '#A61120'],
@@ -285,13 +292,14 @@ Ext.define('PVE.node.Summary', {
                         {
                             xtype: 'proxmoxRRDChart',
                             title: gettext('Memory Pressure Stall'),
+                            itemId: 'mem_pressure',
                             fieldTitles: ['Some', 'Full'],
                             fields: ['pressurememorysome', 'pressurememoryfull'],
                             colors: ['#FFD13E', '#A61120'],
                             store: rrdstore,
                             unit: 'percent',
                         },
-                    ],
+                    ].filter(i => !me.config.filterChildItems || me.config.filterChildItems.some(filterId => filterId === i.itemId)),
                     listeners: {
                         resize: function (panel) {
                             Proxmox.Utils.updateColumns(panel);
