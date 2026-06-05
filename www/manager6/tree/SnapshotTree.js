@@ -263,7 +263,9 @@ Ext.define('PVE.guest.SnapshotTree', {
         showCompacted: true,
 
         /**
-         * Eliminates those endless chains of one-child only tree parts that are hard to view for the user
+         * Eliminates those endless chains of one-child only tree parts that are hard to view for the user.
+         * This is kind of a quick hack, because we cannot modify the ext.js tree component. So we place them as siblings **after** their parent.
+         * Then, for the tree, to render the elbow-bars properly, we flag those in the cellrenderer with a <span class="...treeItem-isChildOfAboveSibling"> marker and a css rule fixes the elbow lines.
          * @param root
          * @returns {*}
          */
@@ -276,17 +278,22 @@ Ext.define('PVE.guest.SnapshotTree', {
             }
 
             function getCompactedNodeAndChildsAsList(node) {
-                if(node.children.length >= 2) { // Cannot flatten node isself?
+                if(node.children.length >= 2) { // Cannot flatten node isself ?
                     node.children.forEach(child =>compactNode(child));
                     return [node];
                 }
-                // Only 1 child ?
-                const result = [node, ...node.children.map(child => getCompactedNodeAndChildsAsList(child)).flat()] // flatten:
-                node.children = [];
-                node.leaf = true;
-                node.expandable = false;
-                node.expanded = false;
-                return result;
+                else if(node.children.length === 1) { // Can flatten?
+                    const child = node.children[0];
+                    child.isSnapshotChildOfAboveSibling = true;
+                    node.isSnapshotParentOfNextSibling = true;
+                    node.children = [];
+                    node.leaf = true;
+                    node.expandable = false;
+                    node.expanded = false;
+                    return [node, ...getCompactedNodeAndChildsAsList(child)]; // Flatten
+                }
+                return [node];
+
             }
 
             function debug_logTree(node, indent="") {
@@ -431,7 +438,7 @@ Ext.define('PVE.guest.SnapshotTree', {
     columnLines: true,
 
     fields: [
-        'name',
+        {name: 'name', },
         'description',
         'snapstate',
         'vmstate',
@@ -451,7 +458,9 @@ Ext.define('PVE.guest.SnapshotTree', {
             text: gettext('Name'),
             dataIndex: 'name',
             width: 200,
-            renderer: (value, _, { data }) => (data.name !== 'current' ? value : gettext('NOW')),
+            renderer: (value, _, { data }) => {
+                return `<span class="${data.isSnapshotChildOfAboveSibling?"treeItem-isChildOfAboveSibling":""} ${data.isSnapshotParentOfNextSibling?"treeItem-isParentOfNextSibling":""}">${(data.name !== 'current' ? value : gettext('NOW'))}</span>`
+            },
         },
         {
             text: gettext('RAM'),

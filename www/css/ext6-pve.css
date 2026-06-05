@@ -701,3 +701,16 @@ table.osds td:first-of-type {
 .pmx-column-wrapped > div {
     white-space: pre-wrap;
 }
+
+
+/* Hack: Fix the elbow lines in the snapshot tree for entries that were compacted: */
+.x-grid-cell-inner:has(.treeItem-isParentOfNextSibling) .x-tree-elbow {
+    background-image: url(/pve2/ext6/theme-crisp/resources/images/tree/elbow-end.png);
+}
+.x-grid-cell-inner:has(.treeItem-isChildOfAboveSibling) .x-tree-elbow, .x-grid-cell-inner:has(.treeItem-isChildOfAboveSibling) .x-tree-elbow-end {
+    position: relative;
+    left: 17px;
+    background-image: url(/images/tree-elbow-depend-on-above.png);
+}
+
+
