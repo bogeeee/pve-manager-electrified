@@ -500,7 +500,7 @@ export abstract class Guest extends ModelBase implements NotificationTarget {
                 continue;
             }
 
-            const entryMatch = line.match(/^([\w\-]+?)([0-9]*)\s*:(.*)$/);
+            const entryMatch = line.match(/^([\w\-.]+?)([0-9]*)\s*:(.*)$/);
             if(!entryMatch) {
                 throw new Error(`Invalid line in config file ${diagnosis_configFilePath}:\n${line}`);
             }
