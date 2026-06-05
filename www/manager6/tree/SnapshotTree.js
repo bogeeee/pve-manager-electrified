@@ -145,6 +145,7 @@ Ext.define('PVE.guest.SnapshotTree', {
                     me.load_task.delay(load_delay);
                 },
                 success: function (response, opts) {
+                    const isInitialLoad = !me.old_digest;
                     if (me.destroyed) {
                         // this is in a delayed task, avoid dragons if view has
                         // been destroyed already and go home.
@@ -189,6 +190,8 @@ Ext.define('PVE.guest.SnapshotTree', {
                         }
 
                         me.getView().setRootNode(root);
+
+                        me.onLoaded(isInitialLoad);
                     }
 
                     me.load_task.delay(load_delay);
@@ -258,6 +261,29 @@ Ext.define('PVE.guest.SnapshotTree', {
             });
 
             me.reload();
+        },
+
+        onLoaded(isInitialLoad) {
+            const me = this;
+            const view = me.view;
+            const scrollToNowItem = () => {
+                const nowItem = view.el.dom.querySelector(".treeItem-current");
+                if(!nowItem) {
+                    // Scroll one page down, if
+                    const treeBody = view.el.dom.querySelector(".x-tree-view-default.x-scroller");
+                    if(treeBody) {
+                        treeBody.scrollTop+= treeBody.clientHeight;
+                    }
+
+                    setTimeout(scrollToNowItem, 20); // try again later (must use this ugly timeout method because the extjs events dont work properly
+                    return;
+                }
+                nowItem.scrollIntoView(false);
+            }
+
+            if(isInitialLoad) {
+                scrollToNowItem();
+            }
         },
 
         showCompacted: initialShowCompacted(),
@@ -459,7 +485,8 @@ Ext.define('PVE.guest.SnapshotTree', {
             dataIndex: 'name',
             width: 200,
             renderer: (value, _, { data }) => {
-                return `<span class="${data.isSnapshotChildOfAboveSibling?"treeItem-isChildOfAboveSibling":""} ${data.isSnapshotParentOfNextSibling?"treeItem-isParentOfNextSibling":""}">${(data.name !== 'current' ? value : gettext('NOW'))}</span>`
+                const isCurrent = data.name === 'current';
+                return `<span class="${data.isSnapshotChildOfAboveSibling?"treeItem-isChildOfAboveSibling":""} ${data.isSnapshotParentOfNextSibling?"treeItem-isParentOfNextSibling":""} ${isCurrent?"treeItem-current":""}">${!isCurrent ? value : gettext('NOW')}</span>`
             },
         },
         {
