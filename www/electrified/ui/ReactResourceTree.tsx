@@ -418,7 +418,7 @@ export function createValueBarTreeColumn(colDef: {
                     return;
                 }
                 const text = colDef.formatTextFn(valueForThisItem)
-                const toolTip = maxForThisItem?`${colDef.formatTextFn(valueForThisItem)} / ${colDef.formatTextFn(maxForThisItem)}`:undefined
+                const toolTip = maxForThisItem?`${colDef.formatTextFn(valueForThisItem)} / ${colDef.formatTextFn(maxForThisItem)}`:`${colDef.formatTextFn(valueForThisItem)}`;
                 const getContainerClassName = (hasBackround: boolean) => `cpu-bars-container ${config.styleVariant?`bars-style-${config.styleVariant}`:""} cpu-bars-container-${hasBackround?"with":"no"}-background`;
 
                 if(!referenceMax) {
