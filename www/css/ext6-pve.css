@@ -712,5 +712,11 @@ table.osds td:first-of-type {
     left: 17px;
     background-image: url(/images/tree-elbow-depend-on-above.png);
 }
-
-
+.x-grid-cell-inner:has(.treeItem-isChildOfAboveSibling) .x-tree-icon-leaf.fa-cube {
+    position: relative;
+    left: 3px;
+}
+.x-grid-cell-inner:has(.treeItem-isChildOfAboveSibling) .x-tree-icon-leaf.fa-desktop {
+    position: relative;
+    left: 2px;
+}
