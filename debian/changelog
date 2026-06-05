@@ -1,3 +1,7 @@
+pve-manager-electrified (9.12.0) trixie; urgency=medium
+  * Snapshot tree: Show a compacted version (compact those endless chains of one-child-only snapshots)
+ -- PVE-electrified crew <crew@pve-electrified.net>  Fri, 05 Jun 2026 00:00:10 +0200
+
 pve-manager-electrified (9.11.0) trixie; urgency=medium
   * Performance/usability: Show the guest/host summary stats (graphs) each in an **individual** config tab.
   * Bugfix: mem bars: Wrong computation of pool / datacenterMa
