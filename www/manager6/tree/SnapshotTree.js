@@ -260,7 +260,7 @@ Ext.define('PVE.guest.SnapshotTree', {
             me.reload();
         },
 
-        showCompacted: true,
+        showCompacted: initialShowCompacted(),
 
         /**
          * Eliminates those endless chains of one-child only tree parts that are hard to view for the user.
@@ -422,7 +422,7 @@ Ext.define('PVE.guest.SnapshotTree', {
         '-',
         {
             xtype: 'checkboxfield',
-            value: true,
+            value: initialShowCompacted(),
             handler: (checkBoxField) => {
                 const controller = checkBoxField.up('treepanel').controller;
                 controller.showCompacted = checkBoxField.value
@@ -502,3 +502,5 @@ Ext.define('PVE.guest.SnapshotTree', {
         },
     ],
 });
+
+function initialShowCompacted() {return CSS.supports('selector(:has(div))') }
