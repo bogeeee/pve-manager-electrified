@@ -965,8 +965,9 @@ export class Application extends AsyncConstructableClass{
         spawnWithErrorHandling(async () => {
             const guest = this.datacenter.getGuest(guestId) || throwError("Guest does not exist");
             const snapshot = await guest.snapshotRoot.snapshots.get(snapshotName) || throwError("Snapshot does not exist");
-            await snapshot.rollBack(false);
-            messageBox(t`Rollback successful`,"");
+            const wasRunning = guest.isRunning();
+            await snapshot.rollBack(wasRunning);
+            messageBox(t`Rollback successful`,wasRunning?`Rollback successful and guest was started again.`:t`Rollback successful`);
         })
     }
 
