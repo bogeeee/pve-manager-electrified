@@ -167,6 +167,8 @@ Ext.define('PVE.guest.SnapshotTree', {
                         idhash[item.name] = item;
                     });
 
+                    digest+=`compact: ${me.showCompacted}`;
+
                     if (digest !== me.old_digest) {
                         me.old_digest = digest;
 
@@ -181,6 +183,10 @@ Ext.define('PVE.guest.SnapshotTree', {
                                 root.children.push(item);
                             }
                         });
+
+                        if(me.showCompacted) {
+                            root = me.compactTree(root);
+                        }
 
                         me.getView().setRootNode(root);
                     }
@@ -253,6 +259,70 @@ Ext.define('PVE.guest.SnapshotTree', {
 
             me.reload();
         },
+
+        showCompacted: true,
+
+        /**
+         * Eliminates those endless chains of one-child only tree parts that are hard to view for the user
+         * @param root
+         * @returns {*}
+         */
+        compactTree(root) {
+            const me = this;
+            const snapshotTreePanel = me.view;
+
+            function compactNode(node) {
+                node.children = node.children.map(child => getCompactedNodeAndChildsAsList(child)).flat();
+            }
+
+            function getCompactedNodeAndChildsAsList(node) {
+                if(node.children.length >= 2) { // Cannot flatten node isself?
+                    node.children.forEach(child =>compactNode(child));
+                    return [node];
+                }
+                // Only 1 child ?
+                const result = [node, ...node.children.map(child => getCompactedNodeAndChildsAsList(child)).flat()] // flatten:
+                node.children = [];
+                node.leaf = true;
+                node.expandable = false;
+                node.expanded = false;
+                return result;
+            }
+
+            function debug_logTree(node, indent="") {
+                console.log(indent + node.name)
+                node.children?.forEach(child => {
+                    debug_logTree(child, indent+" ")
+                });
+            }
+
+            function fixTree(node) {
+                node.children?.forEach(child => {
+                    child.parent = node.name; // fix value
+                    fixTree(child)
+                });
+
+                // Bug workaround: The tree component does not sort the entries in the proper order, so we have to do it here
+                const calculateOrderFn = snapshotTreePanel.fields.find(f => f.name === "order").calculate
+                node.children.sort((a,b) => {
+                    const orderA = calculateOrderFn(a);
+                    const orderB = calculateOrderFn(b);
+                    if(typeof orderA === "number" && typeof orderB === "number") {
+                        return orderA - orderB;
+                    }
+                    else {
+                        return String(orderA).localeCompare(String(orderB));
+                    }
+                })
+            }
+
+            //debug_logTree(root)
+
+            compactNode(root);
+            fixTree(root);
+
+            return root;
+        }
     },
 
     listeners: {
@@ -341,6 +411,20 @@ Ext.define('PVE.guest.SnapshotTree', {
             bind: {
                 hidden: '{canSnapshot}',
             },
+        },
+        '-',
+        {
+            xtype: 'checkboxfield',
+            value: true,
+            handler: (checkBoxField) => {
+                const controller = checkBoxField.up('treepanel').controller;
+                controller.showCompacted = checkBoxField.value
+                controller.reload()
+            },
+        },
+        {
+            xtype: "label",
+            text: gettext('Compact view'),
         },
     ],
 
