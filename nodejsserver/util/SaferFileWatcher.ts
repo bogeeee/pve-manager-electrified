@@ -2,7 +2,7 @@
 import {ClientCallbackSet} from "restfuncs-server";
 import {ElectrifiedSession, FileStats} from "../ElectrifiedSession.js";
 import chokidar, {ChokidarOptions, FSWatcher} from "chokidar";
-import {spawnAsync} from "./util.js";
+import {spawnAsync, toError} from "./util.js";
 import fsPromises from "node:fs/promises";
 import _ from "underscore";
 
@@ -71,6 +71,8 @@ export class SaferFileWatcher {
                     (this.listeners as any).call(fileStat);
                 }
                 catch (e) {
+                    e = toError(e);
+                    e.message+=`\nWatched file: ${this.file}`;
                     console.error(e); // Only log. Don't kill the process
                 }
 
