@@ -72,7 +72,7 @@ export class SaferFileWatcher {
                 }
                 catch (e) {
                     e = toError(e);
-                    e.message+=`\nWatched file: ${this.file}`;
+                    e.message+=`\nWhile processing ${eventName} event for file: ${this.file}`;
                     console.error(e); // Only log. Don't kill the process
                 }
 
