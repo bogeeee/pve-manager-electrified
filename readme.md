@@ -64,6 +64,13 @@ apt install -y pve-manager-electrified
 apt install -y pve-manager-electrified- pve-manager+
 ````
 
+## Dark mode
+
+
+<details>
+<summary>Click here to see, how it should look like in dark mode. If you have troubles and it's way too off, try to clear your browser cache or report the issue (together with your browser version)</summary>
+![](docs/images/Screenshot_dark-mode.png)
+</details>
 
 # Behind the scenes / architecture
 These are the differences to the original pve-manager package from Proxmox: These are mainly intended, to improve the developer experience.
