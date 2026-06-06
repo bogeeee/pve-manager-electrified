@@ -1,3 +1,11 @@
+pve-manager-electrified (9.12.5) trixie; urgency=medium
+  * Minor: Error diagnosis: Improve message
+ -- PVE-electrified crew <crew@pve-electrified.net>  Sat, 06 Jun 2026 00:00:15 +0200
+
+pve-manager-electrified (9.12.4) trixie; urgency=medium
+  * Error diagnosis: Log filename on watch error
+ -- PVE-electrified crew <crew@pve-electrified.net>  Sat, 06 Jun 2026 00:00:12 +0200
+
 pve-manager-electrified (9.12.3) trixie; urgency=medium
   * Fix: The command line script `pveversion` returns an incompatible version string and a too high version number, so  3rd party software (i.e. Proxmox VE Helper Scripts) refuses to install
  -- PVE-electrified crew <crew@pve-electrified.net>  Sat, 06 Jun 2026 00:00:11 +0200
