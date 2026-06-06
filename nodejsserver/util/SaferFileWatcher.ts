@@ -43,33 +43,36 @@ export class SaferFileWatcher {
         });
         ['add', 'change', 'unlink', 'addDir', 'unlinkDir'].forEach(async (eventName) => {
             (watcher as any).on(eventName, async (trigger_path?: any) => {
-                const fileStat = await ElectrifiedSession.getFileStat(this.file);
+                try {
+                    const fileStat = await ElectrifiedSession.getFileStat(this.file);
 
-                //console.log("change event. Path: " + this.file + "; trigger_path:" + trigger_path + ": " + eventName + ", watcher.interval: " + options.interval + ",  stat: " + JSON.stringify(fileStat));
+                    //console.log("change event. Path: " + this.file + "; trigger_path:" + trigger_path + ": " + eventName + ", watcher.interval: " + options.interval + ",  stat: " + JSON.stringify(fileStat));
 
-                const getFileState = async ()=> {
-                    try {
-                        if(!fileStat) {
-                            return false;
+                    const getFileState = async () => {
+                        try {
+                            if (!fileStat) {
+                                return false;
+                            }
+                            if (fileStat.isDirectory) {
+                                return await fsPromises.readdir(this.file, {encoding: "utf8"})
+                            } else
+                                return await fsPromises.readFile(this.file); // The file still not existing was often observed
+                        } catch (e) {
+                            return false; // assume file does not exist
                         }
-                        if(fileStat.isDirectory) {
-                            return await fsPromises.readdir(this.file, {encoding: "utf8"})
-                        }
-                        else
-                            return await fsPromises.readFile(this.file); // The file still not existing was often observed
                     }
-                    catch (e) {
-                        return false; // assume file does not exist
+                    const currentFileState = await getFileState();
+                    if (_.isEqual(this.lastFileState, currentFileState)) { // no change
+                        return; // Don't call listeners twice
                     }
-                }
-                const currentFileState = await getFileState();
-                if(_.isEqual(this.lastFileState, currentFileState)) { // no change
-                    return; // Don't call listeners twice
-                }
 
-                this.lastFileState = currentFileState;
+                    this.lastFileState = currentFileState;
 
-                (this.listeners as any).call(fileStat);
+                    (this.listeners as any).call(fileStat);
+                }
+                catch (e) {
+                    console.error(e); // Only log. Don't kill the process
+                }
 
             });
         });
