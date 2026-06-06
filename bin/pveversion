@@ -57,7 +57,7 @@ if (scalar(@ARGV) != 0) {
     exit(-1);
 }
 
-my $ver = PVE::pvecfg::package() . '/' . PVE::pvecfg::version_text();
+my $ver = 'pve-manager/' . $pkglist->{'proxmox-ve'}->{Version} . '/' . PVE::pvecfg::repoid();
 my (undef, undef, $kver) = POSIX::uname();
 
 if (!$opt_verbose) {
