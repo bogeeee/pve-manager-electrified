@@ -82,11 +82,20 @@ export async function showGeneralSettings(scrollToSectionName?:string) {
                 </div>
                 }
 
-
+                {/* Tree columns */}
+                <h2 ref={scrollToSectionName === "tree_columns"?(targetedSectionRef as any):undefined}>{t`Tree columns`}</h2>
+                <div style={{paddingLeft: "4px"}}>{t`Show / hide columns:`} <InfoTooltip>
+                    <strong>{t`They are configured in the tree widget it's self`}</strong><br/><br/>
+                    {t`Hover here to toggle them:`}<br/>
+                    <img src="/images/Screenshot_toggle_columns.png"/>
+                    <br/><br/>
+                    {t`Find the small gear to configure them:`}<br/>
+                    <img src="/images/Screenshot_configure_columns.png" />
+                </InfoTooltip>
+                </div><br/>
                 {/* Offer resource-tree columns for raw fields
                 The value can't be stored in the userConfig because it is needed before the userConfig is initialized.
                 */}
-                <h2 ref={scrollToSectionName === "gerneral_ui"?(targetedSectionRef as any):undefined}>{t`UI (misc)`}</h2>
                 <div><input type="checkbox" checked={window.localStorage.getItem("electrified_offerRawFieldTreeColumns") === "true"} onChange={(event) => {window.localStorage.setItem("electrified_offerRawFieldTreeColumns", String(event.currentTarget.checked)); state.offerRawFieldTreeColumns_changed++}} />&#160;<i>{t`Offer resource-tree columns for raw fields.`}</i><InfoTooltip><div>{t`They can be activated here:`}<br/><br/><img src="/images/screenshot_resourceTree_raw_fields.png"/></div></InfoTooltip></div>
                 {state.offerRawFieldTreeColumns_changed?<div style={{paddingLeft: "20px"}}><Icon icon={"warning-sign"}/>{t`You need to reload the page to see the changes`}</div>:undefined}
             </div>

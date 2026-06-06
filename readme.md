@@ -22,7 +22,13 @@ Also, open source does not develop it's self. Developers need motivation, so wri
 
 # Features
 - **Cpu und memory usage bars** in the tree. The cpu bars are updated in realtime.[^1]  
-  ![](docs/images/Screenshot_cpu_bars.png)  
+  ![](docs/images/Screenshot_cpu_bars.png)
+  <br/><br/>
+  _Hover here to toggle them:_  
+  ![](docs/images/Screenshot_toggle_columns.png)
+  <br/><br/>
+  _Find the small gear to configure them:_  
+  ![](docs/images/Screenshot_configure_columns.png)  
   [^1]: Realtime = 1 second interval. As this comes with some cost, on systems with many lxcs, the interval will increase automatically.
 - **Power management buttons** in the tree. _also in the screenshot above._ Faster power-state feedback.
 - **Instant cloning** of guests. 
