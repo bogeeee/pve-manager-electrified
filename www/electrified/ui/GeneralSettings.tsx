@@ -96,7 +96,7 @@ export async function showGeneralSettings(scrollToSectionName?:string) {
                 {/* Offer resource-tree columns for raw fields
                 The value can't be stored in the userConfig because it is needed before the userConfig is initialized.
                 */}
-                <div><input type="checkbox" checked={window.localStorage.getItem("electrified_offerRawFieldTreeColumns") === "true"} onChange={(event) => {window.localStorage.setItem("electrified_offerRawFieldTreeColumns", String(event.currentTarget.checked)); state.offerRawFieldTreeColumns_changed++}} />&#160;<i>{t`Offer resource-tree columns for raw fields.`}</i><InfoTooltip><div>{t`They can be activated here:`}<br/><br/><img src="/images/screenshot_resourceTree_raw_fields.png"/></div></InfoTooltip></div>
+                <div><input type="checkbox" checked={window.localStorage.getItem("electrified_offerRawFieldTreeColumns") === "true"} onChange={(event) => {window.localStorage.setItem("electrified_offerRawFieldTreeColumns", String(event.currentTarget.checked)); state.offerRawFieldTreeColumns_changed++}} />&#160;<i>{t`Offer columns for raw fields.`}</i><InfoTooltip><div>{t`Looks like this:`}<br/><br/><img src="/images/screenshot_resourceTree_raw_fields.png"/></div></InfoTooltip></div>
                 {state.offerRawFieldTreeColumns_changed?<div style={{paddingLeft: "20px"}}><Icon icon={"warning-sign"}/>{t`You need to reload the page to see the changes`}</div>:undefined}
             </div>
 
