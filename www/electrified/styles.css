@@ -3,7 +3,8 @@
     transform: translate(0,0);
     display: flex;
     gap: 2px;
-    flex-direction: row
+    flex-direction: row;
+    align-items: center;
 }
 
 .cpu-bar {
@@ -44,20 +45,36 @@
 }
 
 /* Style D */
-.bars-style-D .cpu-bar-cpu {
+.bars-style-green .cpu-bar-cpu {
     background-color: #21bf4b;
 }
 
+/* Style Value bars low */
+/* Style D */
+.bars-style-low .cpu-bar {
+    height: 3px;
+}
+.bars-style-low .cpu-bar-text {
+    display: none;
+}
 
 @media (prefers-color-scheme: dark) {
+    .cpu-bar {
+        color: #f2f2f2;
+    }
     .cpu-bar-unused {
         background-color: #666;
     }
+    .x-grid-row-selected .cpu-bar-unused {
+        background-color: #707070
+    }
+
     .cpu-bar-host {
         background-color: #e0c651;
     }
     .cpu-bar-cpu {
-        background-color: #FFF;
+        background-color: #D0D0D0;
+        color: #000;
     }
 }
 
@@ -182,9 +199,25 @@
         color: #8c8c8c !important;
     }
 
-    .bp6-dialog-header {
-        background-color: #262626
+    .bp6-dialog, .bp6-popover, .bp6-popover-content, .bp6-popover-popper {
+        background-color: #393939 !important;
     }
+
+    .bp6-popover .bp6-popover-arrow-fill {
+        fill: #393939 !important;
+    }
+
+    .bp6-dialog-header {
+        background-color: #393939;
+        color: #f2f2f2;
+    }
+    .bp6-dialog-header .bp6-icon-large:not([class*=bp6-intent]), .bp6-dialog-header .bp6-icon:not([class*=bp6-intent]) {
+        color: #9f9f9f;
+    }
+    .bp6-heading {
+        color: #f2f2f2;
+    }
+
 
     .bp6-dialog-body input, .bp6-dialog-body select, .bp6-dialog-body select:hover, .bp6-dialog-body textarea {
         background-color: #333333;

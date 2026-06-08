@@ -320,6 +320,8 @@ export class ValueBarTreeColumnConfig {
         guest: true,
     };
     styleVariant: string = "A"
+    showText= false;
+    showToolTip= true;
 }
 
 /**
@@ -437,9 +439,9 @@ export function createValueBarTreeColumn(colDef: {
                     }
                 }
                 let layerKey = 0;
-                return <HoverTooltip tooltip={toolTip} showHand={false} fullDiv={true}><div className={getContainerClassName(!!maxForThisItem)} style={{width: "100%"}}><div className="cpu-bar" style={{height:"100%", width: "100%"}}>{layers.map(layer => {
+                return <HoverTooltip tooltip={toolTip} disabled={!config.showToolTip} showHand={false} fullDiv={true}><div className={getContainerClassName(!!maxForThisItem)} style={{width: "100%"}}><div className="cpu-bar" style={{width: "100%"}}>{layers.map(layer => {
                     return <div key={layerKey++} className={layer.cssClass} style={{position: "absolute", width: "100%", height: "100%", clipPath: `inset(0 ${(1 - layer.start - layer.amount) * 100}% 0 ${layer.start * 100}%)`, overflow: "hidden", paddingLeft: "4px", paddingRight: "4px"}}>
-                            {text}
+                        <span class="cpu-bar-text">{config.showText && text}</span>
                         </div>
                 })}
                     {/* Output at least a super small 1px wide bar for valueForThisItem. Otherwise when the value is too small and only the background is shown, this looks confusing*/}
@@ -454,6 +456,11 @@ export function createValueBarTreeColumn(colDef: {
                 return <React.Fragment>
                     <DialogContent>
                         <DialogContentText>
+
+                            <h3 style={{margin: "0px"}}>{t`Show text`}</h3>
+                            <div>&#160;<input type="checkbox" {...bind(config.showText)}/>{t`Show text`}</div>
+                            <div>&#160;<input type="checkbox" {...bind(config.showToolTip)}/>{t`Show tooltip (which also shows the **max** value)`}</div>
+
 
                             <h3 style={{margin: "0px"}}>{t`Background`}</h3> {t`Show unused/free background for`}:<br/>
                             {[{key: "datacenter", text: t`Datacenter`}, {key: "pool", text: t`Pools`}, {key: "node", text: t`Nodes`}, {key: "guest", text: t`Guests`}].map(item =>
@@ -486,8 +493,8 @@ export function createValueBarTreeColumn(colDef: {
                             <br/>{t`Bar style`}:&#160;
                             <select {...bind(config.styleVariant)}>
                                 <option key="default" value={undefined}>Default</option>
-                                <option key="B" value={"B"}>B</option>
-                                <option key="D" value={"D"}>D</option>
+                                <option key="green" value={"green"}>{t`Green`}</option>
+                                <option key="low" value={"low"}>{`Low`}</option>
                             </select>
                         </DialogContentText>
                     </DialogContent>

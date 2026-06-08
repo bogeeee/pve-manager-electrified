@@ -443,7 +443,7 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
                                         <option key="default" value={undefined}>Default</option>
                                         <option key="B" value={"B"}>B</option>
                                         <option key="C" value={"C"}>C: {t`red bars for host's own cpu`}</option>
-                                        <option key="D" value={"D"}>D</option>
+                                        <option key="green" value={"green"}>{t`Green`}</option>
                                     </select>
 
                                     <br/>{t`Bar width`}:
