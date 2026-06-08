@@ -1245,7 +1245,7 @@ export abstract class Guest extends ModelBase implements NotificationTarget {
             }
 
             if(conflictingPairsGroupedByOtherGuest.size > 0) { // Has conflicts ?
-                const result = await showBlueprintDialog<boolean>({title: t`Hardware conflict`, style: {width: "800px"}}, (props) => {
+                const result = await showBlueprintDialog<boolean>({title: t`Hardware conflict`, icon: "warning-sign", style: {width: "800px"}}, (props) => {
                     const userConfig = watched(getElectrifiedApp().userConfig)
                     const state = useWatchedState({
                         forceStop: userConfig.startWithResourceConflictOptions?.forceStop === true,

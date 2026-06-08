@@ -141,7 +141,7 @@ export async function showCloneDialog(param_source: Guest) {
 
 
 
-    const result = await showBlueprintDialog<CloneDialogResult>({title: t`Clone ${param_origGuest.name} (${param_origGuest.id})`, style: {minWidth: "750px"}},(props) => {
+    const result = await showBlueprintDialog<CloneDialogResult>({title: t`Clone ${param_origGuest.name} (${param_origGuest.id})`, icon:"duplicate", style: {minWidth: "750px"}},(props) => {
         const origGuest = watched(param_origGuest);
         const fastCloneUserConfig = watched(app.userConfig.fastClone);
 

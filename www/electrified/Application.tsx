@@ -729,7 +729,7 @@ export class Application extends AsyncConstructableClass{
         spawnWithErrorHandling(async () => {
             const item = this.datacenter._getItemForResourceRecord(dataItem) || throwError("Item not found")
             if(item instanceof Guest) {
-                const result = await showBlueprintDialog({title: t`Delete ${item.ui_toString()}`, niceElectrifiedStyle: false},(props) => {
+                const result = await showBlueprintDialog({title: t`Delete ${item.ui_toString()}`, icon: "trash", niceElectrifiedStyle: false},(props) => {
                     const dialogConfig = watched(this.userConfig.deleteGuestDialog);
                     const state = useWatchedState(new class {
                         purge = dialogConfig.purge !== undefined ?dialogConfig.purge:false;

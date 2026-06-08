@@ -43,7 +43,7 @@ import {instanceOf} from "prop-types";
 export async function showNotificationSettings() {
     const app = getElectrifiedApp();
 
-    const result = await showBlueprintDialog({title: t`Notification settings`, style: {width: "1250px"}},(props) => {
+    const result = await showBlueprintDialog({title: t`Notification settings`, icon: "notifications", style: {width: "1250px"}},(props) => {
         const state = useWatchedState(new class {
             filterByType: "all" | "datacenter" | "user"  = "all";
             filterText= ""; // Searchfilter

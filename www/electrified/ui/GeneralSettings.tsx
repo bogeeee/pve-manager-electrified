@@ -49,7 +49,7 @@ const RamHeadroomInput = watchedComponent((props: {node: Node}) => {
 export async function showGeneralSettings(scrollToSectionName?:string) {
     const app = getElectrifiedApp();
 
-    const result = await showBlueprintDialog({title: t`Settings`, style: {width: "1250px", height: "800px"}},(props) => {
+    const result = await showBlueprintDialog({title: t`Settings`, icon: "cog", style: {width: "1250px", height: "800px"}},(props) => {
         const app = getElectrifiedApp();
         const datacenter = watched(app.datacenter);
         const datacenterConfig = watched(app.datacenterConfig);
