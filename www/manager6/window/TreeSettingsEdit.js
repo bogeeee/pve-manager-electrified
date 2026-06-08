@@ -69,6 +69,11 @@ Ext.define('PVE.window.TreeSettingsEdit', {
                     deleteEmpty: false,
                 },
                 {
+                    xtype: 'label',
+                    html: `<div style="display: flex"><div style="width: 155px;">${gettext("Show/hide/configure columns")}</div><a class="fa fa-info-circle" style="cursor: pointer;text-decoration: none" onclick="window.electrifiedApp._ui_showResourceTreeColumnTogglerHelp()">&#160;</a></div>`,
+                    deleteEmpty: false,
+                },
+                {
                     xtype: 'displayfield',
                     userCls: 'pmx-hint',
                     value: gettext('Settings are saved in the local storage of the browser'),

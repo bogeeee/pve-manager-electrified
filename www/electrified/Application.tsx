@@ -971,6 +971,31 @@ export class Application extends AsyncConstructableClass{
         })
     }
 
+    _ui_showResourceTreeColumnTogglerHelp() {
+        Ext.ComponentQuery.query('window[modal=true]')[0].close(); // Hide modal dialog, because the style conflicts
+        spawnAsync(async () => {
+            await showBlueprintDialog({title: t`How to toggle and configure the tree columns`, icon: "help", niceElectrifiedStyle: false, style:{width: "620px"}},(props) => {
+                return <div>
+                    <div className={Classes.DIALOG_BODY}>
+                        <h3>{t`Hover here to toggle them:`}</h3>
+                        <img src="/images/Screenshot_toggle_columns.png"/>
+                        <br/><br/>
+                        <h3>{t`Find the small gear to configure them:`}</h3>
+                        <img src="/images/Screenshot_configure_columns.png" />
+                    </div>
+
+                    <div className={Classes.DIALOG_FOOTER}>
+                        <div className={Classes.DIALOG_FOOTER_ACTIONS}>
+                            <ButtonGroup>
+                                <Button onClick={() => props.close()} intent={Intent.PRIMARY}>OK</Button>
+                            </ButtonGroup>
+                        </div>
+                    </div>
+                </div>;
+            });
+        })
+    }
+
     _ui_autoInstallCoolBackgroundMask(rootNode: HTMLElement, cssSelector: string, colorClass: string) {
         const activeElements = new Set<HTMLElement>();
         const interval = setInterval(() => {
