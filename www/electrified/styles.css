@@ -199,7 +199,10 @@
         color: #8c8c8c !important;
     }
 
-    .bp6-dialog, .bp6-popover, .bp6-popover-content, .bp6-popover-popper {
+    .bp6-dialog {
+        background-color: #393939;
+    }
+    .bp6-popover, .bp6-popover-content, .bp6-popover-popper {
         background-color: #393939 !important;
     }
 
