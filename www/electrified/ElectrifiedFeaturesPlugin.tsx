@@ -1,6 +1,15 @@
 import {ConfigTab, ContextMenuItem, Plugin, TreeColumn} from "./Plugin"
 import React, {CSSProperties, ReactNode} from "react";
-import {bind, binding, load, READS_INSIDE_LOADER_FN, useWatchedState, ValueOnObject, watched} from "react-deepwatch"
+import {
+    bind,
+    binding,
+    load,
+    READS_INSIDE_LOADER_FN,
+    useWatchedState,
+    ValueOnObject,
+    watched,
+    watchedComponent
+} from "react-deepwatch"
 import {
     Button,
     ButtonGroup, Checkbox,
@@ -11,7 +20,7 @@ import {
     Intent, Label, Menu, MenuDivider, MenuItem,
     NumericInput,
     Popover, Position,
-    Slider
+    Slider, Tooltip
 } from "@blueprintjs/core";
 import "@blueprintjs/core/lib/css/blueprint.css";
 import "@blueprintjs/icons/lib/css/blueprint-icons.css";
@@ -22,11 +31,11 @@ import {Node} from "./model/Node";
 import {
     formatMem,
     getUniqueName,
-    HoverTooltip,
+    HoverTooltip, LoadingSpinner,
     newDefaultMap,
     ObjectHTMLSelect, RememberChoiceButton, RetryableError, retryTilSuccess,
     showBlueprintDialog,
-    showMuiDialog, sleep, spawnWithErrorHandling,
+    showMuiDialog, sleep, SmallErrorIndicator, spawnWithErrorHandling,
     throwError, toError
 } from "./util/util";
 import _ from "underscore";
@@ -43,11 +52,12 @@ import {
     TableRow, TableSortLabel
 } from "@mui/material";
 import {retsync2promise} from "proxy-facades/retsync";
-import {Datacenter} from "./model/Datacenter";
+import {Datacenter, DiagnosisTask} from "./model/Datacenter";
 import {UserCapabilities} from "./Application";
 import {Notification, NotificationFilter, NotificationSettings} from "./Notification";
 import {Qemu} from "./model/Qemu";
 import {createValueBarTreeColumn, ValueBarTreeColumnConfig} from "./ui/ReactResourceTree";
+import {Record} from "@blueprintjs/icons/lib/esnext/generated/16px/paths";
 
 /**
  * Offers nice features.
@@ -58,6 +68,7 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
      * Still in development
      */
     static feature_diskSpaceAssistant = false;
+    static feature_diskEncriptionDialog = false;
 
     static packageName = "pveme-ui-plugin-electrified-features"
 
@@ -151,6 +162,7 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
     nodeConfig: ElectrifiedJsonConfig = {
         plugins: [],
         ramHeadroomWhenStartingGuestsInMib: 2000,
+        disks: [],
     }
 
     /**
@@ -172,6 +184,13 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
          * 1 = Assume, all running guests take all their balooned memory
          */
         ramHeadroomWhenStartingGuests_balooningRiskFaktor = 0.4;
+    }
+
+    async earlyInit(): Promise<void> {
+        if(ElectrifiedFeaturesPlugin.feature_diskEncriptionDialog) {
+            DecryptStorageTask.plugin = this;
+            DecryptStorageTask.registerInApp();
+        }
     }
 
     /**
@@ -908,6 +927,108 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
     // ... for more plugin-hooks, use code completion here (ctrl+space).
 }
 let debug_renderCounter = 0;
+
+class DecryptStorageNotification extends Notification {
+    encryptableDevices!: string[];
+    get title() {return t`Decrypt storage`}
+}
+
+class DecryptStorageTask extends DiagnosisTask<Datacenter> {
+    static producesNotifications = [DecryptStorageNotification];
+    static runForEach = Datacenter;
+    static runInRegularInterval = 10000;
+    static initialEstimatedDuration=10;
+
+    async run(datacenter: Datacenter) {
+        console.log("running")
+        if(!getElectrifiedApp().userIsAdmin) {
+            return;
+        }
+
+        const nodes2encryptableDisksState = new Map<Node, Awaited<ReturnType<Node["getEncryptableDisksStatus"]>>>();
+        for(const node of datacenter.nodes) {
+            if(!node.supportsElectrifiedClient) {
+                continue;
+            }
+            this.watched(node).udevEventsCount; // Watch this field
+            nodes2encryptableDisksState.set(node, await node.getEncryptableDisksStatus());
+        }
+
+
+        if(![...nodes2encryptableDisksState.values()].some(row => row.some(row => !row.isDecrypted))) { // All disks are already decrypted?
+            return;
+        }
+
+        window.obj = nodes2encryptableDisksState;
+
+        new class DecryptDisksNotification extends Notification {
+            get title() {return t`Encrypted disks were found`}
+            Content = watchedComponent(() => {
+                const state = useWatchedState(new class {
+                    password = "";
+                    showPassword = false;
+                });
+
+                function tryDecrypt() {
+
+                }
+
+                return <div>
+                    <span>{t`The following encrypted disks were found:`}</span><br/><br/>
+                    {[...watched(nodes2encryptableDisksState).entries()].map(([node, rows]) =>
+                        <div key={node.name}><span className={`fa fa-fw fa-${node.faIcon}`}/> <strong>{node.name}</strong>
+                            <TableContainer style={{width: "1000px"}} >
+                                <Table aria-label="Devices table table" size={"small"} stickyHeader>
+                                    <TableHead>
+                                        <TableRow>
+                                            <TableCell>{t`Type`}</TableCell>
+                                            <TableCell>{t`Device`}</TableCell>
+                                            <TableCell>{t`Mapped device`}</TableCell>
+                                            <TableCell>{t`Status`}</TableCell>
+                                            <TableCell></TableCell>
+                                        </TableRow>
+                                    </TableHead>
+                                    <TableBody>
+                                        {rows.map(row => <TableRow key={row.disk}>
+                                            <TableCell>{row.ui_type}</TableCell>
+                                            <TableCell><HoverTooltip tooltip={row.ui_toolTipInfo && <div>{Object.keys(row.ui_toolTipInfo).map(key => <div key={key}><strong>{key}:</strong> {(row.ui_toolTipInfo! as any)[key]}</div>)}</div>}><span>{row.disk} {row.id !== row.disk && <i>({row.id})</i>}</span></HoverTooltip></TableCell>
+                                            <TableCell>{row.mappedDisk || <span style={{opacity: 0.5}}>/dev/mapper/{row.getDefaultMappedLuksDiskName()}</span>}</TableCell>
+                                            <TableCell>
+                                                {(row.isDecrypted || row._uiState === "success")?<Icon icon="unlock" color={"#06cd06"}/>:<Icon icon="lock"/>}
+                                                {row._uiState === "isDecrypting" && <LoadingSpinner/>}
+                                                {(row._uiState instanceof Error) && <SmallErrorIndicator error={row._uiState} />}
+                                            </TableCell>
+                                            <TableCell><Button disabled={row.isDecrypted} icon={"cog"} onClick={() => row.ui_showDiskSettings()}/></TableCell>
+                                        </TableRow>)}
+                                    </TableBody>
+                                </Table>
+                            </TableContainer><br/><br/>
+                        </div>)}
+
+                    <form onKeyDown={(event) => {if(event.key === "Enter") { event.preventDefault();tryDecrypt() }}} style={{display: "flex", gap: "4px"}}>
+                        <InputGroup  {...bind(state.password)}  autoFocus={true}
+                                             placeholder={t`Password...`}
+                                             rightElement={
+                                                 <Tooltip
+                                                     content={`${state.showPassword ? "Hide" : "Show"} Password`}
+                                                 >
+                                                     <Button
+                                                         icon={state.showPassword ? "unlock" : "lock"}
+                                                         intent={Intent.WARNING}
+                                                         onClick={() => state.showPassword = !state.showPassword}
+                                                         variant="minimal"
+                                                     />
+                                                 </Tooltip>
+                                             }
+                                             type={state.showPassword ? "text" : "password"} />
+
+                        <Button onClick={() => tryDecrypt()} disabled={state.password === ""}>{t`Decrypt`}</Button>
+                    </form>
+                </div>
+            });
+        }({about: datacenter}).registerAndShow();
+    }
+}
 
 //@ts-ignore
 var Ext = window.Ext;

@@ -250,3 +250,10 @@
 .x-treelist-item-text {
     margin-right: 8px;
 }
+
+.bp6-portal {
+    /**
+     * Fix it, so tooltips and child dialogs inside a Notification don't underlap. Hope, this does not brak other things
+     */
+    z-index: 9000
+}

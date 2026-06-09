@@ -1,5 +1,14 @@
 import {AsyncConstructableClass} from "../util/AsyncConstructableClass";
-import {newDefaultMap, newDefaultWeakMap, sleep, spawnAsync, throwError} from "../util/util";
+import {
+    tryWatched,
+    newDefaultMap,
+    newDefaultWeakMap,
+    showBlueprintDialog,
+    sleep,
+    spawnAsync,
+    spawnWithErrorHandling,
+    throwError
+} from "../util/util";
 import {File, normalizePath} from "./File";
 import {RestfuncsClient} from "restfuncs-client";
 import type {ElectrifiedSession, ExecaOptions} from "pveme-nodejsserver/ElectrifiedSession"
@@ -10,11 +19,17 @@ import _ from "underscore"
 import {Lxc} from "./Lxc";
 import {Qemu} from "./Qemu";
 import {ModelBase} from "./ModelBase";
-import {preserve} from "react-deepwatch";
+import {bind, preserve, useWatchedState, watched} from "react-deepwatch";
 import {GuestsContainerBase} from "./GuestsContainerBase";
 import {Notification, NotificationTarget} from "../Notification";
 import type{Datacenter} from "./Datacenter";
-import {ElectrifiedJsonConfig} from "pveme-nodejsserver/Common";
+import {DiskConfig, ElectrifiedJsonConfig} from "pveme-nodejsserver/Common";
+import {retsync2promise} from "proxy-facades/retsync";
+import React from "react";
+import {Button, ButtonGroup, Classes, HTMLSelect, InputGroup, Intent,} from "@blueprintjs/core";
+import "@blueprintjs/core/lib/css/blueprint.css"; // don't forget these
+import "@blueprintjs/icons/lib/css/blueprint-icons.css"; // don't forget these
+import "@blueprintjs/icons/lib/css/blueprint-icons.css"; // don't forget these
 
 /**
  * A PVE-Node. All fields are live updated.
@@ -368,6 +383,226 @@ export class Node extends GuestsContainerBase implements NotificationTarget {
             throwError('Getting the config for a different node is not yet implemented');
         }
         return getElectrifiedApp().nodeConfig;
+    }
+
+    /**
+     * @returns status for encrypted or encryptable disks
+     */
+    async getEncryptableDisksStatus() {
+        const thisNode = this;
+
+        /*
+        To quickly test zfs encryption:
+        zfs create -o encryption=on -o keyformat=passphrase -o keylocation=prompt rpool/testCrypt
+
+        */
+
+        class Row {
+            type: "luks" | "zfs";
+
+            /**
+             * Disk device under /dev
+             */
+            disk: string;
+
+            /**
+             * For luks devices. Actual mapped disk under /dev/mapper
+             */
+            mappedDisk?: string;
+
+            constructor(type: "luks" | "zfs", disk: string, mappedDisk: string | undefined) {
+                this.type = type;
+                this.disk = disk;
+                this.mappedDisk = mappedDisk;
+            }
+
+            /**
+             * Result of blkid (for luks)
+             */
+            blkidRecord?: {
+                UUID: string,
+                LABEL?: string,
+                PARTUUID?: string,
+                PARTLABEL?: string,
+            }
+
+            get id() {
+                return this.blkidRecord?.UUID || this.disk;
+            }
+
+            /**
+             * For luks devices
+             */
+            get configuredMappedDeviceName(): string | undefined {
+                return this.config?.luksMappedName || undefined;
+            }
+
+            getDefaultMappedLuksDiskName() {
+                if(this.configuredMappedDeviceName) {
+                    return this.configuredMappedDeviceName;
+                }
+                if(this.config.identifier.type === "file") {
+                    return `luks-${this.disk.substring(this.disk.lastIndexOf("/") + 1)}`;
+                }
+                return this.configuredMappedDeviceName?this.configuredMappedDeviceName:`luks-${this.config.identifier.value}`
+            }
+
+
+            get isDecrypted() {
+                if(this.type === "luks") {
+                    return !!this.mappedDisk
+                }
+                throw new Error("not yet implemented for type")
+            }
+
+            get ui_type() {
+                if(this.type === "luks") {
+                    return t`LUKS`
+                }
+                else if(this.type === "zfs") {
+                    return t`ZFS`
+                }
+                return this.type
+            }
+
+            get ui_toolTipInfo() {
+                return this.blkidRecord;
+            }
+
+            /**
+             * The config entry for this disk under the node config
+             */
+            get config(): DiskConfig {
+                const node = tryWatched(thisNode);
+                const uuid = this.blkidRecord?.UUID;
+                const matchingCfgs = node.config.disks.filter(cfg => {
+                    cfg.identifier.value || throwError(`No disks.identifier.value specified (in node's electrified configuration)`)
+                    if(cfg.identifier.type === "file") {
+                        return this.disk === cfg.identifier.value;
+                    }
+                    else if(cfg.identifier.type === "uuid") {
+                        return uuid === cfg.identifier.value;
+                    }
+                    else if(cfg.identifier.type === "label") {
+                        return this.blkidRecord?.LABEL === cfg.identifier.value;
+                    }
+                    else {
+                        throwError(`Invalid value for disks.identifier.type=${cfg.identifier.type}`)
+                    }
+                })
+
+                matchingCfgs.length <= 1 || throwError(`There are multiple entries that match the same disk (in node's electrified configuration)`);
+                if(matchingCfgs.length === 0) {
+                    // Create config entry_
+                    node.config.disks.push({
+                        identifier: uuid?{type: "uuid", value: this.id}:{type:"file", value: this.disk},
+                        luksMappedName: "",
+                        noDecrypt: false,
+                    });
+                    return this.config; // Should return it now
+                }
+                else {
+                    return matchingCfgs[0];
+                }
+
+            }
+
+            ui_showDiskSettings() {
+                spawnWithErrorHandling(async () => {
+                    await showBlueprintDialog({title: t`Disk settings for ${this.disk}`, niceElectrifiedStyle: false, style: {width: "700px"}},(props) => {
+                        const cfg = watched(this.config,{onChange: () => {
+                            if(cfg.identifier.type === "file") {
+                                cfg.identifier.value = this.disk;
+                            }
+                            else if(cfg.identifier.type === "uuid") {
+                                cfg.identifier.value = this.blkidRecord!.UUID;
+                            }
+                            else if(cfg.identifier.type === "label") {
+                                cfg.identifier.value = this.blkidRecord!.LABEL!;
+                            }
+                            else {
+                                throwError(`Invalid value for disks.identifier.type=${cfg.identifier.type}`)
+                            }
+                        }});
+                        const state = useWatchedState({}); // contentComponentFn was wrapped for you in a watchedComponent, so you can use watchedComponent features (see react-deepwatch)
+
+                        return <div>
+                            <div className={Classes.DIALOG_BODY}>
+                                {/* Identify by: */}
+                                <div style={{display: "flex", gap: "8px", alignItems: "center"}}><div>{t`Intentify by / save configuration for:`}</div><HTMLSelect {...bind(cfg.identifier.type)}>
+                                    <option value={"file"}>{t`File: ${this.disk}`}</option>
+                                    {this.blkidRecord?.UUID && <option value={"uuid"}>{t`UUID: ${this.blkidRecord?.UUID}`}</option>}
+                                    {this.blkidRecord?.LABEL && <option value={"label"}>{t`Label: ${this.blkidRecord?.LABEL}`}</option>}
+                                </HTMLSelect></div>
+
+                                {/* Mapping: */}
+                                <div style={{display: "flex", alignItems: "center", marginTop: "8px"}}><div>{t`Map decrypted disk to:`}</div><div>&#160;/dev/mapper/</div><InputGroup {...bind(cfg.luksMappedName)} placeholder={this.getDefaultMappedLuksDiskName()} style={{width: "360px"}}/></div>
+                            </div>
+
+                            <div className={Classes.DIALOG_FOOTER}>
+                                <div className={Classes.DIALOG_FOOTER_ACTIONS}>
+                                    <ButtonGroup>
+                                        <Button onClick={() => props.close()}>{t`Close`}</Button>
+                                    </ButtonGroup>
+                                </div>
+                            </div>
+                        </div>;
+                    });
+                })
+            }
+
+
+
+            /**
+             * A bit hacky but for type simplicity, we add it here
+             */
+            _uiState?: "isDecrypting" | "success" | Error
+        }
+
+
+
+
+        var fetchLuksDecryptedDisks = async () => {
+            const result: {disk: string, mappedDisk: string}[] = [];
+            for (const mappedDisk of await retsync2promise(() => this.getFile("/dev/mapper").getDirectoryContents())) {
+                let statusResult = ""
+                try {
+                    statusResult = await this.execCommand`cryptsetup status ${mappedDisk}`;
+                }
+                catch (e) {
+                    if((e as any)?.cause?.exitCode === 4) { // device is not active?
+                        continue
+                    }
+                    throw e;
+                }
+                if(statusResult.startsWith(`${mappedDisk} is active`)) {
+                    const disk = statusResult.split("\n").slice(1).map(line => line.match(/\s*device:\s*(.+)$/)?.[1]).find(v => !!v);
+                    if(disk) {
+                        result.push({disk, mappedDisk: mappedDisk.path});
+                    }
+                }
+            }
+            return result;
+        }
+
+        const result = (await fetchLuksDecryptedDisks()).map(r => new Row("luks", r.disk, r.mappedDisk)); // Add already encrypted luks disks to result
+
+        // Add not yet encrypted luks disks to result:
+        (await this.execCommand`blkid`).split("\n").forEach(line => { // Iterate all disks with type info
+            const [match, deviceFile, tokens] = (line.match(/^(.+): (.*)$/) || throwError(`invalid line: ${line}`));
+            const record: Record<string,string> = {};
+            [...tokens.matchAll(/([A-Z]+)="(.*?)"/g)].forEach(match => record[match[1]] = match[2]);
+            //console.log(record);
+            if(record.TYPE === "crypto_LUKS") {
+                if(!result.some(r => r.disk === deviceFile)) {
+                    const row = new Row("luks", deviceFile, undefined);
+                    row.blkidRecord = record as any;
+                    result.push(row);
+                }
+            }
+        });
+
+        return result;
     }
 
     /**
