@@ -254,7 +254,7 @@ export class Notification {
         const possibleTargetScopes = this._getPossibleTargetScopes().reverse();
         const rememberSelectBox = <select {...bind(state.muteFor)}><option value={"user"}>{t`in this browser`}</option><option value={"datacenter"}>{t`for all users in the datacenter`}</option></select>;
 
-        return <div style={{width: "600px"}}>
+        return <div style={{minWidth: "600px"}}>
             <div style={{display: "flex", flexDirection: "row", alignItems: "center", gap: "8px", marginBottom: "16px"}}>
                 {this.getIcon()}
                 <div style={{flexGrow: 1}}><strong>{this.title}</strong></div>
@@ -270,7 +270,7 @@ export class Notification {
                 <ButtonGroup>
                     <Button icon={<span className={"fa fa-bell-slash"} style={{width: "14px"}}/>} onClick={() => spawnWithErrorHandling(async () => {await this.mute(undefined, state.muteFor === "datacenter"); props.close()})}>Mute</Button>
                     <Popover position={Position.BOTTOM_LEFT} usePortal={false} content={
-                        <div style={{width: "600px", display: "flex", flexDirection: "column", gap: "0px"}}>
+                        <div style={{minWidth: "600px", display: "flex", flexDirection: "column", gap: "0px"}}>
                             {possibleTargetScopes.length > 1?
                                 <div>
                                     <div style={{padding: "8px"}}>
@@ -305,6 +305,7 @@ export class Notification {
                         </div>
                     }><Button rightIcon="caret-down"></Button></Popover>
                 </ButtonGroup>
+                <Button onClick={() => props.close()}>{t`Close`}</Button>
             </div>
         </div>
     });
