@@ -441,7 +441,7 @@ export function createValueBarTreeColumn(colDef: {
                 let layerKey = 0;
                 return <HoverTooltip tooltip={toolTip} disabled={!config.showToolTip} showHand={false} fullDiv={true}><div className={getContainerClassName(!!maxForThisItem)} style={{width: "100%"}}><div className="cpu-bar" style={{width: "100%"}}>{layers.map(layer => {
                     return <div key={layerKey++} className={layer.cssClass} style={{position: "absolute", width: "100%", height: "100%", clipPath: `inset(0 ${(1 - layer.start - layer.amount) * 100}% 0 ${layer.start * 100}%)`, overflow: "hidden", paddingLeft: "4px", paddingRight: "4px"}}>
-                        <span class="cpu-bar-text">{config.showText && text}</span>
+                        <span className="cpu-bar-text">{config.showText && text}</span>
                         </div>
                 })}
                     {/* Output at least a super small 1px wide bar for valueForThisItem. Otherwise when the value is too small and only the background is shown, this looks confusing*/}
