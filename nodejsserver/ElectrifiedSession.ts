@@ -416,6 +416,14 @@ export class ElectrifiedSession extends ServerSession {
     }
 
     /**
+     * Listens for changed hardware
+     * @param callback
+     */
+    @remote onUdevEvent(callback: (line: string) => void) {
+        appServer.udevEventListeners.add(callback);
+    }
+
+    /**
      * Execute a command. Same arguments as [execa](https://www.npmjs.com/package/execa)
      * @param file
      * @param args

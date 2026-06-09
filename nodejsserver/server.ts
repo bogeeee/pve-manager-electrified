@@ -35,6 +35,7 @@ import {ElectrifiedJsonConfig} from "./Common.js";
 import {GuestCpuMeters} from "./GuestCpuMeters.js";
 import  gracefulFs from "graceful-fs";
 import _ from "underscore";
+import split2 from "split2"
 
 
 // Enable these for better error diagnosis during development:
@@ -93,6 +94,10 @@ class AppServer {
      * Bug worakound: ":any" because typescript-rtti tries to follow the type and creates a broken import statement: "import ... from "restfuncs-server/dist/commonjs/..."
      */
     webBuildStartListeners: any = new ClientCallbackSet<[]>({maxListenersPerClient: 1})
+    /**
+     *  A quick way to listen for changed hardware events
+     */
+    udevEventListeners: any = new ClientCallbackSet<[string]>()
 
     guestCpuMeters= new GuestCpuMeters();
 
@@ -111,6 +116,7 @@ class AppServer {
             gracefulFs.gracefulify(fs); // Use graceful fs to prevent resource exhaustion. Theoretically.
 
             await this.cleanUpIfInstallHung();
+            this.listenForUdevEvents();
 
             if (process.env.NODE_ENV === "development") {
                 await killProcessThatListensOnPort(this.config.port); // Fix: In development on the pve server, sometimes the old process does not terminate properly.
@@ -727,6 +733,20 @@ class AppServer {
 
             await inner();
         }
+    }
+
+    /**
+     * Listen and inform {@link udevEventListeners}
+     */
+    listenForUdevEvents() {
+        spawnAsync(async () => {
+            const process = execa("udevadm", ["monitor", "-k", "-u"]);
+            process.stdout!.pipe(split2({encoding: "utf8"})).on("data", (line) => {
+                this.udevEventListeners.call(line);
+            })
+            await process;
+        }, false);
+
     }
 
 }

@@ -97,9 +97,24 @@ export class Node extends GuestsContainerBase implements NotificationTarget {
      */
     running!:  boolean;
 
+    /**
+     * Increased on every udev event (`udevadm monitor -k -u`). Watch this field to react on changed hardware events
+     */
+    udevEventsCount = 0;
+
     protected async constructAsync(): Promise<void> {
         // See _initWhenLoggedIn for a better place
         await super.constructAsync();
+    }
+
+    async _initWhenLoggedOn(datacenter?: Datacenter) {
+        await super._initWhenLoggedOn(datacenter);
+        // Listen for udev events (changed hardware) and increase udevEventsCount
+        if(this.supportsElectrifiedClient) {
+            this.electrifiedClient?.withReconnect(() => spawnAsync( async() => {
+                await this.electrifiedApi.onUdevEvent(() => {this.udevEventsCount++});
+            }));
+        }
     }
 
     get electrifiedClient() {
@@ -107,13 +122,17 @@ export class Node extends GuestsContainerBase implements NotificationTarget {
             return this._electrifiedClient;
         }
 
-        if(!this.isCurrentNode) {
+        if(!this.supportsElectrifiedClient) {
             throw new Error("Using the electrified client is currently only possible for the current node (where you currently access the web interface). It's planned for the future, to route the api through.");
             // TODO when implementing: See Guest#configFile. Eventually assign it from the **guest's** node (not current node) and file operations will go through there
         }
 
         this._electrifiedClient = new ElectrifiedRestfuncsClient<ElectrifiedSession>("/electrifiedAPI", {/* options */});
         return this._electrifiedClient;
+    }
+
+    get supportsElectrifiedClient() {
+        return this.isCurrentNode;
     }
 
     /**

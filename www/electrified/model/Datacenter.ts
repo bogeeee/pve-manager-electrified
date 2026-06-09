@@ -636,6 +636,7 @@ export class PveClusterTask {
                 console.log(`Diagnosis task running for ${node}`)
                 node = this.watched(node);
                 // ...watch every other object that we need. I.e. this.watched(getElectrifiedApp().datacenter)
+                // Tip: For re-running on hardware changes, do: this.watched(node).udevEventsCount
 
                 if(node.mem > node.maxmem * 0.8) {
                     new LowRamNotification({
