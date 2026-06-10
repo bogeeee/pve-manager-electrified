@@ -1,6 +1,16 @@
 import {AsyncConstructableClass} from "../util/AsyncConstructableClass";
 import {Guest} from "./Guest";
-import {ClassOf, FetchError, isSubclassOf, newDefaultMap, spawnAsync, sum, throwError, toError} from "../util/util";
+import {
+    ClassOf,
+    FetchError,
+    isSubclassOf,
+    newDefaultMap,
+    spawnAsync,
+    sum,
+    throwError,
+    toError,
+    tryWatched
+} from "../util/util";
 import {Node} from "./Node"
 import {getElectrifiedApp, t} from "../globals";
 import {ModelBase, objectIsDestroyed} from "./ModelBase";
@@ -123,6 +133,13 @@ export class Datacenter extends ModelBase implements NotificationTarget{
         this._taskStore.rstore.interval = Datacenter.TASKS_STORE_REFRESH_INTERVAL; // Boost the refresh rate
         this._taskStore.on("datachanged", () => this._updateTasksFromPveTaskStore()); // Subscribe to task store
         this._updateTasksFromPveTaskStore(); // refresh once now
+    }
+
+    /**
+     * Config from: /etc/pve/manager/electrified.json
+     */
+    get config() {
+        return tryWatched(getElectrifiedApp()._electrifiedFeaturesPlugin.datacenterConfig);
     }
 
     get _taskStore() {

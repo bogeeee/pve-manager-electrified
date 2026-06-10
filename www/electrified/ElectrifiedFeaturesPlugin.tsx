@@ -167,7 +167,7 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
 
     /**
      * Datacenter-/cluster wide configuration for this plugin.
-     * Will be stored under /etc/pve/manager/plugins/[plugin name].json.
+     * Will be stored under /etc/pve/manager/electrified.json.
      * This class's field is specially treated by electrified: (Deep) modifications are automatically written. Modifications on disk are immediately updated to this field.
      * Accessing this field may throw an error, if the cluster is currently out-of-sync.
      *

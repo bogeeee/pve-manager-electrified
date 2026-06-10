@@ -22,7 +22,7 @@ import * as React from "react";
 import Draggable from 'react-draggable';
 import ReactDOM from "react-dom";
 import { createRoot } from 'react-dom/client';
-import {ValueOnObject, watched, watchedComponent} from "react-deepwatch";
+import {isRendering, ValueOnObject, watched, watchedComponent} from "react-deepwatch";
 import { ErrorBoundary } from "react-error-boundary";
 import {getElectrifiedApp} from "../globals";
 import {object} from "prop-types";
@@ -1700,10 +1700,5 @@ export const LoadingSpinner= (props: {}) => <img src="data:image/gif;base64,R0lG
  * @param options
  */
 export function tryWatched<T extends object>(obj: T, options?: any) {
-    try {
-        return watched(obj, options)
-    }
-    catch (e) {
-        return obj;
-    }
+    return isRendering()?watched(obj, options):obj;
 }

@@ -376,13 +376,12 @@ export class Node extends GuestsContainerBase implements NotificationTarget {
 
     /**
      * Config from: /etc/pve/nodes/[nodename]/electrified.json
-     * ... Note: Not associated as a watchable field. You must wrap it in `watched(...)` if needed.
      */
     get config(): ElectrifiedJsonConfig {
         if(getElectrifiedApp().currentNode.name !== this.name) {
             throwError('Getting the config for a different node is not yet implemented');
         }
-        return getElectrifiedApp().nodeConfig;
+        return tryWatched(getElectrifiedApp().nodeConfig);
     }
 
     /**
@@ -473,9 +472,9 @@ export class Node extends GuestsContainerBase implements NotificationTarget {
              * The config entry for this disk under the node config
              */
             get config(): DiskConfig {
-                const node = tryWatched(thisNode);
+                const nodeConfig = thisNode.config;
                 const uuid = this.blkidRecord?.UUID;
-                const matchingCfgs = node.config.disks.filter(cfg => {
+                const matchingCfgs = nodeConfig.disks.filter(cfg => {
                     cfg.identifier.value || throwError(`No disks.identifier.value specified (in node's electrified configuration)`)
                     if(cfg.identifier.type === "file") {
                         return this.disk === cfg.identifier.value;
@@ -494,7 +493,7 @@ export class Node extends GuestsContainerBase implements NotificationTarget {
                 matchingCfgs.length <= 1 || throwError(`There are multiple entries that match the same disk (in node's electrified configuration)`);
                 if(matchingCfgs.length === 0) {
                     // Create config entry_
-                    node.config.disks.push({
+                    nodeConfig.disks.push({
                         identifier: uuid?{type: "uuid", value: this.id}:{type:"file", value: this.disk},
                         luksMappedName: "",
                         noDecrypt: false,
