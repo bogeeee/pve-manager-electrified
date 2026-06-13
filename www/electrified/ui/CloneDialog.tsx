@@ -202,14 +202,14 @@ export async function showCloneDialog(param_source: Guest) {
             }
         });
 
-        function isValid() {
+        function isInValid() {
             if(app.datacenter.getGuest(state.id)) {
-                return false;
+                return t`A guest with the id ${state.id} already exists.`;
             }
             if(!state.name.match(Proxmox.Utils.DnsName_match)) {
-                return false;
+                return t`Invalid name.`;
             }
-            return true;
+            return false;
         }
 
         const iconFixStyle = {position: "relative", top: "-2px"}
@@ -217,7 +217,7 @@ export async function showCloneDialog(param_source: Guest) {
 
         return <div>
             <div className={Classes.DIALOG_BODY} >
-                <form onKeyDown={(event) => {if(event.key === "Enter") { event.preventDefault();if(isValid()) props.resolve(state) }}}>
+                <form onKeyDown={(event) => {if(event.key === "Enter") { event.preventDefault();if(!isInValid()) props.resolve(state) }}}>
                     <table>
                         <tbody>
                         <tr>
@@ -320,7 +320,8 @@ export async function showCloneDialog(param_source: Guest) {
                     </tbody>
                     </table>
                     <br/>
-                    <div style={{textAlign: "right"}}>&#160;{state.fastClonePossible()!==true?<span><Icon icon={"issue"}/> {t`Fast clone not possible:`} {state.fastClonePossible()}</span>:undefined}</div>
+                    {/* Invalid and fast-clone not possible messages: */}
+                    <div style={{textAlign: "right"}}>&#160;{(isInValid() && typeof isInValid() === "string")?<span><Icon icon={"issue"}/> {isInValid()}<br/></span>:undefined} {state.fastClonePossible()!==true?<span><Icon icon={"issue"}/> {t`Fast clone not possible:`} {state.fastClonePossible()}</span>:undefined}</div>
                     {state.snapshot.hasPendingChanges && <div style={{textAlign: "right"}}>&#160;<Icon icon={"issue"}/> {t`The guest has pending hardware changes. These will not be taken into the clone. Please stop the guest first, to apply them.`}</div>}
                 </form>
             </div>
@@ -331,7 +332,7 @@ export async function showCloneDialog(param_source: Guest) {
                         <div style={{alignSelf: "center"}}>
                             <a onClick={() => {props.close(); (window as any).PVE.window.Clone.wrap(origGuest.node.name, origGuest.id, origGuest.name, origGuest.template, origGuest.type)}}>{t`Show classic dialog`}</a>
                         </div>
-                        <Button onClick={() => props.resolve(state)} intent={Intent.PRIMARY} disabled={!isValid()}>{state.fastClonePossible() === true?t`Fast clone`:t`Clone`}</Button>
+                        <Button onClick={() => props.resolve(state)} intent={Intent.PRIMARY} disabled={isInValid()}>{state.fastClonePossible() === true?t`Fast clone`:t`Clone`}</Button>
                     </ButtonGroup>
                 </div>
             </div>
