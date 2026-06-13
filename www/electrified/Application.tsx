@@ -335,7 +335,7 @@ export class Application extends AsyncConstructableClass{
 
         // Health check:
         if(!(window as any).diagnosis_onlineHelpInfoSuccessfullyLoaded) {
-            throwError("TLDR; Run a **full** build -- proxmoxOnlineHelpInfo was not declared (needed by the classic app). This usually happens, when rsyncing files deletes the build artefact: manager6/OnlineHelpInfo.js. Please do full build. I.e. via IDE_develop_nodejsserver.")
+            throwError("TLDR; Please do a **full** build -- proxmoxOnlineHelpInfo was not declared (needed by the classic app). This usually happens, when rsyncing files deletes the build artefact: manager6/OnlineHelpInfo.js. Please do a full build. I.e. via IDE_develop_nodejsserver.")
         }
         // Start the classic app:
         Ext.onReady(async () => {
