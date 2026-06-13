@@ -1,3 +1,11 @@
+pve-manager-electrified (9.13.0) trixie; urgency=medium
+  * Minor: Offer docs, how to toggle/configure tree columns.
+  * Improve styles for mem bars and cpu bars; allow to hide text/tooltip
+  * Bugfix: "Start" command button does not show the resource conflict dialog (if such)
+  * Bugfix: Resource conflict dialog not show when other guest is paused / prelauch
+  * Bugfix: Power off conflicting guests does not work in production
+ -- PVE-electrified crew <crew@pve-electrified.net>  Sat, 13 Jun 2026 00:00:15 +0200
+
 pve-manager-electrified (9.12.5) trixie; urgency=medium
   * Minor: Error diagnosis: Improve message
  -- PVE-electrified crew <crew@pve-electrified.net>  Sat, 06 Jun 2026 00:00:15 +0200
