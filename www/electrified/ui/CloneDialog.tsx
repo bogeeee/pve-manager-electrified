@@ -115,7 +115,7 @@ export class CloneDialogResult {
         let startName = this.origGuest.name;
         const idx2name = (idx: number) => `${startName}-${idx}`;
         if(this.snapshot.isSnapshot()) {
-            startName = `${this.origGuest.name}-${this.snapshot.snapshotName}`
+            startName = `${this.origGuest.name}-${this.snapshot.snapshotName}`.replaceAll(/[_]/g,"-")
             if(!exists(startName)) {
                 return startName;
             }
