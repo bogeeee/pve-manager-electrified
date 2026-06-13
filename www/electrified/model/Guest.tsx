@@ -10,7 +10,7 @@ import {
     RetryableError,
     retryTilSuccess,
     RetryTilSuccessOptions, showBlueprintDialog, sleep,
-    spawnAsync,
+    spawnAsync, spawnWithErrorHandling,
     throwError, toError
 } from "../util/util";
 import {Disk} from "./hardware/Disk";
@@ -1269,7 +1269,7 @@ export abstract class Guest extends ModelBase implements NotificationTarget {
                             <div className={Classes.DIALOG_FOOTER_ACTIONS}>
                                 <ButtonGroup style={{flexDirection: "column", gap: "8px", width: "100%"}}>
                                     <div>
-                                        <Button onClick={() => {this.node.electrifiedApi.powerOffConflictingGuestsThenStartGuest([...conflictingPairsGroupedByOtherGuest.keys()].map(g => {return {id: g.id, type: g.type}}), state.forceStop, state.forceStopAfterSeconds, state.alternatingMode, {id: this.id, type: this.type}); props.close()}} intent={Intent.PRIMARY} fill={true}>{t`Power off conflicting guests first. Then start ${this.id} (${this.name})`}</Button>
+                                        <Button onClick={() => spawnWithErrorHandling(async () => {await this.node.electrifiedApi.powerOffConflictingGuestsThenStartGuest([...conflictingPairsGroupedByOtherGuest.keys()].map(g => {return {id: g.id, type: g.type}}), state.forceStop, Number(state.forceStopAfterSeconds), state.alternatingMode, {id: this.id, type: this.type}); props.close()})} intent={Intent.PRIMARY} fill={true}>{t`Power off conflicting guests first. Then start ${this.id} (${this.name})`}</Button>
                                         <div style={{padding: "8px", paddingTop: "4px", paddingLeft: "12px", paddingBottom: 0}}>
                                             <div style={{display: "flex", alignItems: "center"}}><span>↳</span><Checkbox {...bind(state.forceStop)} style={{position: "relative", top: "4px"}}/><RememberChoiceButton currentValue={state.forceStop} storageBind={binding(userConfig.startWithResourceConflictOptions.forceStop)}/><div style={{paddingLeft: "6px"}}>{t`Force shut down after `}&#160;</div> <InputGroup {...bind(state.forceStopAfterSeconds)} style={{width: "42px", marginRight: "4px"}}/><RememberChoiceButton currentValue={state.forceStopAfterSeconds} storageBind={binding(userConfig.startWithResourceConflictOptions.forceStopAfterSeconds)}/><div>&#160;{t`seconds`}.</div></div>
                                             <div style={{display: "flex"}}><span>↳</span><Checkbox {...bind(state.alternatingMode)}/><RememberChoiceButton currentValue={state.alternatingMode} storageBind={binding(userConfig.startWithResourceConflictOptions.alternatingMode)}/><div style={{paddingLeft: "6px"}}><strong>{t`Alternating mode`}:</strong> {t`Power conflicting guests back on when ${this.id} (${this.name})'s session has finished (= when it gets powered off).`}</div></div>
