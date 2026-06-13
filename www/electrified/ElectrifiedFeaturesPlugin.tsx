@@ -625,7 +625,7 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
                     hidden: (guest: Guest) => false,
                     disabled: (guest: Guest) => guest.status === "running",
                     handler: async (guest) => {
-                        await guest.startOrResume();
+                        await guest.startOrResume_interactively();
                     },
                 },
 

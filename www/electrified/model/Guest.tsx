@@ -1167,12 +1167,12 @@ export abstract class Guest extends ModelBase implements NotificationTarget {
         await this.parent.awaitTask(await this.parent.api2fetch("POST", `/${this.type}/${this.id}/status/resume`,{}) as string);
     }
 
-    async startOrResume() {
+    async startOrResume_interactively() {
         if(this.status === "suspended" || this.status === "paused" || this.status === "prelaunch") {
             await(this.resume());
         }
         else {
-            await(this.start());
+            await(this.startInteractively());
         }
     }
 
