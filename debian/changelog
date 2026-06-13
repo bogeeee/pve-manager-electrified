@@ -1,3 +1,7 @@
+pve-manager-electrified (9.13.1) trixie; urgency=medium
+  * Bugfix: Start guest on resource conflict: Alternating mode not working when guest **immediately** fails to start
+ -- PVE-electrified crew <crew@pve-electrified.net>  Sat, 13 Jun 2026 00:00:16 +0200
+
 pve-manager-electrified (9.13.0) trixie; urgency=medium
   * Minor: Offer docs, how to toggle/configure tree columns.
   * Improve styles for mem bars and cpu bars; allow to hide text/tooltip
