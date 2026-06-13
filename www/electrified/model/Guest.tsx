@@ -1229,7 +1229,7 @@ export abstract class Guest extends ModelBase implements NotificationTarget {
             // Determine conflicts:
             const conflictingPairsGroupedByOtherGuest = newDefaultMap<Guest, {thisHw: Hardware, otherHw: Hardware}[]>(() => [])
             for(const otherGuest of this.node.guests) {
-                if(!otherGuest.isRunning()) {
+                if(!(otherGuest.isRunning() || otherGuest.status === "prelaunch" || otherGuest.status === "paused")) {
                     continue;
                 }
                 if(otherGuest === this) {
