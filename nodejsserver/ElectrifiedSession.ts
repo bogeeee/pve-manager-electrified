@@ -562,7 +562,15 @@ export class ElectrifiedSession extends ServerSession {
 
             await Promise.all(shutDownPromises);
 
-            await startGuest(guestToStart);
+            try {
+                await startGuest(guestToStart);
+            }
+            catch (e) {
+                if(alternatingMode) {
+                    alternatingMode_spawn_startGuestsToPowerOffAgain();
+                }
+                throw e;
+            }
 
             if(alternatingMode) {
                 const isStopped = async() => {
@@ -576,10 +584,7 @@ export class ElectrifiedSession extends ServerSession {
                     await sleep(1000);
                 }
 
-                // Start guestsToPowerOff
-                for(const guest of guestsToPowerOff) {
-                    spawnAsync(() => startGuest(guest), false)
-                }
+                alternatingMode_spawn_startGuestsToPowerOffAgain(); // Start them
             }
         }, false)
 
@@ -588,6 +593,12 @@ export class ElectrifiedSession extends ServerSession {
             const cmd = guest.type === "lxc"?"pct":"qm";
             const args = ["start", String(guest.id)];
             await execa(cmd, args)
+        }
+
+        function alternatingMode_spawn_startGuestsToPowerOffAgain() {
+            for (const guest of guestsToPowerOff) {
+                spawnAsync(() => startGuest(guest), false)
+            }
         }
 
     }
