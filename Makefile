@@ -219,7 +219,8 @@ IDE_build_and_publish_package: local.config.mk IDE_create_aptly_repo /usr/bin/ss
 	aptly publish update -gpg-key=$(REPO_PUBLISH-KEY-ID) -keyring=$(REPO_PUBLISH-PUBLIC-KEY-FILE) -secret-keyring=$(REPO_PUBLISH-SECRET-KEY-FILE) $(DEBIAN_DISTRIBUTION)
 	echo "Uploading to $(REPO_PUBLISH_DESTINATION)"
 	@sshpass -p "$(REPO_SERVER_PASSWORD)" rsync -a /home/user/.aptly/public/* $(REPO_PUBLISH_DESTINATION)
-
+	make IDE_clean
+	echo "*** Published successful ***"
 
 /usr/bin/pandoc:
 	apt install -y pandoc
