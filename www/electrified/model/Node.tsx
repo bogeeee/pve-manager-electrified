@@ -409,6 +409,8 @@ export class Node extends GuestsContainerBase implements NotificationTarget {
              */
             mappedDisk?: string;
 
+            zfs_isDecrypted?: boolean
+
             constructor(type: "luks" | "zfs", disk: string, mappedDisk: string | undefined) {
                 this.type = type;
                 this.disk = disk;
@@ -437,6 +439,10 @@ export class Node extends GuestsContainerBase implements NotificationTarget {
             }
 
             getDefaultMappedLuksDiskName() {
+                if(this.type !== "luks") {
+                    return undefined
+                }
+                
                 if(this.configuredMappedDeviceName) {
                     return this.configuredMappedDeviceName;
                 }
@@ -450,6 +456,9 @@ export class Node extends GuestsContainerBase implements NotificationTarget {
             get isDecrypted() {
                 if(this.type === "luks") {
                     return !!this.mappedDisk
+                }
+                else if(this.type === "zfs") {
+                    return this.zfs_isDecrypted!;
                 }
                 throw new Error("not yet implemented for type")
             }
@@ -600,6 +609,30 @@ export class Node extends GuestsContainerBase implements NotificationTarget {
                 }
             }
         });
+
+
+        // Add zfs disks:
+        const resultObj = JSON.parse(await this.execCommand`zfs list -j -o name,keystatus,encryptionroot`);
+        if(resultObj.output_version.vers_major !== 0) {
+            throw new Error("ZFS version too new. Output format not supported");
+        }
+        for(const name of Object.keys(resultObj.datasets)) {
+            const dataset = resultObj.datasets[name];
+            if(dataset.properties["encryptionroot"].value === name) { // Found encryptable root dataset
+                const status = dataset.properties["keystatus"].value;
+                const row = new Row("zfs", name, undefined);
+                result.push(row);
+                if(status==="available") {
+                    row.zfs_isDecrypted = true;
+                }
+                else if(status==="unavailable") {
+                    row.zfs_isDecrypted = false;
+                }
+                else {
+                    throwError(`Illegal status: ${status}`);
+                }
+            }
+        }
 
         return result;
     }

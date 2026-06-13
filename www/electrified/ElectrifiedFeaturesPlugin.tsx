@@ -959,8 +959,6 @@ class DecryptStorageTask extends DiagnosisTask<Datacenter> {
             return;
         }
 
-        window.obj = nodes2encryptableDisksState;
-
         new class DecryptDisksNotification extends Notification {
             get title() {return t`Encrypted disks were found`}
             Content = watchedComponent(() => {
