@@ -77,21 +77,18 @@ export const ReactResourceTree = watchedComponent((props: {classicResourceTree: 
     }
 
     const isHidden = (node:TreeDataNode) => {
+        function hasRunningGuest(node:TreeDataNode): boolean {
+            const item = watched(app.datacenter)._getItemForResourceRecord(node.data);
+            if(item && item instanceof Guest && item.isRunning()) {
+                return true;
+            }
+            return node.childNodes.some(child => hasRunningGuest(child));
+        }
         if(app.resourceTree_ShowOnlyRunningGuests) {
             if(!app.initialized) {
                 return false; // Show all nodes as long as still initializing
             }
-            const item = watched(app.datacenter)._getItemForResourceRecord(node.data);
-            if(item instanceof Guest) {
-                return !item.isRunning()
-            }
-            else if(item instanceof GuestsContainerBase) {
-                return !item.guests.some(child => child.isRunning())
-            }
-            else if(item instanceof Datacenter) {
-                return false;
-            }
-            return false;
+            return !hasRunningGuest(node);
         }
         return false;
     }
