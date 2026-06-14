@@ -106,6 +106,7 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
         memBars = new ValueBarTreeColumnConfig();
 
         resourceTreeCommandButtons = {
+            console: true,
             start: true,
             pause: false,
             hibernate: false,
@@ -621,13 +622,30 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
             iconCls: string,
             hidden: (guest: Guest) => boolean,
             disabled: (guest: Guest) => boolean,
+            large?: boolean
             handler: (guest: Guest) => Promise<void>,
         };
 
-        const buttonGroupsAndDefs: {key: string, buttons: ButtonDef[]}[] = [{
-            key: "powerManagement",
-            buttons: [
-                {
+        const buttonGroupsAndDefs: {key: string, buttons: ButtonDef[]}[] = [
+            {
+                key: "console",
+                buttons: [
+                    {
+                        text: t`Console`,
+                        key: "console",
+                        iconCls: 'fa-terminal',
+                        disabled: (guest: Guest) => !guest.isRunning(),
+                        hidden: (guest: Guest) => false,
+                        large: true,
+                        handler: async (guest) => {
+                            PVE.Utils.openTreeConsole(undefined, {data: {node: guest.node.name, vmid: guest.id, name: guest.name, type: guest.type}}, guest, undefined, undefined);
+                        },
+                    },
+                ],
+            },
+            {
+                key: "powerManagement",
+                buttons: [{
                     text: t`Start/resume`,
                     key: "start",
                     iconCls: 'fa-play',
@@ -727,8 +745,8 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
         return {
             text: t`Commands`,
             key: "command_buttons",
-            width: 140,
-            cellStyle: {paddingTop: "1px", paddingBottom: "1px"},
+            width: 192,
+            cellStyle: {paddingTop: "1px", paddingBottom: "1px", display:"flex", gap: "4px"},
             hidden: true,
             cellRenderFn: (props: { item: object, rowIndex: number, colIndex: number, rawItemRecord: Record<string, unknown> }) => {
                 const guest = props.item as Guest;
@@ -739,7 +757,7 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
 
                 return buttonGroupsAndDefs.map(group => <ButtonGroup key={group.key} style={{minHeight: "initial", minWidth: "initial", height:"100%"}}>
                     {group.buttons.filter(b => ((userConfig.resourceTreeCommandButtons as any)[b.key] === true) && !b.hidden(guest)).map(buttonDef =>
-                        <Button key={buttonDef.key} style={{minHeight: "initial", minWidth: "initial", height:"100%", width: "24px"}} aria-label={buttonDef.text} disabled={buttonDef.disabled(guest)} onClick={() => spawnWithErrorHandling(async () => await buttonDef.handler(guest))}>
+                        <Button key={buttonDef.key} style={{minHeight: "initial", minWidth: buttonDef.large?"48px":"initial", height:"100%", width: "24px"}} aria-label={buttonDef.text} disabled={buttonDef.disabled(guest)} onClick={() => spawnWithErrorHandling(async () => await buttonDef.handler(guest))}>
                             <span className={`fa fa-fw ${buttonDef.iconCls}`}/>
                         </Button>
                     )}

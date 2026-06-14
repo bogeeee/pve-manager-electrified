@@ -1541,7 +1541,7 @@ Ext.define('PVE.Utils', {
         },
 
         openTreeConsole: function (tree, record, item, index, e) {
-            e.stopEvent();
+            e?.stopEvent();
             let nodename = record.data.node;
             let vmid = record.data.vmid;
             let vmname = record.data.name;
