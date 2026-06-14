@@ -105,7 +105,7 @@ export const ReactResourceTree = watchedComponent((props: {classicResourceTree: 
             key: col.initialConfig.columnId,
             width: col.width,
             cellStyle: col.cellStyle,
-            CellComponent: getElectrifiedApp()._createResourceTreeCellComponent(electrifiedPluginColumn)
+            CellComponent: col.initialConfig.electrifiedReactComponent,
         }
     })]
 

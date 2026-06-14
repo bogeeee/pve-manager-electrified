@@ -127,6 +127,7 @@ Ext.define('PVE.tree.ResourceTree', {
                     ...pluginColumn,
                     text: `<div style="display: inline-block; z-index: 101" onmouseenter="if(${pluginColumn.showConfig !== undefined}) resourceTree_onMouseEnterColumnHeader(this, '${plugin.name}', '${pluginColumn.key}')">${pluginColumn.text}</div>`,
                     electrifiedPluginColumn: pluginColumn, // For ReactResourceTree
+                    electrifiedReactComponent: ReactComponent
                 }
             }
         )).flat(),
