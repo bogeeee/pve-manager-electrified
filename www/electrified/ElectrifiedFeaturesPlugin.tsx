@@ -106,7 +106,7 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
         memBars = new ValueBarTreeColumnConfig();
 
         resourceTreeCommandButtons = {
-            console: true,
+            console: false,
             start: true,
             pause: false,
             hibernate: false,
@@ -745,7 +745,7 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
         return {
             text: t`Commands`,
             key: "command_buttons",
-            width: 192,
+            width: 140,
             cellStyle: {paddingTop: "1px", paddingBottom: "1px", display:"flex", gap: "4px"},
             hidden: true,
             cellRenderFn: (props: { item: object, rowIndex: number, colIndex: number, rawItemRecord: Record<string, unknown> }) => {
@@ -757,7 +757,7 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
 
                 return buttonGroupsAndDefs.map(group => <ButtonGroup key={group.key} style={{minHeight: "initial", minWidth: "initial", height:"100%"}}>
                     {group.buttons.filter(b => ((userConfig.resourceTreeCommandButtons as any)[b.key] === true) && !b.hidden(guest)).map(buttonDef =>
-                        <Button key={buttonDef.key} style={{minHeight: "initial", minWidth: buttonDef.large?"48px":"initial", height:"100%", width: "24px"}} aria-label={buttonDef.text} disabled={buttonDef.disabled(guest)} onClick={() => spawnWithErrorHandling(async () => await buttonDef.handler(guest))}>
+                        <Button key={buttonDef.key} style={{minHeight: "initial", minWidth: buttonDef.large?"32px":"initial", height:"100%", width: "24px"}} aria-label={buttonDef.text} disabled={buttonDef.disabled(guest)} onClick={() => spawnWithErrorHandling(async () => await buttonDef.handler(guest))}>
                             <span className={`fa fa-fw ${buttonDef.iconCls}`}/>
                         </Button>
                     )}
