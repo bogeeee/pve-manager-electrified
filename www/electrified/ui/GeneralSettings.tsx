@@ -82,8 +82,10 @@ export async function showGeneralSettings(scrollToSectionName?:string) {
                 </div>
                 }
 
+                <h2 ref={scrollToSectionName === "resource_tree"?(targetedSectionRef as any):undefined}>{t`Resource tree`}</h2>
+
                 {/* Tree columns */}
-                <h2 ref={scrollToSectionName === "tree_columns"?(targetedSectionRef as any):undefined}>{t`Tree columns`}</h2>
+                <h3 ref={scrollToSectionName === "tree_columns"?(targetedSectionRef as any):undefined}>{t`Columns`}</h3>
                 <div style={{paddingLeft: "4px"}}>{t`Show / hide columns:`} <InfoTooltip><>
                     <strong>{t`They are configured in the tree widget it's self`}</strong><br/><br/>
                     {t`Hover here to toggle them:`}<br/>
@@ -99,6 +101,12 @@ export async function showGeneralSettings(scrollToSectionName?:string) {
                 */}
                 <div><input type="checkbox" checked={window.localStorage.getItem("electrified_offerRawFieldTreeColumns") === "true"} onChange={(event) => {window.localStorage.setItem("electrified_offerRawFieldTreeColumns", String(event.currentTarget.checked)); state.offerRawFieldTreeColumns_changed++}} />&#160;<i>{t`Offer columns for raw fields.`}</i><InfoTooltip><div>{t`When enabled, you can find them (also) here:`}<br/><br/><img src="/images/screenshot_resourceTree_raw_fields.png"/></div></InfoTooltip></div>
                 {state.offerRawFieldTreeColumns_changed?<div style={{paddingLeft: "20px"}}><Icon icon={"warning-sign"}/>{t`You need to reload the page to see the changes`}</div>:undefined}
+
+                {/* Tree */}
+                <h3 ref={scrollToSectionName === "tree_columns"?(targetedSectionRef as any):undefined}>{t`"Only running" filter view`}</h3>
+                <div style={{display: "flex", alignItems: "center", gap: "8px"}}><div>{t`Keyboard shortcut`}</div><InputGroup {...bind(userConfig.keyboardShortcuts.toggleRunning)} /><InfoTooltip><div><a href="https://developer.mozilla.org/en-US/docs/Web/API/UI_Events/Keyboard_event_key_values" target="_blank">{t`Here are the valid key codes listed.`}</a><br/><i>{t`Sorry, there's no better, fancy key chooser;).`}</i></div></InfoTooltip></div>
+                <div><input type="checkbox" {...bind(userConfig.resourceTree_useSecondaryExpandCollapseState)} />&#160;{t`Remember extra expand/collapsed state for, when filter is active`}<InfoTooltip><div>{t`... this also expands all items (i.e. pools) initially"`}</div></InfoTooltip></div>
+
             </div>
 
             <div className={Classes.DIALOG_FOOTER}>

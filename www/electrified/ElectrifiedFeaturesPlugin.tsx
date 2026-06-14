@@ -115,6 +115,11 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
             reset: true,
         };
 
+        /**
+         * For the "Only running" filter
+         */
+        resourceTree_useSecondaryExpandCollapseState = false;
+
         fastClone= {
             start: false,
             /**
@@ -150,6 +155,10 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
         }
 
         shutdownGuestWithoutConfirm = false;
+
+        keyboardShortcuts = {
+            toggleRunning: "Control"
+        }
     }
 
     /**

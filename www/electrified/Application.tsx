@@ -28,7 +28,7 @@ import {
     ObjectHTMLSelect,
     sleep,
     coolBackgroundMask,
-    coolBackgroundMask_remove, RememberChoiceButton, SmallErrorBoundary, toError
+    coolBackgroundMask_remove, RememberChoiceButton, SmallErrorBoundary, toError, tryWatched
 } from "./util/util";
 import {generated_pluginList as pluginList} from "../_generated_pluginList";
 import {
@@ -188,6 +188,8 @@ export class Application extends AsyncConstructableClass{
      * Classic proxmox's Ext.js workspace component
      */
     workspace!: any;
+
+    keyboardKeysHeld = new Set<string>();
 
     /**
      * Shows notifications
@@ -401,10 +403,46 @@ export class Application extends AsyncConstructableClass{
             for(const plugin of this.plugins) {await plugin.onUiReady()}; // TODO: Remove this line here and call it from the right place
 
             this.initializedAndLoggedOnPromise.resolve(undefined);
+
+            // Set up listening for keyboard events:
+            window.addEventListener("keydown", (event) => {
+                this.keyboardKeysHeld.add(event.key);
+                this._handleKeyDown(event);
+            })
+            window.addEventListener("keyup", (event) => {
+                this.keyboardKeysHeld.delete(event.key);
+                this._handleKeyUp(event);
+            })
+            window.addEventListener("blur", (event) => {
+                this.keyboardKeysHeld.forEach((key) => this._handleKeyUp({key}));
+                this.keyboardKeysHeld.clear();
+            })
         }
         catch (e) {
             this.initializedAndLoggedOnPromise.reject(e);
             throw e;
+        }
+    }
+
+    _handleKeyDown(event: KeyboardEvent) {
+        if(!event.key) {
+            return;
+        }
+        if(event.key === this.userConfig?.keyboardShortcuts?.toggleRunning) {
+            this._resourceTree_toggleRunningFilter();
+        }
+    }
+
+    /**
+     * Called when the user releases a key or when the window is blurred.
+     * @param event ... has only the key in case of a blur event
+     */
+    _handleKeyUp(event: KeyboardEvent | {key: string}) {
+        if(!event.key) {
+            return;
+        }
+        if(event.key === this.userConfig?.keyboardShortcuts?.toggleRunning) {
+            this._resourceTree_toggleRunningFilter();
         }
     }
 
@@ -485,6 +523,18 @@ export class Application extends AsyncConstructableClass{
     async refreshResourceTree() {
         const tree = this.workspace.down('pveResourceTree');
         tree.updateTree();
+    }
+
+    get resourceTree_ShowOnlyRunningGuests(): boolean {
+        return tryWatched(this.workspace.down("*[name='resourceTree_runningFilterCheckbox']")).checked;
+    }
+
+    set resourceTree_ShowOnlyRunningGuests(value) {
+        this.workspace.down("*[name='resourceTree_runningFilterCheckbox']").setValue(value);
+    }
+
+    _resourceTree_toggleRunningFilter() {
+        this.resourceTree_ShowOnlyRunningGuests = !this.resourceTree_ShowOnlyRunningGuests;
     }
 
     /**

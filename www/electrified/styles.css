@@ -257,3 +257,22 @@
      */
     z-index: 9000
 }
+
+.toolbar-running-label {
+    padding-top: 4px;
+    padding-left: 4px;
+    padding-right: 8px;
+    user-select: none;
+}
+.toolbar-running-label a {
+    text-decoration: none;
+    color: black;
+}
+
+.bp6-dialog-body h2 {
+    margin-bottom: 8px;
+}
+
+.bp6-dialog-body h3 {
+    margin-bottom: 4px;
+}

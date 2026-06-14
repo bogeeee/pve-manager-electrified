@@ -556,6 +556,15 @@ Ext.define('PVE.StdWorkspace', {
                             items: [
                                 selview,
                                 {
+                                    xtype: "checkboxfield",
+                                    name: "resourceTree_runningFilterCheckbox"
+                                },
+                                {
+                                    xtype: "label",
+                                    cls: "toolbar-running-label",
+                                    html: `<a onclick="window.electrifiedApp._resourceTree_toggleRunningFilter()" title="${gettext("Shows only running guests. Click or hold down the control key to quickly toggle the filter.")}">${gettext("Only running")}</a>`,
+                                },
+                                {
                                     xtype: 'button',
                                     cls: 'x-btn-default-toolbar-small',
                                     iconCls: 'fa fa-fw fa-gear x-btn-icon-el-default-toolbar-small',
