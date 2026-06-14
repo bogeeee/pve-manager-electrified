@@ -525,8 +525,11 @@ export class Application extends AsyncConstructableClass{
         tree.updateTree();
     }
 
+    _cache_resourceTree_runningFilterCheckbox?:any;
+
     get resourceTree_ShowOnlyRunningGuests(): boolean {
-        return tryWatched(this.workspace.down("*[name='resourceTree_runningFilterCheckbox']")).checked;
+        const checkbox = this._cache_resourceTree_runningFilterCheckbox || (this._cache_resourceTree_runningFilterCheckbox=this.workspace.down("*[name='resourceTree_runningFilterCheckbox']"));
+        return tryWatched(checkbox).checked;
     }
 
     set resourceTree_ShowOnlyRunningGuests(value) {
