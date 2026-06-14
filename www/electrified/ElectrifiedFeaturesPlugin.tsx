@@ -638,7 +638,7 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
                         hidden: (guest: Guest) => false,
                         large: true,
                         handler: async (guest) => {
-                            PVE.Utils.openTreeConsole(undefined, {data: {node: guest.node.name, vmid: guest.id, name: guest.name, type: guest.type}}, guest, undefined, undefined);
+                            guest.openConsole();
                         },
                     },
                 ],

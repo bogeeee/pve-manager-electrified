@@ -1206,6 +1206,13 @@ export abstract class Guest extends ModelBase implements NotificationTarget {
         await this.parent.awaitTask(await this.parent.api2fetch("POST", `/${this.type}/${this.id}/status/reset`,{}) as string);
     }
 
+    /**
+     * Opens the console (remote-viewer, novnc, ...) in a new window
+     */
+    openConsole() {
+        (window as any).PVE.Utils.openTreeConsole(undefined, {data: {node: this.node.name, vmid: this.id, name: this.name, type: this.type}}, this, undefined, undefined);
+    }
+
     async _showNotEnoughRamDialog() {
         // **Notes about the memory related fields from the resource store:**
         // Node's field mem: Use After researching for half an hour, it seems that this is the net mem and does not include freeable caches. so we can hapily use this for calculations

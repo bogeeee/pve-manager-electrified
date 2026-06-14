@@ -96,7 +96,17 @@ export const ReactResourceTree = watchedComponent((props: {classicResourceTree: 
     const treeColumn = {
         width: classicResourceTree.visibleColumns[0].width,
         CellComponent: watchedComponent((props: {node: TreeDataNode}) => {
-            return <span dangerouslySetInnerHTML={{ __html: classicResourceTree.visibleColumns[0].initialConfig.renderer(undefined, undefined, props.node) }} /> ;
+            const innerSpan = <span dangerouslySetInnerHTML={{ __html: classicResourceTree.visibleColumns[0].initialConfig.renderer(undefined, undefined, props.node) }} />;
+            if(app.resourceTree_ShowOnlyRunningGuests) {
+                const item = watched(app.datacenter)._getItemForResourceRecord(props.node.data);
+                if(item instanceof Guest) {
+                    return <a onClick={(event) => {
+                        event.stopPropagation() /* don't select the guest / jump to guest config */;
+                        item.openConsole();
+                    }} style={{color: "initial"}}>{innerSpan}</a>
+                }
+            }
+            return innerSpan ;
         })
     };
     const cols = [treeColumn, ...classicResourceTree.visibleColumns.slice(1).map((col: any) => {
