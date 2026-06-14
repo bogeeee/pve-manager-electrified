@@ -332,7 +332,7 @@ export async function showCloneDialog(param_source: Guest) {
                         <div style={{alignSelf: "center"}}>
                             <a onClick={() => {props.close(); (window as any).PVE.window.Clone.wrap(origGuest.node.name, origGuest.id, origGuest.name, origGuest.template, origGuest.type)}}>{t`Show classic dialog`}</a>
                         </div>
-                        <Button onClick={() => props.resolve(state)} intent={Intent.PRIMARY} disabled={isInValid()}>{state.fastClonePossible() === true?t`Fast clone`:t`Clone`}</Button>
+                        <Button onClick={() => props.resolve(state)} intent={Intent.PRIMARY} disabled={isInValid() !== false}>{state.fastClonePossible() === true?t`Fast clone`:t`Clone`}</Button>
                     </ButtonGroup>
                 </div>
             </div>
