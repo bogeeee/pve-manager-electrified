@@ -754,9 +754,10 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
                 if(guest === null || !(guest instanceof Guest)) {
                     return;
                 }
+                const isVisible = (buttonDef: ButtonDef) =>  ((userConfig.resourceTreeCommandButtons as any)[buttonDef.key] === true) && !buttonDef.hidden(guest)
 
-                return buttonGroupsAndDefs.map(group => <ButtonGroup key={group.key} style={{minHeight: "initial", minWidth: "initial", height:"100%"}}>
-                    {group.buttons.filter(b => ((userConfig.resourceTreeCommandButtons as any)[b.key] === true) && !b.hidden(guest)).map(buttonDef =>
+                return buttonGroupsAndDefs.filter(group => group.buttons.some(isVisible)).map(group => <ButtonGroup key={group.key} style={{minHeight: "initial", minWidth: "initial", height:"100%"}}>
+                    {group.buttons.filter(isVisible).map(buttonDef =>
                         <Button key={buttonDef.key} style={{minHeight: "initial", minWidth: buttonDef.large?"32px":"initial", height:"100%", width: "24px"}} aria-label={buttonDef.text} disabled={buttonDef.disabled(guest)} onClick={() => spawnWithErrorHandling(async () => await buttonDef.handler(guest))}>
                             <span className={`fa fa-fw ${buttonDef.iconCls}`}/>
                         </Button>
