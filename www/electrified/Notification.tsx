@@ -67,7 +67,7 @@ export interface NotificationTarget {
      * I.e. "disks".
      */
     ui_pluralType:string
-    ui_toString: () => string
+    ui_toString: (short?:boolean) => string
 
     /**
      * Font awesome icon string. Without prefix
@@ -211,7 +211,7 @@ export class Notification {
             cache_ui_className: this.ui_className,
             cache_about_ui_pluralType: this.about.ui_pluralType,
             cache_for_ui_type: target.ui_type,
-            cache_for_ui_string: target.ui_toString(),
+            cache_for_ui_string: target.ui_toString(true),
             cache_for_faIcon: target.faIcon,
         }
         let settingsItem = settings.find(s => _.isEqual(s.filter, filter))
@@ -283,7 +283,7 @@ export class Notification {
                                                 return <MenuItem key={target.type}
                                                                  icon={<span className={`fa fa-${target.faIcon}`}/>}
                                                                  text={
-                                                                     <span><strong>{t`${capitalize(target.ui_type)} wide`}</strong>: {target === this.about ? t`Mute it for ${target.ui_toString()}` : t`Mute it for all ${this.about.ui_pluralType} under ${target.ui_toString()}`}</span>}
+                                                                     <span><strong>{t`${capitalize(target.ui_type)} wide`}</strong>: {target === this.about ? t`Mute it for ${target.ui_toString(true)}` : t`Mute it for all ${this.about.ui_pluralType} under ${target.ui_toString(true)}`}</span>}
                                                                  onClick={() => spawnWithErrorHandling(async () => {
                                                                      await this.mute(target, state.muteFor === "datacenter");
                                                                      props.close()

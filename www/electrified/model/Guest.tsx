@@ -180,8 +180,8 @@ export abstract class Guest extends ModelBase implements NotificationTarget {
     get ui_pluralType() {
         return t`guests`;
     }
-    ui_toString() {
-        return t`guest ${this.id}`;
+    ui_toString(short=false) {
+        return t`guest ${this.id}`  + (!short?` (${this.name})`:"");
     }
 
     faIcon = ""; // Implemented in subclass

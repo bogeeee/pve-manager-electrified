@@ -35,8 +35,8 @@ export class Lxc extends Guest {
         return "lxc";
     }
 
-    ui_toString() {
-        return t`LXC ${this.id}`;
+    ui_toString(short = false) {
+        return t`LXC ${this.id}` + (!short?` (${this.name})`:"");
     }
 
     faIcon = "cube"; // Implemented in subclass

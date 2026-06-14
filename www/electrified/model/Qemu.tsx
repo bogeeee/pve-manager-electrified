@@ -98,8 +98,8 @@ export class Qemu extends Guest{
         return "qemu";
     }
 
-    ui_toString() {
-        return t`VM ${this.id}`;
+    ui_toString(short= false) {
+        return t`VM ${this.id}` + (!short?` (${this.name})`:"");
     }
 
     faIcon = "desktop"; // Implemented in subclass
