@@ -23,6 +23,11 @@ export class Plugin {
      */
     needsAdminPermissions = true;
 
+    /**
+     * Caching: Helps to prevent calls to the expensive getConfigFromLocalStorage method + comparison with the actual value
+     */
+    _userConfig_lastRetrievedFromLocalStorage?: Date;
+
 
     constructor(app: Application) {
         this.app = app;
@@ -496,10 +501,15 @@ export async function initialize_userConfig(plugin: Plugin) {
     // Define accessors
     Object.defineProperty(plugin, "userConfig", {
         get() {
+            if(this[`_userConfig`] !== undefined && plugin._userConfig_lastRetrievedFromLocalStorage && new Date().getTime() < (plugin._userConfig_lastRetrievedFromLocalStorage.getTime() + 1000)) { // Can we use the cached value?
+                return this[`_userConfig`]; // Skip the following expensive code
+            }
+
             const config = getConfigFromLocalStorage();
 
             if(this[`_userConfig`] !== undefined) {
                 if (_.isEqual(config, this[`_userConfig`])) {
+                    plugin._userConfig_lastRetrievedFromLocalStorage = new Date();
                     return this[`_userConfig`];
                 }
 
