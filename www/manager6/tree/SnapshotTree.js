@@ -457,7 +457,7 @@ Ext.define('PVE.guest.SnapshotTree', {
         },
         {
             xtype: "label",
-            text: gettext('Compact view'),
+            text: gettext('Squeeze tree view'),
         },
     ],
 

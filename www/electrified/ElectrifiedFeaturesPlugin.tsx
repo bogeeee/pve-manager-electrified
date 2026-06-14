@@ -588,7 +588,7 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
 
     getMemBarTreeColumn() {
         return createValueBarTreeColumn({
-            text: t`Mem bars`,
+            text: t`Mem bar`,
             key: "mem_bars",
             width: 140,
             valueFn: (item) => {

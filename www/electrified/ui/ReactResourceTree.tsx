@@ -325,7 +325,7 @@ export class ValueBarTreeColumnConfig {
 }
 
 /**
- * Use this helper to simply create **bar** columns in the resource tree, like the "Mem bars".
+ * Use this helper to simply create **bar** columns in the resource tree, like the "Mem bar".
  * For usage a usage example, see {@link ElectrifiedFeaturesPlugin#getMemBarTreeColumn}
  * @param colDef
  */
@@ -424,7 +424,7 @@ export function createValueBarTreeColumn(colDef: {
                 const getContainerClassName = (hasBackround: boolean) => `cpu-bars-container ${config.styleVariant?`bars-style-${config.styleVariant}`:""} cpu-bars-container-${hasBackround?"with":"no"}-background`;
 
                 if(!referenceMax) {
-                    // Show just text without bars:
+                    // Show just text without bar:
                     return <HoverTooltip tooltip={toolTip} showHand={false} fullDiv={true}><div className={getContainerClassName(!!maxForThisItem)} style={{width: "100%"}}>{text}</div></HoverTooltip>
                 }
 
