@@ -721,7 +721,12 @@ Ext.define('PVE.tree.ResourceTree', {
                 return new Promise((resolve, reject) => {
                     const extEvent = new Ext.EventObjectImpl(event);
                     const menu = PVE.Utils.createCmdMenu(undefined, node, undefined, undefined, extEvent);
-                    menu.addListener("hide", () => resolve());
+                    if(menu) {
+                        menu.addListener("hide", () => resolve());
+                    }
+                    else { // No menu was available (i.e. on pools)?
+                        resolve();
+                    }
                 })
             }
         }
