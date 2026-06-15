@@ -226,7 +226,10 @@ export const TreeTable = watchedComponent((props: {root: TreeDataNode, stateRef:
     const refState = useRef(new class { // State that does not trigger a re-render
         hoverCleanupFns:(() => void)[] = [] // Called when hovering another row or when the context menu is finished
         idWhereContextMenuIsShowing?: string; // Flag it as shown so the row stays hovered. TODO: use the actual id and an effect to survive rerenders
-
+        /**
+         * Performance: When switching between normal and "Only running" views, it's faster to still render the rows as hidden
+         */
+        idsOnceRendered = new Set<string>();
     }).current;
 
 
@@ -290,14 +293,21 @@ export const TreeTable = watchedComponent((props: {root: TreeDataNode, stateRef:
     };
 
     // Determine treeRows
-    const treeRows: {level: number, node: TreeDataNode}[] = [];
-    const walk = (node: TreeDataNode, level: number) => {
-        treeRows.push({level, node});
-        if(isExpanded(node)) {
-            node.childNodes.forEach(c => walk(c, level+1));
+    const treeRows: {level: number, node: TreeDataNode, isVisible: boolean}[] = [];
+    const walk = (node: TreeDataNode, level: number, parentVisible) => {
+        const isHiddenByFilter = level > 0 && !!(props.isHidden?.(node));
+        const isVisible = parentVisible && !isHiddenByFilter;
+
+        // Performance: Filter out when not relevant:
+        if(!isVisible && !refState.idsOnceRendered.has(node.id)) {
+            return;
         }
+        refState.idsOnceRendered.add(node.id);
+
+        treeRows.push({level, node, isVisible});
+        node.childNodes.forEach(c => walk(c, level+1, isVisible && isExpanded(node) && !isHiddenByFilter));
     }
-    walk(props.root, 0)
+    walk(props.root, 0, true)
 
     function repeat<T>(times: number, fn: (i:number) => T) {
         const result:T[] = [];
@@ -313,8 +323,7 @@ export const TreeTable = watchedComponent((props: {root: TreeDataNode, stateRef:
                 const node = row.node;
                 const isRoot = row.level === 0;
                 const TreeCellComponent = props.cols[0].CellComponent;
-                const isHiddenByFilter = !isRoot && props.isHidden?.(node);
-                return <table key={node.id} ref={isSelected(node)?selectedHtmlRowRef as any:undefined} role="presentation" data-recordindex="0" className={`x-grid-item`} cellPadding="0" cellSpacing="0" style={{ width:0, display: isHiddenByFilter?"none":undefined}} onClick={() => {state.selectId(node.id,false); setTimeout(() => {props.onNodeClick?.(node); })}} onDoubleClick={(event) => {props.onNodeDoubleClick?.(node,event)}} onContextMenu={(event) => onContextMenu(node, event)} onMouseEnter={(event) => onMouseEnter(node, event)} onMouseLeave={(event) => onMouseLeave(node, event)}>
+                return <table key={node.id} ref={isSelected(node)?selectedHtmlRowRef as any:undefined} role="presentation" data-recordindex="0" className={`x-grid-item`} cellPadding="0" cellSpacing="0" style={{ width:0, display: row.isVisible?undefined:"none"}} onClick={() => {state.selectId(node.id,false); setTimeout(() => {props.onNodeClick?.(node); })}} onDoubleClick={(event) => {props.onNodeDoubleClick?.(node,event)}} onContextMenu={(event) => onContextMenu(node, event)} onMouseEnter={(event) => onMouseEnter(node, event)} onMouseLeave={(event) => onMouseLeave(node, event)}>
                     <tbody>
                         <tr className={`x-grid-tree-node${isLeaf(node)?"-leaf":(isExpanded(node)?"-expanded":"")}  x-grid-row ${isSelected(node)?"x-grid-row-selected":""}`} role="row" data-qtip="" data-qtitle="" aria-level={row.level+1} aria-expanded={isExpanded(row.node)}>
                             {/* Tree column */}
