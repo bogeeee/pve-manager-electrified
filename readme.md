@@ -16,7 +16,7 @@ I.e. the javascript is delivered as a >20k of lines bigfile, hardly debuggable a
 So i decided to improve all this and port it to a modern environment with vite, React, typescript on the server and client side. 
 Development took some time: Starting in 2022 and besides having to deal with my normal contract work, and it went a bit off the road cause i realized, that no proper RPC existed for Node.js, like i was used to, with Direct-Web-Remoting in my java days. Therefore, as a side project, [Restfuncs](https://github.com/bogeeee/restfuncs) was born. And then the next backing side project was born: [React deepwatch](https://github.com/bogeeee/react-deepwatch).
 And on the way came many other ideas like the cpu bars and a plugin system and, see [the planned features](#features).  
-Also, open source does not develop it's self. Developers need motivation, so write me, if you like it and also i'll be setting um something for financial motivation (donations) which would allow me to put more time into it because currently, i have to go back to focus on contract-work for my earnings. 
+Also, open source does not develop it's self. Developers need motivation, so write me, if you like it or <a href="https://liberapay.com/Bogeee/donate"><img alt="Donate using Liberapay" src="https://liberapay.com/assets/widgets/donate.svg"></a>, which would allow me to put more time into it because currently, i have to go back to focus on contract-work for my earnings. 
 </details>
 
 
@@ -45,8 +45,7 @@ Also, open source does not develop it's self. Developers need motivation, so wri
 - PLANNED: Show real thin **disk usage** in the tree.
 - PLANNED: **Docker support**.
 - PLANNED: **Assistants for several small optimizations for home-lab usage:** Gpu passthrough; Dynamic ip; Prevent ssd wear-down; Install microcode update packages; Fix zfs memory settings; Fix disk stalling; Warn on simultaneous USB device use; Show password prompts for encrypted disks;
-
-_Features are developed for **home-lab users first**. That's the most reasonable to focus on as a free-time open source developer. If you need features refined for enterprise grade (i.e. working with non-admin permissions), you still have the option [to pay me working on them](mailto:bogeee@bogitech.de)._
+_Features are developed for **home-lab users first**. That's the most reasonable to focus on as a free-time open source developer. If you need features refined for enterprise grade (i.e. working with non-admin permissions), you could also [pay me working on them](mailto:bogeee@bogitech.de)._
 
 ## Install
 Requires PVE 9.x or later.
@@ -102,3 +101,5 @@ See [here](https://github.com/bogeeee/pve-manager-electrified/blob/main/docs/plu
 # 100% hand coded
 Electrified code is 100% hand coded with passion ❤, by an experienced software developer.
 Contact me, if you need  features or if you have freelancer work to give out (in the EU, german / english speaking).  
+
+<a href="https://liberapay.com/Bogeee/donate"><img alt="Donate using Liberapay" src="https://liberapay.com/assets/widgets/donate.svg"></a>
