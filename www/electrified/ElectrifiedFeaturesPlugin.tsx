@@ -158,7 +158,7 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
         shutdownGuestWithoutConfirm = false;
 
         keyboardShortcuts = {
-            toggleRunning: "Control"
+            toggleRunning: "Shift"
         }
     }
 

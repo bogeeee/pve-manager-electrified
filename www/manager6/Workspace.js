@@ -562,7 +562,7 @@ Ext.define('PVE.StdWorkspace', {
                                 {
                                     xtype: "label",
                                     cls: "toolbar-running-label",
-                                    html: `<a onclick="window.electrifiedApp._resourceTree_toggleRunningFilter()" title="${gettext("Shows only running guests. Click or hold down the control key to quickly toggle the filter. More settings under: Settings -> Settings(electrified) -> 'Only running' filter view")}">${gettext("Only running")}</a>`,
+                                    html: `<a onclick="window.electrifiedApp._resourceTree_toggleRunningFilter()" title="${gettext("Shows only running guests. Click or hold down the shift key to quickly toggle the filter. More settings under: Settings -> Settings(electrified) -> 'Only running' filter view")}">${gettext("Only running")}</a>`,
                                 },
                                 {
                                     xtype: 'button',
