@@ -9,7 +9,7 @@ import {Guest} from "../model/Guest";
 import {Node} from "../model/Node";
 import {
     coolBackgroundMask, coolBackgroundMask_remove,
-    getUniqueName, highest, HoverTooltip, ignoreErr,
+    getUniqueName, highest, HoverTooltip, ignoreErr, newDefaultMap,
     ObjectHTMLSelect,
     RememberChoiceButton,
     RetryableError,
@@ -42,6 +42,22 @@ export const ReactResourceTree = watchedComponent((props: {classicResourceTree: 
     useEffect(() => {
         classicResourceTree.reactTreeState = treeStateRef.current;
     },[treeStateRef.current])
+
+    // Handle restore of the scroll state when switching between normal and "Only running" views:
+    const scrollContainerRef = useRef<HTMLElement>();
+    const savedDomState = useRef(newDefaultMap((mode: boolean) => new class { // Dom state for both views
+        scrollTop= 0;
+    }))
+    useEffect(()=> {
+        scrollContainerRef.current!.scrollTop = savedDomState.current.get(app.resourceTree_ShowOnlyRunningGuests).scrollTop; // Restore from savedDomState
+    })
+    /**
+     * Called on scroll
+     */
+    const saveDomState = () => {
+        savedDomState.current.get(app.resourceTree_ShowOnlyRunningGuests).scrollTop = scrollContainerRef.current!.scrollTop;
+    }
+
 
 
 
@@ -119,7 +135,7 @@ export const ReactResourceTree = watchedComponent((props: {classicResourceTree: 
         }
     })]
 
-    return <div className="x-tree-view x-fit-item x-tree-view-default x-unselectable x-scroller" role="rowgroup" tabIndex={0} style={{overflow: "hidden auto", margin: "0px", width: "100%", height: "100%"}}>
+    return <div ref={scrollContainerRef as any} className="x-tree-view x-fit-item x-tree-view-default x-unselectable x-scroller" role="rowgroup" tabIndex={0} style={{overflow: "hidden auto", margin: "0px", width: "100%", height: "100%"}} onScroll={saveDomState}>
         <div className="x-grid-item-container" role="presentation" style={{width: "100%", transform: "translate3d(0px, 0px, 0px)"}}>
             <TreeTable root={props.classicResourceTree.store.root} isHidden={isHidden} useSecondaryExpandState={app.resourceTree_ShowOnlyRunningGuests && watched(app.userConfig).resourceTree_useSecondaryExpandCollapseState} getIconCls={getIconCls} getToolTip={getToolTip} cols={cols} stateRef={treeStateRef} onNodeClick={props.onNodeClick} onNodeDoubleClick={props.onNodeDoubleClick} onNodeContextMenu={props.onNodeContextMenu}/>
         </div>
