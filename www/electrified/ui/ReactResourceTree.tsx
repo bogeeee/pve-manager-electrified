@@ -223,11 +223,14 @@ export const TreeTable = watchedComponent((props: {root: TreeDataNode, stateRef:
     })
     props.stateRef.current = state;
 
-    const selectedHtmlRowRef = useRef<HTMLElement>()
+    const refState = useRef(new class { // State that does not trigger a re-render
+        hoverCleanupFns:(() => void)[] = [] // Called when hovering another row or when the context menu is finished
+        idWhereContextMenuIsShowing?: string; // Flag it as shown so the row stays hovered. TODO: use the actual id and an effect to survive rerenders
 
-    //const hoveredHtmlRowRef = useRef<HTMLElement>()
-    const hoverCleanupFns = useRef<(() => void)[]>([]) // Called when hovering another row or when the context menu is finished
-    const idWhereContextMenuIsShowingRef = useRef<string | undefined>(); // Flag it as shown so the row stays hovered. TODO: use the actual id and an effect to survive rerenders
+    }).current;
+
+
+    const selectedHtmlRowRef = useRef<HTMLElement>()
 
     useEffect(() => {
         if(state.selectedId_scrollIntoView) {
@@ -257,14 +260,14 @@ export const TreeTable = watchedComponent((props: {root: TreeDataNode, stateRef:
     const expand =   (node: TreeDataNode) => props.useSecondaryExpandState?state.secondary_collapsedIds.delete(node.id):state.expandedIds.add   (node.id);
     const collapse = (node: TreeDataNode) => props.useSecondaryExpandState?state.secondary_collapsedIds.add   (node.id):state.expandedIds.delete(node.id);
     const isSelected  = (node: TreeDataNode) => state.selectedId === node.id;
-    const isContextMenuShown = () => idWhereContextMenuIsShowingRef.current !== undefined;
-    var hoverCleanup = () => {hoverCleanupFns.current.forEach(f=>f());hoverCleanupFns.current = []}
+    const isContextMenuShown = () => refState.idWhereContextMenuIsShowing !== undefined;
+    var hoverCleanup = () => {refState.hoverCleanupFns.forEach(f=>f());refState.hoverCleanupFns = []}
 
     const onMouseEnter = (node: TreeDataNode, event: MouseEvent<any, any>) => {
         const rowElement = event.currentTarget;
         if(!isSelected(node)) {
             coolBackgroundMask(rowElement, "hovered")
-            hoverCleanupFns.current.push(() => coolBackgroundMask_remove(rowElement))
+            refState.hoverCleanupFns.push(() => coolBackgroundMask_remove(rowElement))
         }
 
     }
@@ -278,9 +281,9 @@ export const TreeTable = watchedComponent((props: {root: TreeDataNode, stateRef:
         const rowElement: HTMLElement = event.currentTarget;
         if(props.onNodeContextMenu) {
             rowElement.classList.add("treeRow-row-contextMenu")
-            idWhereContextMenuIsShowingRef.current = node.id;
+            refState.idWhereContextMenuIsShowing = node.id;
             await props.onNodeContextMenu?.(node, event)
-            idWhereContextMenuIsShowingRef.current = undefined;
+            refState.idWhereContextMenuIsShowing = undefined;
             rowElement.classList.remove("treeRow-row-contextMenu");
         }
 
