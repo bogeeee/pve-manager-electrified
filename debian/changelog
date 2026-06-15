@@ -1,3 +1,9 @@
+pve-manager-electrified (9.14.0) trixie; urgency=medium
+  * Add filter checkbox to show only running guests (for the power user)
+  * Add "Open console" command button
+  * Minor dialog improvements
+ -- PVE-electrified crew <crew@pve-electrified.net>  Sun, 14 Jun 2026 00:00:16 +0200
+
 pve-manager-electrified (9.13.1) trixie; urgency=medium
   * Bugfix: Start guest on resource conflict: Alternating mode not working when guest **immediately** fails to start
  -- PVE-electrified crew <crew@pve-electrified.net>  Sat, 13 Jun 2026 00:00:16 +0200
