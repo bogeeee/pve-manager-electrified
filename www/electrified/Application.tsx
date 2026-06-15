@@ -406,12 +406,16 @@ export class Application extends AsyncConstructableClass{
 
             // Set up listening for keyboard events:
             window.addEventListener("keydown", (event) => {
-                this.keyboardKeysHeld.add(event.key);
-                this._handleKeyDown(event);
+                const prevent = this._handleKeyDown(event);
+                if(!prevent) {
+                    this.keyboardKeysHeld.add(event.key);
+                }
             })
             window.addEventListener("keyup", (event) => {
-                this.keyboardKeysHeld.delete(event.key);
-                this._handleKeyUp(event);
+                if(this.keyboardKeysHeld.has(event.key)) {
+                    this.keyboardKeysHeld.delete(event.key);
+                    this._handleKeyUp(event);
+                }
             })
             window.addEventListener("blur", (event) => {
                 this.keyboardKeysHeld.forEach((key) => this._handleKeyUp({key}));
@@ -424,11 +428,19 @@ export class Application extends AsyncConstructableClass{
         }
     }
 
-    _handleKeyDown(event: KeyboardEvent) {
+    /**
+     *
+     * @param event
+     * @returns true if up listener should also not fire
+     */
+    _handleKeyDown(event: KeyboardEvent): boolean | undefined {
         if(!event.key) {
             return;
         }
         if(event.key === this.userConfig?.keyboardShortcuts?.toggleRunning) {
+            if((event.target as any)?.tagName === "TEXTAREA" || (event.target as any)?.tagName === "INPUT") {
+                return true;
+            }
             this._resourceTree_toggleRunningFilter();
         }
     }
