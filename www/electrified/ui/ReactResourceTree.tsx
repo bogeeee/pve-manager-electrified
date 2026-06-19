@@ -256,14 +256,17 @@ export const TreeTable = watchedComponent((props: {root: TreeDataNode, stateRef:
         }
     })
 
-
-    const isLeaf = (node: TreeDataNode) => node.childNodes.length === 0;
-    const isFixedExpaned = (node: TreeDataNode) => node.id === props.root.id || (props.root.childNodes.length === 1 && node.id === props.root.childNodes[0].id); // Always expand root and single childs under root
-    const isExpanded = (node: TreeDataNode) => (props.useSecondaryExpandState?!state.secondary_collapsedIds.has(node.id):state.expandedIds.has(node.id)) || isFixedExpaned(node);
+    // Functions that retrieve info about the node:
+    const cache = newDefaultMap((n: TreeDataNode) => {return {} as Record<string, unknown>});
+    const cached = <T,>(cacheKey: string, fn: (node: TreeDataNode) => T) => (node:TreeDataNode) => (cacheKey in cache.get(node))?cache.get(node)[cacheKey] as T:(cache.get(node)[cacheKey] = fn(node) as T);
+    const isLeaf = cached("isLeaf",node => node.childNodes.length === 0);
+    const isFixedExpaned = cached("isFixedExpaned", node => node.id === props.root.id || (props.root.childNodes.length === 1 && node.id === props.root.childNodes[0].id)); // Always expand root and single childs under root
+    const isExpanded = cached("isExpanded", node => (props.useSecondaryExpandState?!state.secondary_collapsedIds.has(node.id):state.expandedIds.has(node.id)) || isFixedExpaned(node));
     const expand =   (node: TreeDataNode) => props.useSecondaryExpandState?state.secondary_collapsedIds.delete(node.id):state.expandedIds.add   (node.id);
     const collapse = (node: TreeDataNode) => props.useSecondaryExpandState?state.secondary_collapsedIds.add   (node.id):state.expandedIds.delete(node.id);
-    const isSelected  = (node: TreeDataNode) => state.selectedId === node.id;
+    const isSelected  = cached("isSelected", node => state.selectedId === node.id);
     const isContextMenuShown = () => refState.idWhereContextMenuIsShowing !== undefined;
+
     var hoverCleanup = () => {refState.hoverCleanupFns.forEach(f=>f());refState.hoverCleanupFns = []}
 
     const onMouseEnter = (node: TreeDataNode, event: MouseEvent<any, any>) => {
@@ -294,7 +297,7 @@ export const TreeTable = watchedComponent((props: {root: TreeDataNode, stateRef:
 
     // Determine treeRows
     const treeRows: {level: number, node: TreeDataNode, isVisible: boolean}[] = [];
-    const walk = (node: TreeDataNode, level: number, parentVisible) => {
+    const walk = (node: TreeDataNode, level: number, parentVisible: boolean) => {
         const isHiddenByFilter = level > 0 && !!(props.isHidden?.(node));
         const isVisible = parentVisible && !isHiddenByFilter;
 
