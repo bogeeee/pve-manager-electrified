@@ -438,7 +438,8 @@ export class Application extends AsyncConstructableClass{
             return;
         }
         if(event.key === this.userConfig?.keyboardShortcuts?.toggleRunning) {
-            if((event.target as any)?.tagName === "TEXTAREA" || (event.target as any)?.tagName === "INPUT") {
+            const target = event.target as any;
+            if(target && (target.tagName === "TEXTAREA" || (target.tagName === "INPUT" && target.type === "text" && !target.readOnly) )) {
                 return true;
             }
             this._resourceTree_toggleRunningFilter();
