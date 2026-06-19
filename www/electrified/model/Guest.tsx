@@ -730,6 +730,10 @@ export abstract class Guest extends ModelBase implements NotificationTarget {
             return "stopped" // Prevent flickering
         }
 
+        if(plainValue === "unknown" && this._hint_clonedTimestamp && (this._hint_clonedTimestamp + 5000) > now) {
+            return "stopped";
+        }
+
         return plainValue;
     }
 
@@ -861,6 +865,8 @@ export abstract class Guest extends ModelBase implements NotificationTarget {
         const taskId = await this.node.api2fetch("DELETE", `/${this.type}/${this.id}`, {purge, "destroy-unreferenced-disks": destroyUnreferencedDisks, ...(this.type === "lxc"?{force: true}:{}) }) as string;
         await this.node.awaitTask(taskId);
     }
+
+    _hint_clonedTimestamp?: number;
 
     /**
      * Clones this guest. Uses fast-clone (zfs-clone for disks), if possible.
@@ -1095,6 +1101,7 @@ export abstract class Guest extends ModelBase implements NotificationTarget {
 
 
             await app.datacenter.ensureUp2Date();
+            clone._hint_clonedTimestamp = new Date().getTime();
 
             if(selectCloneInTree) {
                 await app.refreshResourceTree();
