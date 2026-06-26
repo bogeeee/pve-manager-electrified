@@ -7,7 +7,7 @@
 <body>
   <div id="content">Fetching state</div>
   <div id="forNonWebBuildControlPage" style="display: none;margin-top:16px">
-      <div id="cleanRebuildButtonPanel" style="display: none;margin-bottom: 8px">Troubleshoot: <button onclick="(async() => { await execElectrifiedApiMethod('disablePluginsAndRebuildClean',[]);})()">Disable all plugins and do a clean rebuild</button></div>
+      <div id="cleanRebuildButtonPanel" style="display: none;margin-bottom: 8px">Troubleshoot: <button onclick="withErrorHandling(async() => { await execElectrifiedApiMethod('disablePluginsAndRebuildClean',[]);})">Disable all plugins and do a clean rebuild</button></div>
       <i>For developers:</i> <a href="/webBuild" target="webBuild">Open web build control panel</a>
   </div>
   <form id="interactiveForm" style="display: none" onsubmit="event.preventDefault()">
@@ -55,14 +55,13 @@
 
   <script type="text/javascript">
       Proxmox = $PROXMOXSTATE$;
-
+      const isWebBuildControlPage = window.location.pathname.indexOf("/webBuild") === 0;
       const loadingSpinnerHtml='<img src="data:image/gif;base64,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"/>'
       let state;
 
       async function fetchAndUpdateContent() {
           let contentHtml
           try {
-              const isWebBuildControlPage = window.location.pathname.indexOf("/webBuild") === 0;
               if(!isWebBuildControlPage) {
                   document.getElementById("forNonWebBuildControlPage").style.display = "block";
               }
@@ -180,7 +179,9 @@ ${state.builtWeb.promiseState.state==="rejected"?`<b>Build failed:</b> ${state.b
               }
               catch(e) {}
 
-              throw new Error(`could not fetch url: ${request?.url?request.url:request.toString()}:  ${result.status}: ${result.statusText}${content}`)
+              const error = new Error(`could not fetch url: ${request?.url?request.url:request.toString()}:  ${result.status}: ${result.statusText}${content}`);
+              error.httpStatusCode = result.status;
+              throw error
           }
           return result;
       }
@@ -214,6 +215,10 @@ ${state.builtWeb.promiseState.state==="rejected"?`<b>Build failed:</b> ${state.b
               await fn()
           }
           catch (e) {
+              if(e && e.httpStatusCode === 401) {
+                  alert(`You are not logged in. ${isWebBuildControlPage?`Please use the "Login to PVE" form.`:`Please use the "Login to PVE" form in the web build control panel.`}`);
+                  return;
+              }
               alert(errorToString(e));
           }
       }
