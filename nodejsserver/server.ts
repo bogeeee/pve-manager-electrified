@@ -115,6 +115,8 @@ class AppServer {
 
             gracefulFs.gracefulify(fs); // Use graceful fs to prevent resource exhaustion. Theoretically.
 
+            process.on('SIGTERM', () => spawnAsync(async () => await this.shutDown(), true));  // Properly shut down after SIGTERM event. (Especially needed in develop with tsx, otherwise it takes 5 seconds till a forced process kill)
+
             await this.cleanUpIfInstallHung();
             this.listenForUdevEvents();
 
@@ -747,6 +749,15 @@ class AppServer {
             await process;
         }, false);
 
+    }
+
+    async shutDown() {
+        try {
+            // TODO: Clean up
+        }
+        finally {
+            process.exit(0); // Force exit the process, even if there are still some uncleared timers, etc. (which is currently the case)
+        }
     }
 
 }
