@@ -136,7 +136,7 @@ export abstract class PromiseTask<T> extends Promise<T> {
      */
     cancel(reason?: any) {
         if (this.promiseState.state !== "pending") {
-            throw new Error(`Too late to cancel. Promise is alrady ${this.promiseState.state}`)
+            throw new Error(`Too late to cancel. Promise is already ${this.promiseState.state}`)
         }
 
         reason = reason || new Error("Task was cancelled")

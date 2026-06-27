@@ -4,7 +4,7 @@ import {build as viteBuild} from "vite";
 import crypto, {Hash} from "crypto"
 import {appServer} from './server.js';
 import {fileExists, listSubDirs, parseJsonFile, throwError} from "./util/util.js";
-import {execa} from "execa";
+import {execa, ExecaChildProcess} from "execa";
 import {Buffer} from "node:buffer"
 import semver from "semver";
 import {PromiseTask} from "./util/PromiseTask.js";
@@ -33,6 +33,11 @@ export default class WebBuildProgress extends PromiseTask<BuildResult> {
     diagnosis_createdAt = new Date();
 
     diagnosis_state?: string
+
+    /**
+     * Allows to kill the process if this build is canceled
+     */
+    protected currentExecaProcess?: /* ExecaChildProcess */ any;
 
     protected async run(): Promise<BuildResult> {
         this.checkCanceled();
@@ -71,6 +76,11 @@ export default class WebBuildProgress extends PromiseTask<BuildResult> {
                 hashOfInputs: hash,
             }
         }
+    }
+
+    cancel(reason?: any) {
+        super.cancel(reason);
+        this.currentExecaProcess?.cancel();
     }
 
     /**
@@ -246,6 +256,7 @@ ${packages.map(pkgInfo => `import {default as plugin${++index}} from ${JSON.stri
         this.diagnosis_state = `${prefix}`;this.fireProgressChanged();
 
         const process = execa(file, args, options);
+        this.currentExecaProcess = process;
         // Display progress:
         process.stdout?.on("data", (data: Buffer) => {
             this.diagnosis_state = `${prefix}: ${data.toString()}`;
@@ -257,7 +268,7 @@ ${packages.map(pkgInfo => `import {default as plugin${++index}} from ${JSON.stri
     async typeCheck() {
         this.diagnosis_state = "Type checking with tsc";
         const wwwSourcesDir = appServer.wwwSourceDir;
-        await execa("npm", ["run", "check"], {cwd: wwwSourcesDir})
+        await (this.currentExecaProcess = execa("npm", ["run", "check"], {cwd: wwwSourcesDir}));
     }
 
     async bundleFiles() {
