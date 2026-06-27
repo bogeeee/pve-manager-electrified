@@ -36,6 +36,7 @@ import {GuestCpuMeters} from "./GuestCpuMeters.js";
 import  gracefulFs from "graceful-fs";
 import _ from "underscore";
 import split2 from "split2"
+import fsPromises from "node:fs/promises";
 
 
 // Enable these for better error diagnosis during development:
@@ -86,8 +87,10 @@ class AppServer {
      */
     bundledWWWDir = "/var/lib/pve-manager/bundledWww"
 
-
-    builtWeb!: WebBuildProgress
+    /**
+     * Discriminated union: buildId is the discriminator. Either the real built/building web, or an object with mostly dummy fields when the build was skipped because the hashOfInputs was unchanged
+     */
+    builtWeb!: WebBuildProgress | {buildId: undefined, promiseState: {state: "resolved", resolvedValue: {hashOfInputs: string}}, buildOptions: BuildOptions}
 
     /**
      * Called when the web is rebuild (when it is starting)
@@ -149,10 +152,13 @@ class AppServer {
                 resave: false
             }));
 
-            this.buildWeb({
-                buildStaticFiles: !(process.env.NODE_ENV === "development"),
-                enablePlugins: true,
-            });
+            spawnAsync(async () => {
+                await this.buildWeb({
+                    buildStaticFiles: !(process.env.NODE_ENV === "development"),
+                    enablePlugins: true,
+                })
+            }, false);
+
             this.startListeningForChangedPluginSetup();
 
             expressApp.use("/electrifiedAPI", ElectrifiedSession.createExpressHandler())
@@ -344,14 +350,26 @@ class AppServer {
      * @param progressListener
      * @param delayMs when specified, it waits this amount of milliseconds before starting the build. This can be useful to counteract bursts of build triggers, i.e by watched file changes.
      */
-    buildWeb(buildOptions: BuildOptions, progressListener?: (progress: WebBuildProgress) => void, delayMs?: number) {
+    async buildWeb(buildOptions: BuildOptions, progressListener?: (progress: WebBuildProgress) => void, delayMs?: number, force = false) {
         if(buildOptions.buildStaticFiles) {
             process.env.NODE_ENV = this.startup_nodeEnv; // For safety, if the user chosed to no more use the vite-devserver
         }
 
+        // Check if we can skip the build:
+        if(!force) {
+            const buildHashFile = `${buildOptions.buildStaticFiles?this.bundledWWWDir:this.wwwSourceDir}/.buildHash`
+            if(await fileExists(buildHashFile)) {
+                const buildHashFileContent = await fsPromises.readFile(buildHashFile, {encoding: "utf8"});
+                if(await WebBuildProgress.createHashOfInputs(buildOptions) === buildHashFileContent) { // Build hash matches? / no need to rebuild
+                    this.builtWeb = {buildId: undefined, buildOptions, promiseState: {state: "resolved", resolvedValue: {hashOfInputs: buildHashFileContent}}}
+                    return;
+                }
+            }
+        }
+
         // Cancel old build:
         const oldBuild = this.builtWeb;
-        if(oldBuild?.promiseState.state === "pending") {
+        if(oldBuild && oldBuild.buildId && oldBuild.promiseState.state === "pending") {
             oldBuild.cancel(new Error("Canceled because a new build was made."))
         }
 
@@ -377,23 +395,26 @@ class AppServer {
                 await me.viteDevServer?.close(); // For stability. There was strange behaviour seen, whe it was running while everything is rebuilt under it
                 const result = await super.run();
                 this.diagnosis_state = "Activating build result"; this.fireProgressChanged();
-                await me.activateBuildResult(result);
+                await me.activateBuildResult(result, buildOptions);
                 return result;
             }
         }
 
         this.builtWeb = WebBuildAndDeploy.create({buildOptions}) as any as WebBuildProgress;
         this.webBuildStartListeners.call();
-        return this.builtWeb;
     }
 
 
-    protected async activateBuildResult(buildResult: BuildResult) {
+    protected async activateBuildResult(buildResult: BuildResult, buildOptions: BuildOptions) {
         await deleteDir(this.bundledWWWDir, true); // delete old dir
         if (buildResult.staticFilesDir) {
             await execa("mv", [buildResult.staticFilesDir, this.bundledWWWDir]);
         }
         await this.viteDevServer?.restart();
+
+        // Write build hash:
+        const buildHashFile = `${buildOptions.buildStaticFiles?this.bundledWWWDir:this.wwwSourceDir}/.buildHash`
+        await fsPromises.writeFile(buildHashFile, buildResult.hashOfInputs, {encoding: "utf8"});
     }
 
     /**
@@ -403,10 +424,11 @@ class AppServer {
      * @param next
      */
     async serveIndexHtml(req: express.Request, res: express.Response, next: express.NextFunction) {
-        if(this.builtWeb.promiseState.state !== "resolved") { // Build not finished ?
-            return await this.serveWebBuildDiagnosisHtml(req, res, next); // Show build loader / diagnosis
-        }
         try {
+            if(this.builtWeb.promiseState.state !== "resolved") { // Build not finished ?
+                return await this.serveWebBuildDiagnosisHtml(req, res, next); // Show build loader / diagnosis
+            }
+
             const endoding = "utf-8";
             const buildId = this.builtWeb.buildId;
             let indexHtml = await fsAsync.readFile(`${this.useViteDevServer?this.wwwSourceDir:this.bundledWWWDir}/index.html`, {encoding: endoding});
@@ -559,7 +581,9 @@ class AppServer {
 
     set useViteDevServer(value: boolean) {
         if(this.useViteDevServer !== value) {
-            this.buildWeb({...this.builtWeb!.buildOptions , buildStaticFiles: !value});
+            spawnAsync(async () => {
+                await this.buildWeb({...this.builtWeb!.buildOptions , buildStaticFiles: !value});
+            }, false)
         }
     }
 
@@ -593,7 +617,9 @@ class AppServer {
 
         const handleChange = () => {
             const delay = 200; // Hacky bug workaround: It was observed with phpstorm 2021 with file sync to a remote pve server, that the watcher was fired when the package.json was incomplete but not again after it was completely written.
-            this.buildWeb(structuredClone(this.builtWeb!.buildOptions), undefined, delay ); // Rebuild web with the same options
+            spawnAsync(async () => {
+                await this.buildWeb(structuredClone(this.builtWeb!.buildOptions), undefined, delay )
+            }, false); // Rebuild web with the same options
         }
 
         // Watch this.config.pluginSourceProjectsDir for creation of itsself, new project dirs and their package.json:

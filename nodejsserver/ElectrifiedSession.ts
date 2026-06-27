@@ -82,6 +82,7 @@ export class ElectrifiedSession extends ServerSession {
             pluginSourceProjects = (e as any)?.message; // expose quick error message here. The full error will be available when doing the build anyway
         }
 
+        const builtWeb = appServer.builtWeb;
         return {
             developWwwBaseDir: appServer.config.developWwwBaseDir,
             wwwSourceDir: appServer.wwwSourceDir,
@@ -89,14 +90,21 @@ export class ElectrifiedSession extends ServerSession {
             exampleUiPluginProjectExist: fs.existsSync(`${appServer.config.pluginSourceProjectsDir}/example`),
             pluginSourceProjects,
             builtWeb: {
-                buildOptions: appServer.builtWeb.buildOptions,
-                buildId: appServer.builtWeb.buildId,
-                diagnosis_createdAt: appServer.builtWeb.diagnosis_createdAt,
-                diagnosis_state: appServer.builtWeb.diagnosis_state,
-                promiseState: {
-                    state: appServer.builtWeb.promiseState.state,
-                    rejectReason: appServer.builtWeb.promiseState.state === "rejected"?errorToHtml(appServer.builtWeb.promiseState.rejectReason):undefined,
-                },
+                //@ts-ignore
+                buildOptions: builtWeb.buildOptions,
+                //@ts-ignore
+                buildId: builtWeb.buildId,
+                ...(builtWeb.buildId?{
+                    // Output necessary properties because not all are serializable:
+                    diagnosis_createdAt: builtWeb.diagnosis_createdAt,
+                    diagnosis_state: builtWeb.diagnosis_state,
+                    promiseState: {
+                        state: builtWeb.promiseState.state,
+                        resolvedValue: builtWeb.promiseState.state === "resolved"?builtWeb.promiseState.resolvedValue:undefined,
+                        rejectReason: builtWeb.promiseState.state === "rejected"?errorToHtml(builtWeb.promiseState.rejectReason):undefined,
+                    },
+                }:builtWeb)
+
             },
             hasPermissions: this.cachedPermissions?.permissions["/"]?.["Sys.Console"] === 1,
             viteDevServer_allowUnauthorizedClients: appServer.viteDevServer_allowUnauthorizedClients,
@@ -116,9 +124,9 @@ export class ElectrifiedSession extends ServerSession {
     }
 
     @remote()
-    async rebuildWebAsync(buildOptions: BuildOptions) {
+    async rebuildWebAsync(buildOptions: BuildOptions, force?: boolean) {
         spawnAsync(async () => {
-            await appServer.buildWeb(buildOptions)
+            await appServer.buildWeb(buildOptions, undefined, undefined, force)
         }, false);
     }
 
@@ -153,7 +161,7 @@ export class ElectrifiedSession extends ServerSession {
     @remote
     async disablePluginsAndRebuildClean() {
         await this.resetNode_modules();
-        appServer.buildWeb({...appServer.builtWeb.buildOptions, enablePlugins: false});
+        await appServer.buildWeb({...appServer.builtWeb.buildOptions, enablePlugins: false}, undefined, undefined, true);
     }
 
     /**
@@ -473,7 +481,7 @@ export class ElectrifiedSession extends ServerSession {
                  let pkg: PluginPackage | {} = {};
                  try {
                      if(appServer.builtWeb.promiseState.state === "resolved") { // Web is successfully built?
-                         const wwwDir = appServer.builtWeb.promiseState.resolvedValue.staticFilesDir || appServer.wwwSourceDir;
+                         const wwwDir = appServer.builtWeb.buildOptions.buildStaticFiles?appServer.bundledWWWDir:appServer.wwwSourceDir;
                          pkg = JSON.parse(await fsPromises.readFile(`${wwwDir}/node_modules/${selectedPackage.name}/package.json`, {encoding: "utf8"})) as PluginPackage;
                      }
                  }

@@ -73,7 +73,8 @@ ${isWebBuildControlPage?`
     <b>Source directory:</b> <i>${escapeHtml(state.wwwSourceDir)}</i><br/>
     ${Array.isArray(state.pluginSourceProjects)?state.pluginSourceProjects.map(p => `<b>Plugin source directory:</b> <i>${escapeHtml(p.dir)}</i><br/>`).join("\n"): `<b>Plugin source directory(s):</b> Error: ${escapeHtml(state.pluginSourceProjects)}<br/>`}
     <i>Build Id: ${escapeHtml(state.builtWeb.buildId)}</i><br/>
-    Started ${escapeHtml(state.builtWeb.diagnosis_createdAt)}<br/>
+    Started: ${escapeHtml(state.builtWeb.diagnosis_createdAt)}<br/>
+    Hash of inputs: ${escapeHtml(state.builtWeb.promiseState.resolvedValue?.hashOfInputs)}<br/>
 `:""}
 ${state.builtWeb.promiseState.state==="pending"?`${loadingSpinnerHtml} ${isWebBuildControlPage?"<b>Building web:</b>":"<b>Building the web-ui for PVE-electrified. Please be patient.</b> Progress:"}</b> ${escapeHtml(state.builtWeb.diagnosis_state)}<br/>`:""}
 ${state.builtWeb.promiseState.state==="resolved"?`
@@ -149,7 +150,7 @@ ${state.builtWeb.promiseState.state==="rejected"?`<b>Build failed:</b> ${state.b
 
 
       async function rebuild(options) {
-          withErrorHandling(() => execElectrifiedApiMethod("rebuildWebAsync", [options]));
+          withErrorHandling(() => execElectrifiedApiMethod("rebuildWebAsync", [options, true]));
       }
 
       async function execElectrifiedApiMethod(methodName, args) {
@@ -187,6 +188,9 @@ ${state.builtWeb.promiseState.state==="rejected"?`<b>Build failed:</b> ${state.b
       }
 
       function escapeHtml(unsafe) {
+          if(unsafe === undefined || unsafe === null) {
+              return String(unsafe);
+          }
           return unsafe
               .replace(/&/g, "&amp;")
               .replace(/</g, "&lt;")

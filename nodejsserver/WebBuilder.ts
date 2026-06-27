@@ -1,7 +1,7 @@
 import fsPromises from 'node:fs/promises';
 import fs from 'node:fs';
 import {build as viteBuild} from "vite";
-import crypto from "crypto"
+import crypto, {Hash} from "crypto"
 import {appServer} from './server.js';
 import {fileExists, listSubDirs, parseJsonFile, throwError} from "./util/util.js";
 import {execa} from "execa";
@@ -51,6 +51,7 @@ export default class WebBuildProgress extends PromiseTask<BuildResult> {
         await this.typeCheck();
         this.checkCanceled();
 
+        const hash = await WebBuildProgress.createHashOfInputs(this.buildOptions);
 
         if (this.buildOptions.buildStaticFiles) {
             const bundledFilesDir = await this.bundleFiles();
@@ -60,12 +61,14 @@ export default class WebBuildProgress extends PromiseTask<BuildResult> {
                 buildId: this.buildId,
                 staticFilesDir: bundledFilesDir,
                 diagnosis_buildOptions: this.buildOptions,
+                hashOfInputs: hash,
             };
         } else {
             return {
                 diagnosis_startedAt: this.diagnosis_createdAt,
                 buildId: this.buildId,
                 diagnosis_buildOptions: this.buildOptions,
+                hashOfInputs: hash,
             }
         }
     }
@@ -373,6 +376,68 @@ ${packages.map(pkgInfo => `import {default as plugin${++index}} from ${JSON.stri
     static getPvemeUiPackage() {
         return JSON.parse(fs.readFileSync(`${appServer.wwwSourceDir}/package.json`, {encoding: "utf8"}));
     }
+
+    /**
+     * @returns hash of all settings / input files / ... where a change would require a rebuild
+     */
+    static async createHashOfInputs(buildOptions: BuildOptions): Promise<string> {
+        const hash = crypto.createHash('sha256');
+
+        hash.update(JSON.stringify(buildOptions), "utf8"); // Hash build options
+        await WebBuildProgress._createHashOfInputs_digestProjectDir(hash, appServer.wwwSourceDir); // Hash source files under wwwSourcesDir
+        // Also the server files (which are used in the tsc compile)
+        if(process.env.NODE_ENV === "development") {
+            // Skip. This allows developing the server code with faster restarts
+        }
+        else {
+            await WebBuildProgress._createHashOfInputs_digestProjectDir(hash, appServer.thisNodejsServerDir);
+        }
+        if(buildOptions.enablePlugins) {
+            hash.update(JSON.stringify(appServer.electrifiedJsonConfig.plugins));
+            // Hash source files under source-plugin and cluster-plugin dirs:
+            const localSourcePackageDirs = WebBuildProgress.getUiPluginSourceProjects_fixed().map(p => p.dir);
+            const clusterPackageDirs = listSubDirs(appServer.config.clusterPackagesBaseDir, true);
+            for(const dir of [...localSourcePackageDirs, ...clusterPackageDirs]) {
+                await WebBuildProgress._createHashOfInputs_digestProjectDir(hash, dir);
+            }
+        }
+
+        return hash.digest("base64");
+    }
+
+    /**
+     * Hashes all source files's file path and last modified time
+     * @param hash
+     * @param dir
+     */
+    static async _createHashOfInputs_digestProjectDir(hash: Hash, dir: string) {
+        dir = path.normalize(dir)
+
+        const findResult = await execa("find", [
+            dir,
+            // Exclude special dirs:
+            "-type", "d",
+            "(",
+                "-name", `node_modules`,
+                "-o",
+                "-name", `.git`,
+            ")",
+            "-prune",
+
+            "-o",
+            "-type", "f",
+
+            // Exclude generated files:
+            "-not", "-name", `.buildHash`,
+            "-not", "-name", `_generated_pluginList.ts`,
+            "-not", "-name", `index.html`,
+
+            // Output path and last modified time:
+            "-printf", "%p %T@\n"
+        ])
+        hash.update(findResult.stdout)
+    }
+
 }
 
 export type BuildResult = {
@@ -380,4 +445,9 @@ export type BuildResult = {
     buildId: string,
     staticFilesDir?: string,
     diagnosis_buildOptions: BuildOptions
+
+    /**
+     * Hash of inputs
+     */
+    hashOfInputs: string
 };
