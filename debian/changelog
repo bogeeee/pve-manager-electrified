@@ -1,3 +1,11 @@
+pve-manager-electrified (9.15.0) trixie; urgency=medium
+  * Bugfix: Shift key toggle not working after click on checkbox or dropdown
+  * Performance: Resource Tree: cache retrieved info
+  * Bugfix: Sever does not start when offline (trying to NPM install) -> Re-build the web only when the inputs have changed
+  * Bugfix: Cannot cancel old build if npm install hangs -> kill the old process
+  * Use package repository url from npm config when fetching available plugins.
+ -- PVE-electrified crew <crew@pve-electrified.net>  Sun, 28 Jun 2026 00:00:17 +0200
+
 pve-manager-electrified (9.14.2) trixie; urgency=medium
   * Set shift as default key for toggling "only running"
  -- PVE-electrified crew <crew@pve-electrified.net>  Mon, 15 Jun 2026 00:00:17 +0200
