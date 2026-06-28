@@ -420,7 +420,7 @@ export class ElectrifiedSession extends ServerSession {
     }
 
     @remote offFileChanged(path: string, callback: (stat: Awaited<ReturnType<ElectrifiedSession["getFileStat"]>>) => void) {
-        ElectrifiedSession.fileWatchers.get(path).listeners.remove(callback);
+        ElectrifiedSession.fileWatchers.get(path).listeners.delete(callback);
     }
 
     /**
