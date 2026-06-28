@@ -378,7 +378,7 @@ export class ElectrifiedSession extends ServerSession {
         }
         await fsPromises.writeFile(filePath, newContent,{encoding});
 
-        ElectrifiedSession.fileWatchers.get(filePath).interval = 100; // It was observed that the direct file watcher does not fire anymore, so we increase polling frequency
+        ElectrifiedSession.fileWatchers.get(filePath).pollInterval = 100; // It was observed that the direct file watcher does not fire anymore, so we increase polling frequency
     }
 
 
