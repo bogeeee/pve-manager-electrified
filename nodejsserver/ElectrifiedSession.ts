@@ -462,7 +462,7 @@ export class ElectrifiedSession extends ServerSession {
         async function fetchNpmRepositoryPackages() {
             // Api description: https://github.com/npm/registry/blob/main/docs/REGISTRY-API.md#get-v1search
             const searchTerm = "pveme"; // First, search for all with this term because there is no better filter option
-            const url = `${appServer.config.npmRegistryApiBaseUrl}/-/v1/search?text=${encodeURIComponent(searchTerm)}&size=250`;
+            const url = `${await appServer.getNodePackageRepositoryUrl()}/-/v1/search?text=${encodeURIComponent(searchTerm)}&size=250`;
             const fetchResult = await fetch(url);
             if(fetchResult.status !== 200) {
                 throw new Error("Could not fetch packages from NPM registry. Url: " + url);
@@ -517,12 +517,13 @@ export class ElectrifiedSession extends ServerSession {
     /**
      *
      * @param packageName
+     * @param nodePackageRepositoryUrl Performance: Specify this, because appServer.getNodePackageRepositoryUrl() is rather slow
      * @returns Versions, latest version first
      */
-    @remote async getNpmPackageVersions(packageName: string): Promise<{version: string}[]> {
+    @remote async getNpmPackageVersions(packageName: string, nodePackageRepositoryUrl?: string): Promise<{version: string}[]> {
         // Api description: https://github.com/npm/registry/blob/main/docs/REGISTRY-API.md#get-v1search
         const searchTerm = "pveme"; // First, search for all with this term because there is no better filter option
-        const url = `${appServer.config.npmRegistryApiBaseUrl}/${encodeURIComponent(packageName)}`;
+        const url = `${nodePackageRepositoryUrl || await appServer.getNodePackageRepositoryUrl()}/${encodeURIComponent(packageName)}`;
         const fetchResult = await fetch(url);
         if(fetchResult.status !== 200) {
             throw new Error("Could not fetch packages version from NPM registry. Url: " + url);
@@ -701,6 +702,10 @@ export class ElectrifiedSession extends ServerSession {
             _.extend(result, cookieSessionClone);
         }
         return result
+    }
+
+    @remote async getNodePackageRepositoryUrl() {
+        return appServer.getNodePackageRepositoryUrl();
     }
 }
 

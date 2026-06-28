@@ -15,7 +15,15 @@ import {
 } from "@blueprintjs/core";
 import "@blueprintjs/core/lib/css/blueprint.css";
 import "@blueprintjs/icons/lib/css/blueprint-icons.css";
-import {confirm, formatDate, showBlueprintDialog, spawnAsync, throwError, spawnWithErrorHandling} from "../util/util";
+import {
+    confirm,
+    formatDate,
+    showBlueprintDialog,
+    spawnAsync,
+    throwError,
+    spawnWithErrorHandling,
+    InfoTooltip
+} from "../util/util";
 import {getElectrifiedApp, gettext, t} from "../globals";
 import _ from "underscore";
 import {Table, TableBody, TableCell, TableContainer, TableHead, TableRow} from "@mui/material";
@@ -23,6 +31,7 @@ import clone from "clone";
 
 export async function showPluginManager() {
     const app = getElectrifiedApp();
+    const nodePackageRepositoryUrl = await app.currentNode.electrifiedApi.getNodePackageRepositoryUrl();
 
     const result = await showBlueprintDialog({title: gettext("Electrified plugins"), style: {width: "1250px"}},(props) => {
         const state = useWatchedState(new class {
@@ -60,7 +69,7 @@ export async function showPluginManager() {
         async function updateAllNpmPluginsToLatestVersion(dry = false) {
             let updated = 0;
             for(const plugin of state.stagingPluginConfig.filter(p => p.codeLocation === "npm")) {
-                const allVersions = await app.currentNode.electrifiedApi.getNpmPackageVersions(plugin.name);
+                const allVersions = await app.currentNode.electrifiedApi.getNpmPackageVersions(plugin.name, nodePackageRepositoryUrl);
                 if(allVersions.length > 0 && allVersions[0].version !== plugin.version) {
                     if(!dry) {
                         plugin.version = allVersions[0].version;
@@ -85,6 +94,8 @@ export async function showPluginManager() {
                     </HTMLSelect>
 
                     <InputGroup type="search" leftIcon={"search"} placeholder={gettext("Search")} {...bind(state.filterText)} />
+                    <div style={{flexGrow: 1}} />
+                    <div><i>{t`Repository`}: {nodePackageRepositoryUrl} <InfoTooltip><pre>{t`You can configure the repository via /etc/npmrc \nrepository=https://your-repo-url \n...for more options, see https://docs.npmjs.com/cli/v9/using-npm/config#registry \n\n This repo is used then:\n - When fetching the plugin list below ("browse all available plugins") and version info. Note that [authentication](https://docs.npmjs.com/cli/v9/configuring-npm/npmrc#auth-related-configuration) is currently not implemented here. \n - When fetching plugins and plugin's dependant packages. \n - When installing or upgrading the pve-electrified **server** (pve-manager-electrified) it's self. So your repo must also proxy the packages from npmjs.com.`}</pre></InfoTooltip></i></div>
                 </div>
 
                 <TableContainer style={{ height: 600 }} >
@@ -180,7 +191,7 @@ export async function showPluginManager() {
                                             stagingPluginEntry && plugin.codeLocation === "npm"?
                                                 <HTMLSelect {...bind(stagingPluginEntry.version)}>
                                                     {
-                                                        load(async () => await app.currentNode.electrifiedApi.getNpmPackageVersions(plugin.name),  {preserve: false, fallback: [{version: "loading"}], deps: [READS_INSIDE_LOADER_FN]})
+                                                        load(async () => await app.currentNode.electrifiedApi.getNpmPackageVersions(plugin.name, nodePackageRepositoryUrl),  {preserve: false, fallback: [{version: "loading"}], deps: [READS_INSIDE_LOADER_FN]})
                                                             .map(entry => <option key={entry.version} value={entry.version}>{entry.version}</option>)
                                                     }
                                                 </HTMLSelect>

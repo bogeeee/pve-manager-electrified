@@ -63,7 +63,7 @@ class AppServer {
         pluginSourceProjectsDir: "/root/pveme-plugin-source-projects",
         clusterPackagesBaseDir: "/etc/pve/manager/plugin-packages",
         examplePluginDir: "/usr/share/pve-manager-ui-plugin-example",
-        npmRegistryApiBaseUrl: "https://registry.npmjs.org",
+
         /**
          * Time in miliseconds, before they need to be requeried from the original server.
          */
@@ -784,6 +784,13 @@ class AppServer {
         finally {
             process.exit(0); // Force exit the process, even if there are still some uncleared timers, etc. (which is currently the case)
         }
+    }
+
+    /**
+     * @returns usually: https://registry.npmjs.org
+     */
+    async getNodePackageRepositoryUrl() {
+        return (await execa("npm", ["config", "get", "registry"], {encoding: "utf8"})).stdout as string;
     }
 
 }
