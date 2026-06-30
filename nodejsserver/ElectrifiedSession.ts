@@ -362,6 +362,7 @@ export class ElectrifiedSession extends ServerSession {
 
         // Add to cache:
         if(path.startsWith("/etc/pve")) {
+            ElectrifiedSession._fileWatchers.get(path).listeners.add(ElectrifiedSession._clearFileCache); // Ensure the cache is cleared when the file is changed
             cacheEntry.stat = result;
         }
 
@@ -377,8 +378,9 @@ export class ElectrifiedSession extends ServerSession {
         }
 
         const result = await fsPromises.readFile(path, {encoding});
-        ElectrifiedSession.fileWatchers.get(path).listeners.add(ElectrifiedSession._clearFileCache); // Ensure the cache is cleared when the file is changed
+        // Add to cache:
         if(path.startsWith("/etc/pve")) {
+            ElectrifiedSession._fileWatchers.get(path).listeners.add(ElectrifiedSession._clearFileCache); // Ensure the cache is cleared when the file is changed
             cacheEntry.content.set(encoding, result);
         }
         return result;
@@ -408,7 +410,7 @@ export class ElectrifiedSession extends ServerSession {
 
         ElectrifiedSession._clearFileCache(filePath);
 
-        ElectrifiedSession.fileWatchers.get(filePath).pollInterval = 100; // It was observed that the direct file watcher does not fire anymore, so we increase polling frequency
+        ElectrifiedSession._fileWatchers.get(filePath).pollInterval = 100; // It was observed that the direct file watcher does not fire anymore, so we increase polling frequency
     }
 
 
@@ -437,12 +439,12 @@ export class ElectrifiedSession extends ServerSession {
      * Bug worakound: ":any" because typescript-rtti tries to follow the type and creates a broken import statement: "import ... from "restfuncs-server/dist/commonjs/..."
      * @protected
      */
-    protected static fileWatchers = newDefaultMap((path: string)=> new SaferFileWatcher(path, 2000));
+    static _fileWatchers = newDefaultMap((path: string)=> new SaferFileWatcher(path, 2000));
 
     /**
      * File path -> encoding -> string content
      */
-    static fileCache = newDefaultMap((path: string) => new class {stat?: FileStats | false; content =  new Map<string, string>});
+    static fileCache = newDefaultMap((path: string) => new class {stat?: FileStats | false; content =  new Map<string, string>}) as (any /* typescript-rtti bug workaroud*/);
 
     /**
      * Informs you when a file content was changed, or it was added or deleted.
@@ -451,11 +453,11 @@ export class ElectrifiedSession extends ServerSession {
      * @param callback
      */
     @remote onFileChanged(path: string, callback: (stat: Awaited<ReturnType<ElectrifiedSession["getFileStat"]>>) => void) {
-       ElectrifiedSession.fileWatchers.get(path).clientCallbacks.add(callback);
+       ElectrifiedSession._fileWatchers.get(path).clientCallbacks.add(callback);
     }
 
     @remote offFileChanged(path: string, callback: (stat: Awaited<ReturnType<ElectrifiedSession["getFileStat"]>>) => void) {
-        ElectrifiedSession.fileWatchers.get(path).clientCallbacks.delete(callback);
+        ElectrifiedSession._fileWatchers.get(path).clientCallbacks.delete(callback);
     }
 
     /**

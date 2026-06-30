@@ -808,6 +808,7 @@ class AppServer {
                         const guestConfigFile = `${parentDir}/${file}`;
                         const cacheEntry = ElectrifiedSession.fileCache.get(guestConfigFile);
                         const encoding = "utf8";
+                        ElectrifiedSession._fileWatchers.get(guestConfigFile).listeners.add(ElectrifiedSession._clearFileCache); // Ensure the cache is cleared when the file is changed
                         cacheEntry.stat = await ElectrifiedSession.getFileStat(guestConfigFile);
                         cacheEntry.content.set(encoding, fs.readFileSync(guestConfigFile, {encoding})); // read file sync is ~2x faster thanm the async version
                     } catch (e) {
