@@ -352,12 +352,40 @@ export class ElectrifiedSession extends ServerSession {
     }
 
     @remote async getFileStat(path: string) {
-        return ElectrifiedSession.getFileStat(path);
+        const cacheEntry = ElectrifiedSession.fileCache.get(path);
+        // Check cache hit:
+        if(cacheEntry.stat !== undefined) {
+            return cacheEntry.stat;
+        }
+
+        const result = await ElectrifiedSession.getFileStat(path);
+
+        // Add to cache:
+        if(path.startsWith("/etc/pve")) {
+            cacheEntry.stat = result;
+        }
+
+        return result;
     }
 
 
     @remote async getFileContent(path: string, encoding: BufferEncoding): Promise<string>{
-        return await fsPromises.readFile(path, {encoding});
+        const cacheEntry = ElectrifiedSession.fileCache.get(path);
+
+        if(cacheEntry.content.has(encoding)) {
+            return cacheEntry.content.get(encoding)!;
+        }
+
+        const result = await fsPromises.readFile(path, {encoding});
+        ElectrifiedSession.fileWatchers.get(path).listeners.add(ElectrifiedSession._clearFileCache); // Ensure the cache is cleared when the file is changed
+        if(path.startsWith("/etc/pve")) {
+            cacheEntry.content.set(encoding, result);
+        }
+        return result;
+    }
+
+    static _clearFileCache(path: string) {
+        ElectrifiedSession.fileCache.delete(path);
     }
 
     /**
@@ -377,6 +405,8 @@ export class ElectrifiedSession extends ServerSession {
             await fsPromises.mkdir(parentDir, {recursive: true}); // Create parent dir
         }
         await fsPromises.writeFile(filePath, newContent,{encoding});
+
+        ElectrifiedSession._clearFileCache(filePath);
 
         ElectrifiedSession.fileWatchers.get(filePath).pollInterval = 100; // It was observed that the direct file watcher does not fire anymore, so we increase polling frequency
     }
@@ -407,7 +437,12 @@ export class ElectrifiedSession extends ServerSession {
      * Bug worakound: ":any" because typescript-rtti tries to follow the type and creates a broken import statement: "import ... from "restfuncs-server/dist/commonjs/..."
      * @protected
      */
-    protected static fileWatchers: any = newDefaultMap((path: string)=> new SaferFileWatcher(path, 2000));
+    protected static fileWatchers = newDefaultMap((path: string)=> new SaferFileWatcher(path, 2000));
+
+    /**
+     * File path -> encoding -> string content
+     */
+    static fileCache = newDefaultMap((path: string) => new class {stat?: FileStats | false; content =  new Map<string, string>});
 
     /**
      * Informs you when a file content was changed, or it was added or deleted.
