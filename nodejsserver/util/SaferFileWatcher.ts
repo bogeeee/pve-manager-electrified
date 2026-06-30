@@ -26,7 +26,7 @@ export class SaferFileWatcher {
      */
     lastFileState?: Buffer | String[] | false;
 
-    listeners = new ClientCallbackSet<[stat: FileStats | false]>() as Set<(stat: any | false) => void> // Bug workaround: 'as Set...' to net export the ClientCallbackSet type because typescript-rtti gets the imports wrong
+    clientCallbacks = new ClientCallbackSet<[stat: FileStats | false]>() as Set<(stat: any | false) => void> // Bug workaround: 'as Set...' to net export the ClientCallbackSet type because typescript-rtti gets the imports wrong
 
     constructor(file: string, fallbackPollInterval: number) {
         this.file = file;
@@ -68,7 +68,8 @@ export class SaferFileWatcher {
 
                     this.lastFileState = currentFileState;
 
-                    (this.listeners as any).call(fileStat);
+                    // Inform listeners:
+                    (this.clientCallbacks as any).call(fileStat);
                 }
                 catch (e) {
                     e = toError(e);
