@@ -108,27 +108,23 @@ export class Datacenter extends ModelBase implements NotificationTarget{
 
 
         // Refresh electrufied stats regularly:
-        setInterval(() => {
-            window.localStorage.setItem("debug_electrified_datacenter_refreshResourceStatsTimer_called_1", String(Number((window.localStorage.getItem("debug_electrified_datacenter_refreshResourceStatsTimer_called_1") || 0)) + 1));
-            spawnAsync(async () => {
-                try {
-                    window.localStorage.setItem("debug_electrified_datacenter_refreshResourceStatsTimer_called_2", String(Number((window.localStorage.getItem("debug_electrified_datacenter_refreshResourceStatsTimer_called_2") || 0)) + 1));
-                    await this._refreshElectrifiedResourceStats();
+        setInterval(() => spawnAsync(async () => {
+            try {
+                await this._refreshElectrifiedResourceStats();
+            }
+            catch (e) {
+                if(e !== null && e instanceof FetchError && e.httpStatusCode === 401)  { // Failed because no ticket? (logged out in the meanwhile)
+                    return; // Don't spam the log with messages
                 }
-                catch (e) {
-                    if(e !== null && e instanceof FetchError && e.httpStatusCode === 401)  { // Failed because no ticket? (logged out in the meanwhile)
-                        return; // Don't spam the log with messages
-                    }
-                    if(e !== null && e instanceof Error && e.message.startsWith("Socket connection has been closed"))  { // Socket connection closed in the middle of a call? Observed sometimes with firefox and in production mode (not ideal)
-                        // Just log (no error popup):
-                        console.error(e);
-                        return;
-                    }
-                    throw e;
+                if(e !== null && e instanceof Error && e.message.startsWith("Socket connection has been closed"))  { // Socket connection closed in the middle of a call? Observed sometimes with firefox and in production mode (not ideal)
+                    // Just log (no error popup):
+                    console.error(e);
+                    return;
                 }
+                throw e;
+            }
 
-            })
-        }, Datacenter.ELECTRIFIED_GUEST_STATS_REFRESH_INTERVAL); // Refresh status regularly
+        }), Datacenter.ELECTRIFIED_GUEST_STATS_REFRESH_INTERVAL); // Refresh status regularly
 
         this._taskStore.rstore.interval = Datacenter.TASKS_STORE_REFRESH_INTERVAL; // Boost the refresh rate
         this._taskStore.on("datachanged", () => this._updateTasksFromPveTaskStore()); // Subscribe to task store
