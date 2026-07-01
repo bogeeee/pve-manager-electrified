@@ -450,7 +450,7 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
                                 if(!(layer.start <= barIndex+1 && layer.end > barIndex)) { // layer outside range?
                                     return;
                                 }
-                                let relativeStart = Math.max(0, layer.start - barIndex) * maxHeight;
+                                let relativeStart = Math.max(0, layer.start - barIndex);
                                 let relativeEnd = Math.min(1, layer.end - barIndex);
                                 return <div key={layerKey++} className={layer.cssClass} style={{position: "absolute", width: "100%", bottom: `${toBarPixels(relativeStart)}px`, height: `${toBarPixels(relativeEnd - relativeStart)}px`, ...(layer.css || {})}}/>
                             })}</div>)
