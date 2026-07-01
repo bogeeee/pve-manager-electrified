@@ -22,7 +22,7 @@ EXEC_SSH_TARGT_PVE_HOST=@sshpass -p "$(TARGT_PVE_HOST_ROOTPASSWORD)" ssh root@$(
 # Installs the required build tools
 # Note: The /root/proxmox/pve-manager-electrified directory is created by IDE_rsync_project_to_targt_pve_host
 $(BUILD_TOOLS):
-	apt-get install -y build-essential git git-email debhelper pve-doc-generator
+	apt-get install -y build-essential git git-email debhelper pve-doc-generator devscripts sq
 	mk-build-deps --install
 
 # Default = with delete

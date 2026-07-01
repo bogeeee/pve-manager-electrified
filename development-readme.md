@@ -5,7 +5,7 @@
 See the [official docs: Install build prerequisites for development environment](https://git.proxmox.com/?p=pve-common.git;a=blob_plain;f=README.dev;hb=HEAD),
 or skip these and do this on a PVE server:
 ````shell
-apt-get install build-essential git git-email debhelper pve-doc-generator
+apt-get install -y build-essential git git-email debhelper pve-doc-generator devscripts sq
 mkdir -p /root/proxmox
 cd /root/proxmox
 git clone TODO: link to this repo
