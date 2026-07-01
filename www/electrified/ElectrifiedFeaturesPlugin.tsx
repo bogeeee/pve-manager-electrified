@@ -402,7 +402,7 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
                     else {
                         return undefined;
                     }
-                    type Layer = {start: number, end: number, cssClass: string, css: CSSProperties};
+                    type Layer = {start: number, end: number, cssClass: string, css: CSSProperties & {opacity: number}};
                     function getBars(layers: Layer[]) {
                         //
                         function squeezeLayers(layers: Layer[]) {
