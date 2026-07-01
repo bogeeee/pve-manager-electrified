@@ -338,6 +338,7 @@ export class File {
      */
     onChange(listener: () => void) {
         this.changeListeners.add(listener);
+        spawnAsync(async () => await this.ensureWatchesForChangesOnDisk());
     }
 
     offChange(listener: () => void) {
