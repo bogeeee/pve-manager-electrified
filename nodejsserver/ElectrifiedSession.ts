@@ -352,42 +352,12 @@ export class ElectrifiedSession extends ServerSession {
     }
 
     @remote async getFileStat(path: string) {
-        const cacheEntry = ElectrifiedSession.fileCache.get(path);
-        // Check cache hit:
-        if(cacheEntry.stat !== undefined) {
-            return cacheEntry.stat;
-        }
-
-        const result = await ElectrifiedSession.getFileStat(path);
-
-        // Add to cache:
-        if(path.startsWith("/etc/pve")) {
-            ElectrifiedSession._fileWatchers.get(path).listeners.add(ElectrifiedSession._clearFileCache); // Ensure the cache is cleared when the file is changed
-            cacheEntry.stat = result;
-        }
-
-        return result;
+        return ElectrifiedSession.getFileStat(path);
     }
 
 
     @remote async getFileContent(path: string, encoding: BufferEncoding): Promise<string>{
-        const cacheEntry = ElectrifiedSession.fileCache.get(path);
-
-        if(cacheEntry.content.has(encoding)) {
-            return cacheEntry.content.get(encoding)!;
-        }
-
-        const result = await fsPromises.readFile(path, {encoding});
-        // Add to cache:
-        if(path.startsWith("/etc/pve")) {
-            ElectrifiedSession._fileWatchers.get(path).listeners.add(ElectrifiedSession._clearFileCache); // Ensure the cache is cleared when the file is changed
-            cacheEntry.content.set(encoding, result);
-        }
-        return result;
-    }
-
-    static _clearFileCache(path: string) {
-        ElectrifiedSession.fileCache.delete(path);
+        return await fsPromises.readFile(path, {encoding});
     }
 
     /**
@@ -408,9 +378,7 @@ export class ElectrifiedSession extends ServerSession {
         }
         await fsPromises.writeFile(filePath, newContent,{encoding});
 
-        ElectrifiedSession._clearFileCache(filePath);
-
-        ElectrifiedSession._fileWatchers.get(filePath).pollInterval = 100; // It was observed that the direct file watcher does not fire anymore, so we increase polling frequency
+        ElectrifiedSession.fileWatchers.get(filePath).pollInterval = 100; // It was observed that the direct file watcher does not fire anymore, so we increase polling frequency
     }
 
 
@@ -439,12 +407,7 @@ export class ElectrifiedSession extends ServerSession {
      * Bug worakound: ":any" because typescript-rtti tries to follow the type and creates a broken import statement: "import ... from "restfuncs-server/dist/commonjs/..."
      * @protected
      */
-    static _fileWatchers = newDefaultMap((path: string)=> new SaferFileWatcher(path, 2000));
-
-    /**
-     * File path -> encoding -> string content
-     */
-    static fileCache = newDefaultMap((path: string) => new class {stat?: FileStats | false; content =  new Map<string, string>}) as (any /* typescript-rtti bug workaroud*/);
+    protected static fileWatchers: any = newDefaultMap((path: string)=> new SaferFileWatcher(path, 2000));
 
     /**
      * Informs you when a file content was changed, or it was added or deleted.
@@ -453,11 +416,11 @@ export class ElectrifiedSession extends ServerSession {
      * @param callback
      */
     @remote onFileChanged(path: string, callback: (stat: Awaited<ReturnType<ElectrifiedSession["getFileStat"]>>) => void) {
-       ElectrifiedSession._fileWatchers.get(path).clientCallbacks.add(callback);
+       ElectrifiedSession.fileWatchers.get(path).clientCallbacks.add(callback);
     }
 
     @remote offFileChanged(path: string, callback: (stat: Awaited<ReturnType<ElectrifiedSession["getFileStat"]>>) => void) {
-        ElectrifiedSession._fileWatchers.get(path).clientCallbacks.delete(callback);
+        ElectrifiedSession.fileWatchers.get(path).clientCallbacks.delete(callback);
     }
 
     /**

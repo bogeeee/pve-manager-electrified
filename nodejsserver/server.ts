@@ -338,9 +338,6 @@ class AppServer {
             httpsServer.listen(this.config.port, () => {
                 console.log(`Server running at http://localhost:${this.config.port}`);
             });
-
-            await this.precacheGuestConfigFilesSync();
-
         }, true);
 
     }
@@ -794,29 +791,6 @@ class AppServer {
      */
     async getNodePackageRepositoryUrl() {
         return (await execa("npm", ["config", "get", "registry"], {encoding: "utf8"})).stdout as string;
-    }
-
-    /**
-     * Precaches them. Uses sync read operations (faster)
-     */
-    async precacheGuestConfigFilesSync() {
-        for(const file of await fsPromises.readdir("/etc/pve/nodes", {encoding: "utf8"})) {
-            const nodeDir = `/etc/pve/nodes/${file}`;
-            for (const parentDir of [`${nodeDir}/lxc`, `${nodeDir}/qemu-server`]) {
-                for (const file of await fsPromises.readdir(parentDir, {encoding: "utf8"})) {
-                    try {
-                        const guestConfigFile = `${parentDir}/${file}`;
-                        const cacheEntry = ElectrifiedSession.fileCache.get(guestConfigFile);
-                        const encoding = "utf8";
-                        ElectrifiedSession._fileWatchers.get(guestConfigFile).listeners.add(ElectrifiedSession._clearFileCache); // Ensure the cache is cleared when the file is changed
-                        cacheEntry.stat = await ElectrifiedSession.getFileStat(guestConfigFile);
-                        cacheEntry.content.set(encoding, fs.readFileSync(guestConfigFile, {encoding})); // read file sync is ~2x faster thanm the async version
-                    } catch (e) {
-                        console.warn(e);
-                    }
-                }
-            }
-        }
     }
 
 }
