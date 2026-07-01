@@ -94,6 +94,7 @@ export abstract class GuestsContainerBase extends ModelBase{
         // Delete guests that don't exist anymore:
         [...this._guests.keys()].forEach(id => {
             if(!guestsSeenInResourceStore.has(id)) {
+                console.warn(`Debug: Guest ${id} was deleted. Last resources fetch:\n${getElectrifiedApp()._debug_lastResourceStoreResponse?.responseText}`)
                 this._guests.delete(id);
                 if(this.type === "node") {
                     this._guests.get(id)?._cleanup();

@@ -129,6 +129,14 @@ export class Datacenter extends ModelBase implements NotificationTarget{
         this._taskStore.rstore.interval = Datacenter.TASKS_STORE_REFRESH_INTERVAL; // Boost the refresh rate
         this._taskStore.on("datachanged", () => this._updateTasksFromPveTaskStore()); // Subscribe to task store
         this._updateTasksFromPveTaskStore(); // refresh once now
+
+        // Debug: Patch resourceStoreProxy.processResponse to grab more info:
+        const resourceStoreProxy = (window as any).PVE.data.ResourceStore.proxy;
+        const orig_processResponse = resourceStoreProxy.processResponse;
+        resourceStoreProxy.processResponse = function(success: any, operation: any, request: any, response:any) {
+            getElectrifiedApp()._debug_lastResourceStoreResponse =  response;
+            orig_processResponse.apply(this, [success, operation, request, response])
+        }
     }
 
     /**
@@ -224,6 +232,7 @@ export class Datacenter extends ModelBase implements NotificationTarget{
             [...this._pools.keys()].forEach(name => {
                 if (!poolsSeenInResourceStore.has(name)) {
                     this._pools.delete(name);
+                    console.warn(`Debug: Pool was deleted. Last resources fetch:\n${getElectrifiedApp()._debug_lastResourceStoreResponse?.responseText}`)
                 }
             })
         }

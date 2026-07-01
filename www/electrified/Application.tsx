@@ -105,6 +105,8 @@ export class Application extends AsyncConstructableClass{
         username: string
     }
 
+    _debug_lastResourceStoreResponse?: any
+
     /**
      * User-wide configuration. Will be stored in the browser's localstorage under the key electrified_config.
      * <p>
