@@ -376,6 +376,7 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
                                     start: 0,
                                     end: item.maxcpu,
                                     cssClass: "cpu-bar-unused",
+                                    css: {opacity: 1},
                                 });
                             }
                             // Cpu:
@@ -383,6 +384,7 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
                                 start: 0,
                                 end: item.electrifiedStats.currentCpuUsage.value,
                                 cssClass: "cpu-bar-cpu",
+                                css: {opacity: 1},
                             });
                             return <div style={{opacity: getOpacity(item.electrifiedStats)}} className={getContainerClassName(thisPlugin.userConfig.cpuBars.showBackground.guest)}>{getBars(layers)}</div>
                         }
@@ -400,7 +402,7 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
                     else {
                         return undefined;
                     }
-                    type Layer = {start: number, end: number, cssClass: string, css?: CSSProperties};
+                    type Layer = {start: number, end: number, cssClass: string, css: CSSProperties};
                     function getBars(layers: Layer[]) {
                         //
                         function squeezeLayers(layers: Layer[]) {
@@ -413,7 +415,8 @@ export class ElectrifiedFeaturesPlugin extends Plugin {
 
                                 const layer = layers[i];
                                 const lastLayer = result[result.length -1];
-                                if(_.isEqual(lastLayer, {...layer, start:lastLayer.start, end: layer.start})) { // can be squeezed to lastLayer?
+                                const opacityForComparison = (layer.css.opacity !== undefined && lastLayer.css.opacity !== undefined && layer.css.opacity > (lastLayer.css.opacity * 0.85))?lastLayer.css.opacity:layer.css.opacity; // treat as same if it's only 15% off. This elemininates quirks because the browser seems to not render the color properly for very small bar portions
+                                if(_.isEqual(lastLayer, {...layer, start:lastLayer.start, end: layer.start, css: {...layer.css, opacity: opacityForComparison}})) { // can be squeezed to lastLayer?
                                     lastLayer.end = layer.end;
                                 }
                                 else {
