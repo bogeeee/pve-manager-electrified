@@ -65,6 +65,7 @@ use PVE::API2::Tasks;
 use PVE::API2::VZDump;
 
 use base qw(PVE::RESTHandler);
+use Scalar::Util qw(looks_like_number);
 
 my $verify_command_item_desc = {
     description => "An array of objects describing endpoints, methods and arguments.",
@@ -1066,6 +1067,10 @@ my $shell_cmd_map = {
         cmd => ['/usr/bin/pveceph', 'install'],
         allow_args => 1,
     },
+    'run_session_script' => {
+        cmd => ['dummy'],
+        allow_args => 1,
+    },
 };
 
 my %shell_cmd_params = (
@@ -1103,8 +1108,18 @@ sub get_shell_command {
                 $cmd = [$def->{cmd}->@*]; # clone
             }
 
-            if (defined($args) && $def->{allow_args}) {
-                push @$cmd, split("\0", $args);
+            if ($shellcmd eq 'run_session_script') {
+                # Safety check that command is an integer number, so there is no way to sneak in other characters and escape
+                if(!(defined($args) && looks_like_number($args) && $args == int($args))) {
+                    die "args is not a number";
+                }
+
+                $cmd = ["/bin/bash", "/var/pve/popupshellsessions/" . int($args) . "/run.sh"];
+            }
+            else {
+                if (defined($args) && $def->{allow_args}) {
+                    push @$cmd, split("\0", $args);
+                }
             }
         } elsif ($is_ssh_tunneling) {
             $cmd = []; # SSH logs us already in as root, and we must not nest login (vhangup).

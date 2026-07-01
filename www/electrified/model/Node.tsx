@@ -256,6 +256,8 @@ export class Node extends GuestsContainerBase implements NotificationTarget {
      * @param command
      * @param values
      * @returns result buffer, encoded as utf8 (for a different encoding, see {@link execCommandWithOptions}
+     * @see execCommandWithOptions
+     * @see execShellCommandInPopupTerminalWindow
      */
     async execCommand(command: TemplateStringsArray, ...values: any[]): Promise<string> {
         return await this.execCommandWithOptions({shell: false})(command, ...values);
@@ -268,7 +270,7 @@ export class Node extends GuestsContainerBase implements NotificationTarget {
      * <p>
      * @param options Fields will default to: encoding="utf8", cwd="/tmp/pve/[session-id]"
      * @see execCommand
-     * @see execShellCommand
+     * @see execShellCommandInPopupTerminalWindow
      */
     execCommandWithOptions(options: ExecaOptions) {
         return async (command: TemplateStringsArray, ...values: any[]) => {
@@ -277,8 +279,104 @@ export class Node extends GuestsContainerBase implements NotificationTarget {
         }
     }
 
-    async execShellCommandInPopupTerminalWindow(command: TemplateStringsArray, ...values: any[]): Promise<void> {
-        throw new Error("TODO")
+    /**
+     * ...
+     * <p>
+     * throws an error if the exit code of your command is != 0 or if the user closes the window.
+     * </p>
+     *
+     * @param command A bash command
+     * @returns session path, when options.keepSessionFiles was set. Otherwise undefined (temporary session folder gets deleted)
+     * @see execCommand
+     */
+    async execShellCommandInPopupTerminalWindow(command: string, options: {keepWindowOpen?: boolean, keepSessionFiles?: boolean} = {}): Promise<string | undefined> {
+        // Development notes for editing the server code:
+        // Edit /usr/share/perl5/PVE/API2/Nodes.pm
+        // then
+        // systemctl restart pvedaemon
+
+        // Permission checks / warnings:
+        const app = getElectrifiedApp();
+        if(app.userIsAdmin && app.loginData!.username !== "root@pam") {
+            throwError(`Cannot run shell command ${command}. You must be logged in as root (root@pam). Having admin permissions is not enough. Current user: ${app.loginData!.username}`)
+        }
+        app.userIsAdmin || throwError(`Not enough permissions to run shell command ${command}. You must be logged in as root to do that.`);
+
+        const sessionId = Math.floor(Math.random() * Number.MAX_SAFE_INTEGER);
+        const sessionFolder = this.getFile(`/var/pve/popupshellsessions/${sessionId}`);
+        await sessionFolder.mkDirs();
+        const scriptFile = this.getFile(`${sessionFolder}/run.sh`);
+        const resultFile = this.getFile(`${sessionFolder.path}/result`)
+
+        try {
+            // Create script file:
+            const scriptContent =
+                `#!/bin/bash\n` +
+                `cd "${sessionFolder.path}"\n` +
+                `${command}\n` +
+                `echo $? > result`;
+            await retsync2promise( () =>  scriptFile.setStringContent(scriptContent, "utf8", true));
+
+            await this.execCommand`chmod +x ${scriptFile.path}`;
+
+            let url = (window as any).Ext.Object.toQueryString({
+                console: "cmd", // kvm, lxc, upgrade or shell
+                xtermjs: 1,
+                vmid: undefined,
+                vmname: undefined,
+                node: "localhost", // TODO
+                cmd: "run_session_script",
+                "cmd-opts": sessionId,
+            });
+
+            const newWindow = window.open(
+                '?' + url,
+                '_blank',
+                'toolbar=no,location=no,status=no,menubar=no,resizable=yes,width=800,height=420',
+            );
+
+            if (newWindow === null) {
+                throw new Error("Failed to open console window. Please allow pop-ups for this site in your browser.");
+            }
+            newWindow.focus();
+
+            await new Promise<void>((resolve, reject) => {
+                // Listen for closing of newWindow:
+                const i = setInterval(() => {
+                    if (newWindow.closed) {
+                        reject(new Error("Terminal window was closed"));
+                        clearInterval(i);
+                    }
+                }, 100);
+
+                resultFile.onChange(() => spawnAsync(async () => {
+                    const resultContent = await retsync2promise(() => resultFile.content);
+                    if (resultContent.trim() === "0") {
+                        resolve();
+                    } else {
+                        reject(new Error(`Command ${command} failed with exit code: ${resultContent}. See the open terminal window for error details.`))
+                    }
+                }))
+            });
+
+            if (options.keepWindowOpen !== true) {
+                newWindow.close();
+            }
+        }
+        finally {
+            // Clean up session files / folders:
+            if(options.keepSessionFiles !== true) {
+                await retsync2promise(() => {
+                    resultFile.delete();
+                    scriptFile.delete();
+                    sessionFolder.delete()
+                });
+            }
+        }
+
+        if(options.keepSessionFiles) {
+            return sessionFolder.path;
+        }
     }
 
     toString() {

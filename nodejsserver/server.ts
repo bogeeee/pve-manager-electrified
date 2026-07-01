@@ -130,6 +130,7 @@ class AppServer {
             // init fields:
             this.wwwSourceDir = await fs.existsSync(this.config.developWwwBaseDir) ? this.config.developWwwBaseDir : this.config.WWWBASEDIR;
 
+            await this.cleanUpTempDirs();
             await this.createTempDirs();
 
             const expressApp = restfuncsExpress({
@@ -715,6 +716,18 @@ class AppServer {
         for(const dir of dirs) {
             fs.rmSync(dir, {force: true, recursive: true}); // Clear
             fs.mkdirSync(dir, {recursive: true});
+        }
+    }
+
+    async cleanUpTempDirs() {
+        const dirs = ["/tmp/pve", "/var/pve/popupshellsessions"];
+        for(const dir of dirs) {
+            try {
+                fs.rmSync(dir, {force: true, recursive: true}); // Clear
+            }
+            catch (e) {
+                console.log(toError(e).message);
+            }
         }
     }
 

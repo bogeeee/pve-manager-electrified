@@ -403,6 +403,14 @@ export class ElectrifiedSession extends ServerSession {
     }
 
     /**
+     * Creates the directories, including parents
+     * @param path
+     */
+    @remote async mkDirs(path: string) {
+        await fsPromises.mkdir(path, {recursive: true});
+    }
+
+    /**
      * path -> ClientCallbacks (+ also the chokidar file watchers are created internally)
      * Bug worakound: ":any" because typescript-rtti tries to follow the type and creates a broken import statement: "import ... from "restfuncs-server/dist/commonjs/..."
      * @protected

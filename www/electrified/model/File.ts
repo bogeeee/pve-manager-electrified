@@ -9,7 +9,7 @@ import {
 } from "proxy-facades/retsync";
 import {FileStats} from "pveme-nodejsserver/ElectrifiedSession";
 import _ from "underscore";
-import {ExternalPromise, sleep, spawnWithErrorHandling} from "../util/util";
+import {ExternalPromise, sleep, spawnAsync, spawnWithErrorHandling} from "../util/util";
 import {WatchedProxyFacade} from "proxy-facades";
 import {BufferEncoding, getElectrifiedApp} from "../globals";
 
@@ -367,6 +367,15 @@ export class File {
 
     get isSymbolicLink() {
         return this.stats.isSymbolicLink
+    }
+
+    async mkDirs() {
+        await this.node.electrifiedApi.mkDirs(this.path);
+        await this.cleanup();
+    }
+
+    delete() {
+        return this.remove();
     }
 
     /**
