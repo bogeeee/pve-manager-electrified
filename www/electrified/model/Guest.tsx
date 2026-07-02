@@ -264,7 +264,6 @@ export abstract class Guest extends ModelBase implements NotificationTarget {
             const guest: Guest = new guestClazz(); // use the non-async constructor
             guest.snapshotName = sectionName;
             guest._parentSnapshotName = section.get("parent") as string | undefined; // set here as well to not fail the safety check
-            guest.name = section.get("name") as string;
 
             await guest._applyConfigValues(section);
 
