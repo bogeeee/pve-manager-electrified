@@ -240,7 +240,11 @@ export abstract class Guest extends ModelBase implements NotificationTarget {
      * @returns Guest tree (guest + snapshots). Id and node are not yet set
      */
     static async _fromConfig(configFile: File, guestClazz: typeof Guest): Promise<Guest> {
-        const cfgContent = await retsync2promise(() => configFile.content);
+        let cfgContent = await retsync2promise(() => configFile.content);
+
+        if(cfgContent.startsWith("# qmclone temporary file")) {
+            cfgContent+="name: cloning"; // Prevent error. There must be at least a name.
+        }
 
         const sections2record = Guest._configString_to_sections2Record(cfgContent, configFile.path);
 
