@@ -127,6 +127,22 @@ Ext.define('PVE.node.Config', {
             nodename: nodename,
         });
 
+        var moreBtn = Ext.create('Proxmox.button.Button', {
+            text: gettext('More'),
+            menu: {
+                items: [
+                    {
+                        text: gettext('Rename'),
+                        iconCls: 'fa fa-fw fa-pencil',
+                        hidden: !caps.nodes['Sys.Console'],
+                        handler: function () {
+                            window.electrifiedApp._renameNode(nodename);
+                        },
+                    },
+                ],
+            },
+        });
+
         me.items = [];
 
         Ext.apply(me, {
@@ -135,7 +151,7 @@ Ext.define('PVE.node.Config', {
             defaults: {
                 statusStore: me.statusStore,
             },
-            tbar: [restartBtn, shutdownBtn, shellBtn, actionBtn],
+            tbar: [restartBtn, shutdownBtn, shellBtn, actionBtn, moreBtn],
         });
 
         if (caps.nodes['Sys.Audit']) {

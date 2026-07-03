@@ -121,6 +121,7 @@ class AppServer {
             process.on('SIGTERM', () => spawnAsync(async () => await this.shutDown(), true));  // Properly shut down after SIGTERM event. (Especially needed in develop with tsx, otherwise it takes 5 seconds till a forced process kill)
 
             await this.cleanUpIfInstallHung();
+            await this.handle_nodeRenamed()
             this.listenForUdevEvents();
 
             if (process.env.NODE_ENV === "development") {
@@ -777,6 +778,63 @@ class AppServer {
     }
 
     /**
+     * Detect via marker file, if node was renamed and moves files from inside /etc/pve/nodes/oldnode to /etc/pve/nodes/newnode (which was freshly initialized by proxmox, but lacked to move the old file)
+     */
+    async handle_nodeRenamed() {
+        const JOB_FILENAME = "renameNode.job";
+        try {
+            const thisNodeName = await this.getHostName();
+            for (const childDir of await fsPromises.readdir("/etc/pve/nodes", {encoding: "utf8"})) {
+                const oldDir = `/etc/pve/nodes/${childDir}`;
+                if (await fileExists(`${oldDir}/${JOB_FILENAME}`)) {
+                    const markerContent = (await fsPromises.readFile(`${oldDir}/${JOB_FILENAME}`, {encoding: "utf8"})).trim();
+                    if (markerContent === thisNodeName) { // Marker file targets this node?
+                        const newDir = `/etc/pve/nodes/${thisNodeName}`
+                        console.log(`Post rename node: Moving files from ${oldDir} to ${newDir}`);
+                        await this.checkPveDirIsMounted();
+                        await moveFiles(oldDir, newDir);
+                        await fsPromises.rm(oldDir, {recursive: true});
+                    }
+                }
+            }
+        }
+        catch (e) {
+            console.log(toError(e));
+        }
+
+        /**
+         * Moves files, ignores existing dirs/files
+         * @param sourceDir
+         * @param destDir
+         */
+        async function moveFiles(sourceDir: string, destDir: string) {
+            for(const sourceName of await fsPromises.readdir(sourceDir, {encoding:"utf8"})) {
+                const sourceFile = `${sourceDir}/${sourceName}`
+                const destFile = `${destDir}/${sourceName}`;
+                const stat = await fsPromises.stat(sourceFile, {});
+                if(stat.isDirectory()) {
+                    // Create dir:
+                    if(! await fileExists(destFile)) {
+                        await fsPromises.mkdir(destFile);
+                    }
+                    await moveFiles(sourceFile, destFile);
+                }
+                else { // File?
+                    if(sourceName === JOB_FILENAME) {
+                        continue; // Don't copy job file
+                    }
+                    if(! await fileExists(destFile)) {
+                        await fsPromises.rename(sourceFile, destFile); // move file
+                    }
+                    else {
+
+                    }
+                }
+            }
+        }
+    }
+
+    /**
      * Listen and inform {@link udevEventListeners}
      */
     listenForUdevEvents() {
@@ -804,6 +862,10 @@ class AppServer {
      */
     async getNodePackageRepositoryUrl() {
         return (await execa("npm", ["config", "get", "registry"], {encoding: "utf8"})).stdout as string;
+    }
+
+    async getHostName() {
+        return (await fsPromises.readFile("/etc/hostname", {encoding: "utf8"})).trim();
     }
 
 }

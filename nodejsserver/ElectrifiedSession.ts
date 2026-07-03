@@ -715,6 +715,58 @@ export class ElectrifiedSession extends ServerSession {
     @remote async getNodePackageRepositoryUrl() {
         return appServer.getNodePackageRepositoryUrl();
     }
+
+    /**
+     * A **server-side** method, to allow "atomic" operations / i.e. config files that might interrupt the network / browser connection
+     */
+    @remote async searchAndReplaceInConfigFiles(pairs: {file: string, searchRegExp: string, replacement: string}[]) {
+        const inner = async (dryRun: boolean) => {
+            for(const pair of pairs) {
+                await this.searchAndReplaceInConfigFile(pair.file, pair.searchRegExp, pair.replacement, dryRun);
+            }
+
+        }
+        await inner(true); // First, do a dry run
+        await inner(false);
+    }
+
+    /**
+     * ... also makes sure, the string is at least found once
+     */
+    @remote async searchAndReplaceInConfigFile(file: string, searchRegExpString: string, replacement: string, dryRun = false) {
+        const encoding = "utf8";
+        let content = await fsPromises.readFile(file, {encoding});
+        const regExp = new RegExp(searchRegExpString,"gs");
+        if(regExp.exec(content) === null) {
+            throw new Error(`Search regex ${searchRegExpString} not found in file: ${file}`);
+        }
+        content = content.replaceAll(regExp, replacement);
+        if(!dryRun) {
+            await fsPromises.writeFile(file, content, {encoding})
+        }
+    }
+
+    /**
+     * Renames this node
+     * @param oldName
+     * @param newName
+     */
+    @remote async renameNode(newName: string) {
+        const oldName = await appServer.getHostName();
+        const adjustConfigs = async (dryRun: boolean) => {
+            await this.searchAndReplaceInConfigFile("/etc/hostname", `\\b${oldName}\\b`, newName, dryRun);
+            await this.searchAndReplaceInConfigFile("/etc/hosts", `\\b${oldName}\\b`, newName, dryRun);
+        }
+
+        await adjustConfigs(true); // First, do a dry run
+
+        await fsPromises.writeFile("/etc/pve/local/renameNode.job", newName, {encoding: "utf8"}); // Write a marker file, so that contents will be moved after a reboot and on next start of this nodejsserver
+
+        await adjustConfigs(false);
+
+        spawnAsync(async () => {await execa("reboot", [])}, false); // Reboot
+
+    }
 }
 
 /**

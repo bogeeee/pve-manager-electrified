@@ -7,7 +7,7 @@ import {
     sleep,
     spawnAsync,
     spawnWithErrorHandling,
-    throwError
+    throwError, confirm, messageBox
 } from "../util/util";
 import {File, normalizePath} from "./File";
 import {RestfuncsClient} from "restfuncs-client";
@@ -739,6 +739,73 @@ export class Node extends GuestsContainerBase implements NotificationTarget {
      * TODO: keep content when preserving
      */
     notifications = new Map<string, Notification>();
+
+    /**
+     * Shows a dialog to rename this node
+     */
+    async ui_renameInteractively() {
+        return await showBlueprintDialog({title: t`Rename node ${this.name}`, icon: "edit"}, (props) => {
+            const state = useWatchedState({
+                newName: this.name,
+            });
+
+            const isValid = () => {
+                if(!state.newName) {
+                    return false;
+                }
+                if(state.newName === this.name) {
+                    return false;
+                }
+
+                if(!state.newName.match(Proxmox.Utils.DnsName_match)) {
+                    return false;
+                }
+
+                return true
+            }
+
+            const doRename = () => {
+                spawnWithErrorHandling(async () => {
+                    const newName = state.newName;
+                    if(!isValid()) {
+                        return;
+                    }
+
+                    if(!await confirm(t`Rename node`, t`The host name and several config files will change. Afterwards, the system will reboot. This is a risky operation. Make sure, you have a backup. Are you sure?`)) {
+                        return;
+                    }
+
+                    await this.electrifiedApi.renameNode(newName);
+
+                    await messageBox(`Reboot`, `The node will reboot now. Please reload all PVE browser windows to see the change.`);
+
+                    const oldHostNameInBrowserUrl = this.isCurrentNode && new RegExp(`\\b${this.name}\\b`, "i").exec(window.location.host) !== null;
+                    if(oldHostNameInBrowserUrl) {
+                        const newHost = window.location.host.replaceAll(new RegExp(`\\b${this.name}\\b`,"ig"), newName);
+                        document.write("Redirecting to new url: " + newHost);
+                        window.location.host = newHost;
+                    }
+                    props.resolve(true);
+                })
+            }
+            return <div>
+                <div className={Classes.DIALOG_BODY}>
+                    <form onKeyDown={(event) => {if(event.key === "Enter") { event.preventDefault();if(isValid()) doRename() }}}>
+                        {t`New node name:`} <InputGroup {...bind(state.newName)}/>
+                    </form>
+                </div>
+
+                <div className={Classes.DIALOG_FOOTER}>
+                    <div className={Classes.DIALOG_FOOTER_ACTIONS}>
+                        <ButtonGroup>
+                            <Button onClick={() => doRename()} disabled={!isValid()} intent={Intent.PRIMARY} autoFocus={true}>{t`Rename`}</Button>
+                            <Button onClick={() => props.resolve(false)}>{t`Cancel`}</Button>
+                        </ButtonGroup>
+                    </div>
+                </div>
+            </div>;
+        });
+    }
 }
 
 
@@ -809,3 +876,10 @@ function taggedTemplatetoCommandArray(template: TemplateStringsArray, values: an
     }
     return result;
 }
+
+//@ts-ignore
+var Ext = window.Ext;
+//@ts-ignore
+var PVE = window.PVE;
+//@ts-ignore
+var Proxmox = window.Proxmox;
