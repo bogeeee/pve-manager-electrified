@@ -227,6 +227,12 @@ Ext.define('PVE.data.ResourceStore', {
                 sortable: true,
                 width: 100,
             },
+            'host-arch': {
+                header: gettext('Architecture'),
+                defaultValue: 'x86_64',
+                type: 'string',
+                hidden: true,
+            },
             cpu: {
                 header: gettext('CPU usage'),
                 type: 'float',

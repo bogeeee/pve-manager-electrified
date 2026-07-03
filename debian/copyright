@@ -1,43 +1,19 @@
-Copyright (C) 2010-2025 Proxmox Server Solutions GmbH and for the PVE-electrified additions, it's contributors
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 
-This software is written by Proxmox Server Solutions GmbH <support@proxmox.com> and the contributors to the PVE-electrified additions
+Files: *
+Copyright: 2010-2026 Proxmox Server Solutions GmbH <support@proxmox.com> and for the PVE-electrified additions, it's contributors
+License: AGPL-3+
 
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU Affero General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU Affero General Public License for more details.
-
-You should have received a copy of the GNU Affero General Public License
-along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
--------------
-
-Ext JS - JavaScript Library
-Copyright (c) 2006-2021, Sencha Inc.
-All rights reserved.
-licensing@sencha.com
-
-http://www.sencha.com/license
-
-Open Source License
-----------------------------------------------------------------------------
-This version of Ext JS is licensed under the terms of the
-Open Source GPL 3.0 license.
-
-http://www.gnu.org/licenses/gpl.html (/usr/share/common-licenses/GPL-3)
-
-There are several FLOSS exceptions available for use with this release for
-open source applications that are distributed under a license other than GPL.
-
-* Open Source License Exception for Applications
-
-  http://www.sencha.com/products/floss-exception.php
-
-* Open Source License Exception for Development
-
-  http://www.sencha.com/products/ux-exception.php
+License: AGPL-3+
+ This program is free software: you can redistribute it and/or modify
+ it under the terms of the GNU Affero General Public License as published by
+ the Free Software Foundation, either version 3 of the License, or
+ (at your option) any later version.
+ .
+ This program is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU Affero General Public License for more details.
+ .
+ You should have received a copy of the GNU Affero General Public License
+ along with this program.  If not, see <http://www.gnu.org/licenses/>.

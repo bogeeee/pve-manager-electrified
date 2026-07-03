@@ -66,55 +66,10 @@ Ext.define('PVE.pool.AddVM', {
                 gettext('Filter') + ':',
                 ' ',
                 {
-                    xtype: 'textfield',
-                    width: 200,
-                    enableKeyEvents: true,
+                    xtype: 'pveRecordSearchField',
                     emptyText: gettext('Name, Node, VMID'),
-                    submitValue: false,
-                    listeners: {
-                        keyup: {
-                            buffer: 350,
-                            fn: function (field) {
-                                let needle = field.getValue().toLocaleLowerCase();
-                                if (needle?.length === 0) {
-                                    this.triggers.clear.setVisible(false);
-                                }
-                                let matchesNeedle = (v) => v?.toLocaleLowerCase().includes(needle);
-                                vmStore.clearFilter(true);
-                                vmStore.filter([
-                                    {
-                                        filterFn: ({ data }) =>
-                                            basicFilter(data) &&
-                                            (matchesNeedle(data.vmid.toString()) ||
-                                                matchesNeedle(data.name) ||
-                                                matchesNeedle(data.node)),
-                                    },
-                                ]);
-                            },
-                        },
-                        change: function (field, newValue, oldValue) {
-                            if (newValue !== this.originalValue) {
-                                this.triggers.clear.setVisible(true);
-                            }
-                        },
-                    },
-                    triggers: {
-                        clear: {
-                            cls: 'pmx-clear-trigger',
-                            weight: -1,
-                            hidden: true,
-                            handler: function () {
-                                this.triggers.clear.setVisible(false);
-                                this.setValue(this.originalValue);
-                                vmStore.clearFilter(true);
-                                vmStore.filter([
-                                    {
-                                        filterFn: ({ data }) => basicFilter(data),
-                                    },
-                                ]);
-                            },
-                        },
-                    },
+                    searchFields: ['vmid', 'name', 'node'],
+                    targetStore: vmStore,
                 },
             ],
             columns: [

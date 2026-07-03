@@ -178,6 +178,7 @@ Ext.define('PVE.qemu.HDInputPanel', {
         me.lookup('import-source')?.setNodename(nodename);
         me.lookup('import-source-file')?.setNodename(nodename);
         me.lookup('import-target')?.setNodename(nodename);
+        me.lookup('controllerSelector')?.setNodename(nodename);
     },
 
     hasAdvanced: true,
@@ -195,7 +196,9 @@ Ext.define('PVE.qemu.HDInputPanel', {
 
         if (!me.confid || me.unused) {
             me.bussel = Ext.create('PVE.form.ControllerSelector', {
+                reference: 'controllerSelector',
                 vmconfig: me.vmconfig,
+                nodename: me.nodename,
                 selectFree: true,
             });
             column1.push(me.bussel);

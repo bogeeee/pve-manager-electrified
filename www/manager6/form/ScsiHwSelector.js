@@ -1,5 +1,5 @@
 Ext.define('PVE.form.ScsiHwSelector', {
-    extend: 'Proxmox.form.KVComboBox',
+    extend: 'PVE.form.FilteredKVComboBox',
     alias: ['widget.pveScsiHwSelector'],
     comboItems: [
         ['__default__', PVE.Utils.render_scsihw('')],
@@ -10,4 +10,8 @@ Ext.define('PVE.form.ScsiHwSelector', {
         ['virtio-scsi-single', PVE.Utils.render_scsihw('virtio-scsi-single')],
         ['pvscsi', PVE.Utils.render_scsihw('pvscsi')],
     ],
+
+    allowedValuesPerCategory: PVE.qemu.Architecture.allowedScsiHw,
+
+    setDefaultDisplay: (arch) => PVE.Utils.render_scsihw('', arch),
 });

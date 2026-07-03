@@ -12,6 +12,7 @@ Ext.define('PVE.ha.VMResourceInputPanel', {
         delete values.vmid;
 
         PVE.Utils.delete_if_default(values, 'failback', '1', me.isCreate);
+        PVE.Utils.delete_if_default(values, 'auto-rebalance', '1', me.isCreate);
         PVE.Utils.delete_if_default(values, 'max_restart', '1', me.isCreate);
         PVE.Utils.delete_if_default(values, 'max_relocate', '1', me.isCreate);
 
@@ -118,6 +119,19 @@ Ext.define('PVE.ha.VMResourceInputPanel', {
                     tag: 'div',
                     'data-qtip': gettext(
                         'Enable if HA resource should automatically adjust to HA rules.',
+                    ),
+                },
+                uncheckedValue: 0,
+                value: 1,
+            },
+            {
+                xtype: 'proxmoxcheckbox',
+                name: 'auto-rebalance',
+                fieldLabel: gettext('Auto-Rebalance'),
+                autoEl: {
+                    tag: 'div',
+                    'data-qtip': gettext(
+                        'Enable if HA resource may be migrated during automatic rebalancing.',
                     ),
                 },
                 uncheckedValue: 0,

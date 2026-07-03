@@ -18,29 +18,6 @@ use PVE::SafeSyslog;
 use PVE::Storage::Plugin;
 use PVE::Tools;
 
-my $hwaddress;
-my $hwaddress_st = {};
-
-sub get_hwaddress {
-    my $fn = '/etc/ssh/ssh_host_rsa_key.pub';
-    my $st = stat($fn);
-
-    if (
-        defined($hwaddress)
-        && $hwaddress_st->{mtime} == $st->mtime
-        && $hwaddress_st->{ino} == $st->ino
-        && $hwaddress_st->{dev} == $st->dev
-    ) {
-        return $hwaddress;
-    }
-
-    my $sshkey = PVE::Tools::file_get_contents($fn);
-    $hwaddress = uc(md5_hex($sshkey));
-    $hwaddress_st->@{ 'mtime', 'ino', 'dev' } = ($st->mtime, $st->ino, $st->dev);
-
-    return $hwaddress;
-}
-
 # each rrd key for a resource will only exist once. The key format might be different though. Therefore return on first hit
 sub get_rrd_key {
     my ($rrd, $type, $id) = @_;

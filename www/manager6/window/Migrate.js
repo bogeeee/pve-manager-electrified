@@ -432,6 +432,11 @@ Ext.define('PVE.window.Migrate', {
                             ),
                             sid,
                         );
+                    } else if (cause === 'node-affinity') {
+                        reasonText = Ext.String.format(
+                            gettext('HA resource {0} is not allowed on the selected target node'),
+                            sid,
+                        );
                     } else {
                         reasonText = Ext.String.format(
                             gettext('blocking HA resource {0} on selected target node'),
@@ -520,6 +525,11 @@ Ext.define('PVE.window.Migrate', {
                             gettext(
                                 'HA resource {0} with negative affinity to container on selected target node',
                             ),
+                            sid,
+                        );
+                    } else if (cause === 'node-affinity') {
+                        reasonText = Ext.String.format(
+                            gettext('HA resource {0} is not allowed on the selected target node'),
                             sid,
                         );
                     } else {

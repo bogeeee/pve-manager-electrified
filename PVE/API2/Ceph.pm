@@ -4,6 +4,7 @@ use strict;
 use warnings;
 
 use File::Path;
+use JSON;
 use Net::IP;
 use UUID;
 
@@ -71,7 +72,6 @@ __PACKAGE__->register_method({
     path => '',
     method => 'GET',
     description => "Directory index.",
-    permissions => { user => 'all' },
     permissions => {
         check => ['perm', '/', ['Sys.Audit', 'Datastore.Audit'], any => 1],
     },
@@ -119,7 +119,10 @@ __PACKAGE__->register_method({
     name => 'init',
     path => 'init',
     method => 'POST',
-    description => "Create initial ceph default configuration and setup symlinks.",
+    description => "Create the initial Ceph default configuration and set up symlinks."
+        . " Idempotent on re-call: if a [global] section already exists in"
+        . " ceph.conf, the existing fsid / auth / pool defaults are"
+        . " preserved and most parameters are silently ignored.",
     proxyto => 'node',
     protected => 1,
     permissions => {
@@ -138,7 +141,7 @@ __PACKAGE__->register_method({
             },
             'cluster-network' => {
                 description => "Declare a separate cluster network, OSDs will route"
-                    . "heartbeat, object replication and recovery traffic over it",
+                    . " heartbeat, object replication and recovery traffic over it",
                 type => 'string',
                 format => 'CIDR',
                 requires => 'network',
@@ -383,7 +386,8 @@ __PACKAGE__->register_method({
                 type => 'string',
                 optional => 1,
                 default => 'ceph.target',
-                pattern => '(mon|mds|osd|mgr)(\.' . PVE::Ceph::Services::SERVICE_REGEX . ')?',
+                pattern => '(ceph|mon|mds|osd|mgr)(\.'
+                    . PVE::Ceph::Services::SERVICE_REGEX . ')?',
             },
         },
     },
@@ -420,7 +424,9 @@ __PACKAGE__->register_method({
     name => 'status',
     path => 'status',
     method => 'GET',
-    description => "Get ceph status.",
+    description => "Get the Ceph cluster status (raw 'ceph status' output). The response is"
+        . " cluster-wide and identical to /cluster/ceph/status; this node-level alias exists"
+        . " for operator convenience.",
     proxyto => 'node',
     protected => 1,
     permissions => {
@@ -510,11 +516,14 @@ __PACKAGE__->register_method({
                 type => 'integer',
                 minimum => 0,
                 optional => 1,
+                description => "Offset of the first log line to return (0-based).",
             },
             limit => {
                 type => 'integer',
                 minimum => 0,
                 optional => 1,
+                description => "Maximum number of log lines to return. Defaults to the"
+                    . " dump_logfile limit (typically 50) when omitted.",
             },
         },
     },
@@ -524,11 +533,11 @@ __PACKAGE__->register_method({
             type => "object",
             properties => {
                 n => {
-                    description => "Line number",
+                    description => "Log-file line number (1-based).",
                     type => 'integer',
                 },
                 t => {
-                    description => "Line text",
+                    description => "Log line text.",
                     type => 'string',
                 },
             },
@@ -633,15 +642,18 @@ __PACKAGE__->register_method({
     },
     returns => {
         type => 'object',
+        additionalProperties => 0,
         properties => {
             safe => {
                 type => 'boolean',
-                description => 'If it is safe to run the command.',
+                description => 'True if Ceph reports the requested action is safe.',
             },
             status => {
                 type => 'string',
                 optional => 1,
-                description => 'Status message given by Ceph.',
+                description => "Human-readable status message from Ceph (typically the"
+                    . " reason an action is not safe); absent when Ceph"
+                    . " returned no message.",
             },
         },
     },
@@ -673,11 +685,6 @@ __PACKAGE__->register_method({
         die "Service does not support this action: ${service}: ${action}\n"
             if !$supported_actions->{$service}->{$action};
 
-        my $result = {
-            safe => 0,
-            status => '',
-        };
-
         my $params = {
             prefix => "${service} $supported_actions->{$service}->{$action}",
             format => 'plain',
@@ -688,11 +695,14 @@ __PACKAGE__->register_method({
             $params->{ids} = [$id];
         }
 
-        $result = $rados->mon_cmd($params, 1);
+        my $raw = $rados->mon_cmd($params, 1);
         die $@ if $@;
 
-        $result->{safe} = $result->{return_code} == 0 ? 1 : 0;
-        $result->{status} = $result->{status_message};
+        my $result = {
+            safe => ($raw->{return_code} // -1) == 0 ? JSON::true : JSON::false,
+        };
+        $result->{status} = $raw->{status_message}
+            if defined($raw->{status_message}) && length($raw->{status_message});
 
         return $result;
     },

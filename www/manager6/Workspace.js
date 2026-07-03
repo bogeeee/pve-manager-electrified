@@ -176,21 +176,6 @@ Ext.define('PVE.StdWorkspace', {
             PVE.UIOptions.update();
 
             Proxmox.Utils.API2Request({
-                url: '/cluster/sdn',
-                method: 'GET',
-                success: function (response) {
-                    PVE.SDNInfo = response.result.data;
-                },
-                failure: function (response) {
-                    PVE.SDNInfo = null;
-                    let ui = Ext.ComponentQuery.query('treelistitem[text="SDN"]')[0];
-                    if (ui) {
-                        ui.addCls('x-hidden-display');
-                    }
-                },
-            });
-
-            Proxmox.Utils.API2Request({
                 url: '/access/domains',
                 method: 'GET',
                 success: function (response) {

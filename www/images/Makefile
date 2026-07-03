@@ -42,7 +42,6 @@ IMAGES =			\
 	icon-cpu.svg		\
 	icon-memory.svg		\
 	icon-cd-drive.svg	\
-	spinner.svg		\
 
 icon-sdn.svg: icon-sdn.dot
 	fdp -Tsvg $< > $@

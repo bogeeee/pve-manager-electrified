@@ -55,6 +55,9 @@ Ext.define('PVE.qemu.CDInputPanel', {
         var me = this;
 
         me.isosel.setNodename(nodename);
+        if (me.bussel) {
+            me.bussel.setNodename(nodename);
+        }
     },
 
     initComponent: function () {
@@ -67,6 +70,7 @@ Ext.define('PVE.qemu.CDInputPanel', {
         if (!me.confid) {
             me.bussel = Ext.create('PVE.form.ControllerSelector', {
                 withVirtIO: false,
+                nodename: me.nodename,
             });
             items.push(me.bussel);
         }

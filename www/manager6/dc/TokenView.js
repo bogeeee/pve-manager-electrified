@@ -75,6 +75,26 @@ Ext.define('PVE.dc.TokenView', {
             win.show();
         };
 
+        let regenerate_token = function (_btn, _event, rec) {
+            if (!hasTokenCRUDPermissions(rec.data.userid)) {
+                return;
+            }
+            Proxmox.Utils.API2Request({
+                method: 'PUT',
+                url: urlFromRecord(rec),
+                params: { regenerate: 1 },
+                success: function (response) {
+                    Ext.create('PVE.dc.TokenShow', {
+                        autoShow: true,
+                        tokenid: response.result.data['full-tokenid'],
+                        secret: response.result.data.value,
+                    });
+                    reload();
+                },
+                failure: (res) => Ext.Msg.alert(gettext('Error'), res.htmlStatus),
+            });
+        };
+
         let tbar = [
             {
                 text: gettext('Add'),
@@ -102,6 +122,23 @@ Ext.define('PVE.dc.TokenView', {
                 enableFn: (rec) => hasTokenCRUDPermissions(rec.data.userid),
                 callback: reload,
                 getUrl: urlFromRecord,
+            },
+            '-',
+            {
+                xtype: 'proxmoxButton',
+                text: gettext('Regenerate Secret'),
+                disabled: true,
+                selModel: sm,
+                enableFn: (rec) => hasTokenCRUDPermissions(rec.data.userid),
+                dangerous: true,
+                confirmMsg: (rec) =>
+                    Ext.String.format(
+                        gettext(
+                            "Regenerate the secret of the API token '{0}'? All users of the previous token secret will lose access!",
+                        ),
+                        rec.data.id,
+                    ),
+                handler: regenerate_token,
             },
             '-',
             {

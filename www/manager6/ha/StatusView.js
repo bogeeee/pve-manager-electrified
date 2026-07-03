@@ -14,6 +14,15 @@ Ext.define(
             service: 5,
         },
 
+        pending: false,
+        isDisarmedPendingState: null,
+
+        setPending: function (pending) {
+            let me = this;
+            me.pending = pending;
+            me.getView().refresh();
+        },
+
         initComponent: function () {
             var me = this;
 
@@ -42,6 +51,13 @@ Ext.define(
                 },
             });
 
+            me.rstore.on('load', function () {
+                let fencing = store.findRecord('type', 'fencing');
+                let disarmed = fencing && fencing.get('armed-state') === 'disarmed';
+
+                me.fireEvent('hastatuschange', disarmed);
+            });
+
             Ext.apply(me, {
                 store: store,
                 stateful: false,
@@ -59,6 +75,12 @@ Ext.define(
                         width: 80,
                         flex: 1,
                         dataIndex: 'status',
+                        renderer: function (value, _metaData, rec) {
+                            if (rec.data.type === 'fencing' && me.pending) {
+                                return value + ' <i class="fa fa-spinner fa-spin"></i>';
+                            }
+                            return value;
+                        },
                     },
                 ],
             });
@@ -84,6 +106,10 @@ Ext.define(
                     name: 'failback',
                     type: 'boolean',
                 },
+                {
+                    name: 'auto-rebalance',
+                    type: 'boolean',
+                },
                 'max_restart',
                 'max_relocate',
                 'type',
@@ -105,6 +131,7 @@ Ext.define(
                         return PVE.data.ResourceStore.guestName(vmid);
                     },
                 },
+                'armed-state',
             ],
             idProperty: 'id',
         });

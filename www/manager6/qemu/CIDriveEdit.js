@@ -20,6 +20,7 @@ Ext.define('PVE.qemu.CIDriveInputPanel', {
     setNodename: function (nodename) {
         var me = this;
         me.down('#hdstorage').setNodename(nodename);
+        me.down('#drive').setNodename(nodename);
         me.down('#hdimage').setStorage(undefined, nodename);
     },
 
@@ -39,6 +40,7 @@ Ext.define('PVE.qemu.CIDriveInputPanel', {
                 withVirtIO: false,
                 itemId: 'drive',
                 fieldLabel: gettext('CloudInit Drive'),
+                nodename: me.nodename,
                 name: 'drive',
             },
             {

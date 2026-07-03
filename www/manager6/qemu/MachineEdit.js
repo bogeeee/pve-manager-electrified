@@ -23,14 +23,14 @@ Ext.define('PVE.qemu.MachineInputPanel', {
             let me = this;
             let version = me.lookup('version');
             let store = version.getStore();
+
             let oldRec = store.findRecord('id', version.getValue(), 0, false, false, true);
-            let type = value === 'q35' ? 'q35' : 'i440fx';
-            store.clearFilter();
-            store.addFilter((val) => val.data.id === 'latest' || val.data.type === type);
+
+            me.setVersionFilter(value);
+
             if (!me.getView().isWindows) {
                 version.setValue('latest');
             } else {
-                store.isWindows = true;
                 if (!oldRec) {
                     return;
                 }
@@ -42,12 +42,39 @@ Ext.define('PVE.qemu.MachineInputPanel', {
                 }
             }
         },
+
+        setVersionFilter: function (machineType) {
+            let me = this;
+            let vm = me.getViewModel();
+            let arch = vm.get('arch');
+            let defaultMachine = PVE.qemu.Architecture.defaultMachines[arch];
+            if (defaultMachine === 'pc') {
+                defaultMachine = 'i440fx'; // the default in the backend is 'pc' which means 'i440fx' for the qemu machinetype
+            }
+            let type = machineType === 'q35' ? 'q35' : defaultMachine;
+            let store = me.lookup('version').getStore();
+            store.clearFilter();
+            store.addFilter((val) => val.data.id === 'latest' || val.data.type === type);
+            store.isWindows = me.getView().isWindows;
+        },
+
+        setArch: function (arch) {
+            let me = this;
+            let store = me.lookup('version').getStore();
+            store.getProxy().setExtraParams({
+                arch,
+            });
+            store.reload();
+        },
     },
 
     onGetValues: function (values) {
+        // arch is a hidden field used only for the machine-default lookup; do not submit it.
+        let arch = values.arch;
+        delete values.arch;
         if (values.delete === 'machine' && values.viommu) {
             delete values.delete;
-            values.machine = 'pc';
+            values.machine = PVE.qemu.Architecture.defaultMachines[arch];
         }
         if (values.version && values.version !== 'latest') {
             values.machine = values.version;
@@ -68,8 +95,9 @@ Ext.define('PVE.qemu.MachineInputPanel', {
         let machineConf = PVE.Parser.parsePropertyString(values.machine, 'type');
         values.machine = machineConf.type;
 
+        let defaultMachine = PVE.qemu.Architecture.defaultMachines[values.arch];
         me.isWindows = values.isWindows;
-        if (values.machine === 'pc') {
+        if (values.machine === defaultMachine) {
             values.machine = '__default__';
         }
 
@@ -92,21 +120,29 @@ Ext.define('PVE.qemu.MachineInputPanel', {
         }
 
         this.callParent(arguments);
+        this.getController().setVersionFilter(values.machine);
+        this.getController().setArch(values.arch);
     },
 
-    items: {
-        xtype: 'proxmoxKVComboBox',
-        name: 'machine',
-        reference: 'machine',
-        fieldLabel: gettext('Machine'),
-        comboItems: [
-            ['__default__', PVE.Utils.render_qemu_machine('')],
-            ['q35', 'q35'],
-        ],
-        bind: {
-            value: '{type}',
+    items: [
+        {
+            xtype: 'pveQemuMachineSelector',
+            name: 'machine',
+            reference: 'machine',
+            fieldLabel: gettext('Machine'),
+            value: '__default__',
+            bind: {
+                value: '{type}',
+                category: '{arch}',
+            },
         },
-    },
+        {
+            xtype: 'hidden',
+            name: 'arch',
+            reference: 'arch',
+            bind: '{arch}',
+        },
+    ],
 
     advancedItems: [
         {
@@ -197,6 +233,12 @@ Ext.define('PVE.qemu.MachineEdit', {
     initComponent: function () {
         let me = this;
 
+        me.nodename = me.pveSelNode?.data.node;
+
+        if (!me.nodename) {
+            throw 'no nodename given';
+        }
+
         me.callParent();
 
         me.load({
@@ -206,6 +248,7 @@ Ext.define('PVE.qemu.MachineEdit', {
                     machine: conf.machine || '__default__',
                 };
                 values.isWindows = PVE.Utils.is_windows(conf.ostype);
+                values.arch = PVE.qemu.Architecture.getGuestArchitecture(conf.arch, me.nodename);
                 me.setValues(values);
             },
         });

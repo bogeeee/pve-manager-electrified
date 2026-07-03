@@ -255,6 +255,7 @@ Ext.define('PVE.node.Config', {
                     iconCls: 'fa fa-cogs',
                     itemId: 'services',
                     expandedOnInit: true,
+                    useJournalLog: true, // journal endpoint here serves -J + the unit filter
                     restartCommand: 'reload', // avoid disruptions
                     startOnlyServices: {
                         pveproxy: true,
@@ -332,6 +333,7 @@ Ext.define('PVE.node.Config', {
                 groups: ['services'],
                 disabled: !caps.nodes['Sys.Syslog'],
                 itemId: 'syslog',
+                structured: true,
                 url: '/api2/extjs/nodes/' + nodename + '/journal',
             });
 

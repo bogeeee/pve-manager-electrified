@@ -7,6 +7,13 @@ Ext.define('PVE.form.ControllerSelector', {
 
     vmconfig: {}, // used to check for existing devices
 
+    nodename: undefined,
+
+    setNodename: function (nodename) {
+        let me = this;
+        me.nodename = nodename;
+    },
+
     setToFree: function (controllers, busField, deviceIDField) {
         let me = this;
         let freeId = PVE.Utils.nextFreeDisk(controllers, me.vmconfig);
@@ -15,6 +22,14 @@ Ext.define('PVE.form.ControllerSelector', {
             busField?.setValue(freeId.controller);
             deviceIDField.setValue(freeId.id);
         }
+    },
+
+    filterListByArchitecture: function (clist, arch) {
+        let allowedList = PVE.form.BusTypeSelector.prototype.allowedValuesPerCategory[arch];
+        if (!allowedList) {
+            return clist;
+        }
+        return clist.filter((controller) => allowedList.indexOf(controller) !== -1);
     },
 
     updateVMConfig: function (vmconfig) {
@@ -33,17 +48,22 @@ Ext.define('PVE.form.ControllerSelector', {
         let deviceid = me.down('field[name=deviceid]');
 
         let clist;
+        let arch = PVE.qemu.Architecture.getGuestArchitecture(vmconfig.arch, me.nodename);
+        bussel.setCategory(arch);
         if (autoSelect === 'cdrom') {
-            if (!Ext.isDefined(me.vmconfig.ide2)) {
-                bussel.setValue('ide');
-                deviceid.setValue(2);
+            let [controller, id] = PVE.qemu.Architecture.defaultCDDrive[arch];
+            if (!Ext.isDefined(me.vmconfig[`${controller}${id}`])) {
+                bussel.setValue(controller);
+                deviceid.setValue(id);
                 return;
             }
             clist = ['ide', 'scsi', 'sata'];
         } else {
             // in most cases we want to add a disk to the same controller we previously used
-            clist = PVE.Utils.sortByPreviousUsage(me.vmconfig);
+            clist = PVE.Utils.sortByPreviousUsage(me.vmconfig, me.nodename);
         }
+
+        clist = me.filterListByArchitecture(clist, arch);
 
         me.setToFree(clist, bussel, deviceid);
 
@@ -72,7 +92,7 @@ Ext.define('PVE.form.ControllerSelector', {
                     xtype: 'pveBusSelector',
                     name: 'controller',
                     itemId: 'controller',
-                    value: PVE.qemu.OSDefaults.generic.busType,
+                    value: PVE.qemu.OSDefaults.getDefaults().busType,
                     withVirtIO: me.withVirtIO,
                     withUnused: me.withUnused,
                     allowBlank: false,

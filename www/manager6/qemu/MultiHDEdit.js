@@ -17,7 +17,8 @@ Ext.define('PVE.qemu.MultiHDPanel', {
             ) - 1,
 
         getNextFreeDisk: function (vmconfig) {
-            let clist = PVE.Utils.sortByPreviousUsage(vmconfig);
+            let nodename = this.getView().nodename;
+            let clist = PVE.Utils.sortByPreviousUsage(vmconfig, nodename);
             return PVE.Utils.nextFreeDisk(clist, vmconfig);
         },
 
@@ -44,10 +45,13 @@ Ext.define('PVE.qemu.MultiHDPanel', {
             let vm = me.getViewModel();
 
             let res = {
-                ide2: 'media=cdrom',
+                arch: vm.get('current.architecture'),
                 scsihw: vm.get('current.scsihw'),
                 ostype: vm.get('current.ostype'),
             };
+
+            let isoConfig = vm.get('current.isoConfig') ?? 'ide2';
+            res[isoConfig] = 'media=cdrom';
 
             if (vm.get('current.ide0') === 'some') {
                 res.ide0 = 'media=cdrom';

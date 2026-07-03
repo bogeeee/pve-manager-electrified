@@ -163,7 +163,7 @@ my $log_systemd_unit_state = sub {
 
 my $versions;
 my $get_pkg = sub {
-    my ($pkg) = @_;
+    my ($pkg, $noerr) = @_;
 
     $versions = eval { PVE::API2::APT->versions({ node => $nodename }) } if !defined($versions);
 
@@ -175,8 +175,8 @@ my $get_pkg = sub {
     }
 
     my $pkgs = [grep { $_->{Package} eq $pkg } @$versions];
-    if (!defined $pkgs || $pkgs == 0) {
-        log_fail("unable to determine installed $pkg version.");
+    if (!@$pkgs) {
+        log_fail("unable to determine installed $pkg version.") if !$noerr;
         return undef;
     } else {
         return $pkgs->[0];
@@ -215,9 +215,10 @@ sub check_pve_packages {
         }
 
         # FIXME: better differentiate between 6.14 from bookworm or trixie
-        my $kinstalled = 'proxmox-kernel-6.14';
+        # NOTE: keep ordered newest-first, the first match wins for the warn-message below
+        my $kinstalled = ['proxmox-kernel-7.0', 'proxmox-kernel-6.17', 'proxmox-kernel-6.14'];
         if (!$upgraded) {
-            $kinstalled = 'pve-kernel-6.8';
+            $kinstalled = ['pve-kernel-6.8'];
         }
 
         my $kernel_version_is_expected = sub {
@@ -225,10 +226,10 @@ sub check_pve_packages {
 
             return $version =~ m/^(?:6\.(?:2|5|8|11|14))/ if !$upgraded;
 
-            if ($version =~ m/^6\.(?:1[4-9]|1\d\d+)[^~]*$/) { # TODO: recheck, or even still needed?
+            if ($version =~ m/^(?:6\.(?:1[4-9]|1\d\d+)|7\.\d+)[^~]*$/) {
                 return 1;
-            } elsif ($version =~ m/^(\d+).(\d+)[^~]*-pve$/) {
-                return $1 >= 6 && $2 >= 14;
+            } elsif ($version =~ m/^(\d+)\.(\d+)[^~]*-pve$/) {
+                return $1 > 6 || ($1 == 6 && $2 >= 14);
             }
             return 0;
         };
@@ -243,20 +244,22 @@ sub check_pve_packages {
             } else {
                 log_pass("running kernel '$kernel_ver' is considered suitable for upgrade.");
             }
-        } elsif ($get_pkg->($kinstalled)) {
-            # with 6.2 kernel being available in both we might want to fine-tune the check?
-            log_warn(
-                "a suitable kernel ($kinstalled) is installed, but an unsuitable ($kernel_ver) is booted, missing reboot?!"
-            );
         } else {
-            log_warn("unexpected running and installed kernel '$kernel_ver'.");
+            my ($found_installed) = grep { $get_pkg->($_, 1) } $kinstalled->@*;
+            if (defined($found_installed)) {
+                log_warn(
+                    "a suitable kernel ($found_installed) is installed, but an unsuitable ($kernel_ver) is booted, missing reboot?!"
+                );
+            } else {
+                log_warn("unexpected running and installed kernel '$kernel_ver'.");
+            }
         }
 
         if ($upgraded && $kernel_version_is_expected->($kernel_ver)) {
             my $outdated_kernel_meta_pkgs = [];
             for my $kernel_meta_version ('6.2', '6.5', '6.8', '6.11') {
                 my $pkg = "pve-kernel-${kernel_meta_version}";
-                if ($get_pkg->($pkg)) {
+                if ($get_pkg->($pkg, 1)) {
                     push @$outdated_kernel_meta_pkgs, $pkg;
                 }
             }

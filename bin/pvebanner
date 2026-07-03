@@ -12,6 +12,8 @@ my $xline = '-' x 78;
 my $banner = '';
 
 if ($localip) {
+    my $urlip = $localip =~ m/:/ ? "[$localip]" : $localip;
+
     $banner .= <<__EOBANNER;
 
 $xline
@@ -19,7 +21,7 @@ $xline
 Welcome to the Proxmox Virtual Environment. Please use your web browser to 
 configure this server - connect to:
 
-  https://${localip}:8006/
+  https://${urlip}:8006/
 
 $xline
 

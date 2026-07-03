@@ -11,6 +11,7 @@ Ext.define('PVE.qemu.ScsiHwEdit', {
                 name: 'scsihw',
                 value: '__default__',
                 fieldLabel: gettext('Type'),
+                category: me.arch,
             },
         });
 

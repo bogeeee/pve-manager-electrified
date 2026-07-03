@@ -106,6 +106,7 @@ Ext.define('PVE.storage.ZFSPoolInputPanel', {
             emptyText: '16k',
             fieldLabel: gettext('Block Size'),
             allowBlank: true,
+            validator: PVE.Utils.validateZfsBlocksize,
         },
     ],
 });

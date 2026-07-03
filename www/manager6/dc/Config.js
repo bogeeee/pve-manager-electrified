@@ -252,68 +252,86 @@ Ext.define('PVE.dc.Config', {
                     itemId: 'ha-fencing',
                 },
             );
-            // always show on initial load, will be hiddea later if the SDN API calls don't exist,
-            // else it won't be shown at first if the user initially loads with DC selected
-            if (PVE.SDNInfo || PVE.SDNInfo === undefined) {
-                me.items.push(
-                    {
-                        xtype: 'pveSDNStatus',
-                        title: gettext('SDN'),
-                        iconCls: 'fa fa-sdn x-fa-sdn-treelist',
-                        hidden: true,
-                        itemId: 'sdn',
-                        expandedOnInit: true,
-                    },
-                    {
-                        xtype: 'pveSDNZoneView',
-                        groups: ['sdn'],
-                        title: gettext('Zones'),
-                        hidden: true,
-                        iconCls: 'fa fa-th',
-                        itemId: 'sdnzone',
-                    },
-                    {
-                        xtype: 'pveSDNVnet',
-                        groups: ['sdn'],
-                        title: 'VNets',
-                        hidden: true,
-                        iconCls: 'fa fa-network-wired x-fa-sdn-treelist',
-                        itemId: 'sdnvnet',
-                    },
-                    {
-                        xtype: 'pveSDNOptions',
-                        groups: ['sdn'],
-                        title: gettext('Options'),
-                        hidden: true,
-                        iconCls: 'fa fa-gear',
-                        itemId: 'sdnoptions',
-                    },
-                    {
-                        xtype: 'pveDhcpTree',
-                        groups: ['sdn'],
-                        title: gettext('IPAM'),
-                        hidden: true,
-                        iconCls: 'fa fa-map-signs',
-                        itemId: 'sdnmappings',
-                    },
-                    {
-                        xtype: 'pveSDNFirewall',
-                        groups: ['sdn'],
-                        title: gettext('VNet Firewall'),
-                        hidden: true,
-                        iconCls: 'fa fa-shield',
-                        itemId: 'sdnfirewall',
-                    },
-                    {
-                        xtype: 'pveSDNFabricView',
-                        groups: ['sdn'],
-                        title: gettext('Fabrics'),
-                        hidden: true,
-                        iconCls: 'fa fa-road',
-                        itemId: 'sdnfabrics',
-                    },
-                );
-            }
+            me.items.push(
+                {
+                    xtype: 'pveSDNStatus',
+                    title: gettext('SDN'),
+                    iconCls: 'fa fa-sdn x-fa-sdn-treelist',
+                    hidden: true,
+                    itemId: 'sdn',
+                    expandedOnInit: true,
+                },
+                {
+                    xtype: 'pveSDNZoneView',
+                    groups: ['sdn'],
+                    title: gettext('Zones'),
+                    hidden: true,
+                    iconCls: 'fa fa-th',
+                    itemId: 'sdnzone',
+                },
+                {
+                    xtype: 'pveSDNVnet',
+                    groups: ['sdn'],
+                    title: 'VNets',
+                    hidden: true,
+                    iconCls: 'fa fa-network-wired x-fa-sdn-treelist',
+                    itemId: 'sdnvnet',
+                },
+                {
+                    xtype: 'pveSDNOptions',
+                    groups: ['sdn'],
+                    title: gettext('Options'),
+                    hidden: true,
+                    iconCls: 'fa fa-gear',
+                    itemId: 'sdnoptions',
+                },
+                {
+                    xtype: 'pveDhcpTree',
+                    groups: ['sdn'],
+                    title: gettext('IPAM'),
+                    hidden: true,
+                    iconCls: 'fa fa-map-signs',
+                    itemId: 'sdnmappings',
+                },
+                {
+                    xtype: 'pveSDNFirewall',
+                    groups: ['sdn'],
+                    title: gettext('VNet Firewall'),
+                    hidden: true,
+                    iconCls: 'fa fa-shield',
+                    itemId: 'sdnfirewall',
+                },
+                {
+                    xtype: 'pveSDNFabricView',
+                    groups: ['sdn'],
+                    title: gettext('Fabrics'),
+                    hidden: true,
+                    iconCls: 'fa fa-road',
+                    itemId: 'sdnfabrics',
+                },
+                {
+                    xtype: 'pveSDNRouteMaps',
+                    groups: ['sdn'],
+                    // TRANSLATORS: "Route map" refers to an FRR route map, some
+                    // languages may prefer to keep it as-is:
+                    // https://docs.frrouting.org/en/latest/routemap.html
+                    title: gettext('Route Maps'),
+                    hidden: true,
+                    iconCls: 'fa fa-map',
+                    itemId: 'sdnroutemaps',
+                },
+                {
+                    xtype: 'pveSDNPrefixLists',
+                    groups: ['sdn'],
+                    // TRANSLATORS: Refers to an FRR prefix list, some
+                    // languages may prefer to keep "prefix list" as-is:
+                    // https://docs.frrouting.org/en/latest/filter.html#ip-prefix-list
+                    title: gettext('Prefix Lists'),
+                    hidden: true,
+                    iconCls: 'fa fa-list-ol',
+                    itemId: 'sdnprefixlists',
+                },
+            );
 
             if (Proxmox.UserName === 'root@pam') {
                 me.items.push({
@@ -424,21 +442,20 @@ Ext.define('PVE.dc.Config', {
                     title: gettext('Directory Mappings'),
                     iconCls: 'fa fa-folder',
                 },
+                {
+                    xtype: 'pveCPUTypeView',
+                    iconCls: 'fa fa-microchip',
+                    title: gettext('Custom CPU models'),
+                    itemId: 'cputypes',
+                },
+                {
+                    xtype: 'pmxNotificationConfigView',
+                    title: gettext('Notifications'),
+                    itemId: 'notification-targets',
+                    iconCls: 'fa fa-bell-o',
+                    baseUrl: '/cluster/notifications',
+                },
             );
-        }
-
-        if (
-            caps.mapping['Mapping.Audit'] ||
-            caps.mapping['Mapping.Use'] ||
-            caps.mapping['Mapping.Modify']
-        ) {
-            me.items.push({
-                xtype: 'pmxNotificationConfigView',
-                title: gettext('Notifications'),
-                itemId: 'notification-targets',
-                iconCls: 'fa fa-bell-o',
-                baseUrl: '/cluster/notifications',
-            });
         }
 
         if (caps.dc['Sys.Audit']) {

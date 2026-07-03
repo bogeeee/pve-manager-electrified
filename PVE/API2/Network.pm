@@ -20,6 +20,7 @@ use base qw(PVE::RESTHandler);
 my $have_sdn;
 eval {
     require PVE::Network::SDN;
+    require PVE::Network::SDN::WireGuard;
     $have_sdn = 1;
 };
 
@@ -922,6 +923,7 @@ __PACKAGE__->register_method({
             if ($have_sdn) {
                 PVE::Network::SDN::generate_etc_network_config();
                 PVE::Network::SDN::generate_dhcp_config();
+                PVE::Network::SDN::WireGuard::generate_wireguard_config();
             }
 
             my $err = sub {

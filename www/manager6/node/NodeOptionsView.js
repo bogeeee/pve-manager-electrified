@@ -41,6 +41,22 @@ Ext.define('Proxmox.node.NodeOptionsView', {
         },
     ],
 
+    rows: {
+        location: {
+            required: true,
+            header: gettext('Location'),
+            renderer: function (value) {
+                if (!value) {
+                    return gettext('from Datacenter options');
+                }
+                return Proxmox.Utils.renderLocation(value);
+            },
+            editor: {
+                xtype: 'pmxLocationEditWindow',
+            },
+        },
+    },
+
     gridRows: [
         {
             xtype: 'integer',

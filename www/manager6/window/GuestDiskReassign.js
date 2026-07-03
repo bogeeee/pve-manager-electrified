@@ -171,6 +171,7 @@ Ext.define('PVE.window.GuestDiskReassign', {
             disabled: true,
             cbind: {
                 hidden: '{!isQemu}',
+                nodename: '{nodename}',
             },
         },
         {

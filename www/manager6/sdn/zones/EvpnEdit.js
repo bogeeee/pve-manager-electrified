@@ -19,7 +19,7 @@ Ext.define('PVE.sdn.zones.EvpnInputPanel', {
         me.items = [
             {
                 xtype: 'pveSDNControllerSelector',
-                fieldLabel: gettext('Controller'),
+                fieldLabel: gettext('Primary Controller'),
                 name: 'controller',
                 value: '',
                 allowBlank: false,
@@ -86,6 +86,18 @@ Ext.define('PVE.sdn.zones.EvpnInputPanel', {
                 name: 'rt-import',
                 fieldLabel: gettext('Route Target Import'),
                 allowBlank: true,
+                deleteEmpty: !me.isCreate,
+            },
+        ];
+
+        me.advancedItems = [
+            {
+                xtype: 'pveSDNControllerSelector',
+                fieldLabel: gettext('Additional Controllers'),
+                name: 'secondary-controllers',
+                allowBlank: true,
+                multiSelect: true,
+                skipEmptyText: true,
                 deleteEmpty: !me.isCreate,
             },
         ];

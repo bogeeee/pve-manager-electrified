@@ -90,6 +90,9 @@ __PACKAGE__->register_method({
                 optional => 1,
                 default => 'all',
                 enum => ['all', 'versions'],
+                description => "Which metadata facet to return: 'all' enriches the per-daemon"
+                    . " metadata with the PVE-side service state (presence of unit, data"
+                    . " directory), 'versions' collects only per-node Ceph binary version data.",
             },
         },
     },
@@ -99,90 +102,98 @@ __PACKAGE__->register_method({
         properties => {
             mds => {
                 type => "object",
-                description =>
-                    "Metadata servers configured in the cluster and their properties.",
-                properties => {
-                    "{id}" => {
-                        type => "object",
-                        description => "Useful properties are listed, but not the full list.",
-                        properties => {
-                            addr => {
-                                type => "string",
-                                description => "Bind addresses and ports.",
-                            },
-                            name => {
-                                type => "string",
-                                description => "Name of the service instance.",
-                            },
-                            %{$metadata_common_props},
+                description => "Metadata servers configured in the cluster and their"
+                    . " properties, keyed by '<name>@<host>'.",
+                additionalProperties => {
+                    type => "object",
+                    description => "Useful properties are listed, but not the full list.",
+                    additionalProperties => 1,
+                    properties => {
+                        addr => {
+                            type => "string",
+                            description => "Bind addresses and ports.",
+                            optional => 1,
                         },
+                        name => {
+                            type => "string",
+                            description => "Name of the service instance.",
+                            optional => 1,
+                        },
+                        %{$metadata_common_props},
                     },
                 },
             },
             mgr => {
                 type => "object",
-                description => "Managers configured in the cluster and their properties.",
-                properties => {
-                    "{id}" => {
-                        type => "object",
-                        description => "Useful properties are listed, but not the full list.",
-                        properties => {
-                            addr => {
-                                type => "string",
-                                description => "Bind address",
-                            },
-                            name => {
-                                type => "string",
-                                description => "Name of the service instance.",
-                            },
-                            %{$metadata_common_props},
+                description => "Managers configured in the cluster and their properties,"
+                    . " keyed by '<name>@<host>'.",
+                additionalProperties => {
+                    type => "object",
+                    description => "Useful properties are listed, but not the full list.",
+                    additionalProperties => 1,
+                    properties => {
+                        addr => {
+                            type => "string",
+                            description => "Bind address.",
+                            optional => 1,
                         },
+                        name => {
+                            type => "string",
+                            description => "Name of the service instance.",
+                            optional => 1,
+                        },
+                        %{$metadata_common_props},
                     },
                 },
             },
             mon => {
                 type => "object",
-                description => "Monitors configured in the cluster and their properties.",
-                properties => {
-                    "{id}" => {
-                        type => "object",
-                        description => "Useful properties are listed, but not the full list.",
-                        properties => {
-                            addrs => {
-                                type => "string",
-                                description => "Bind addresses and ports.",
-                            },
-                            name => {
-                                type => "string",
-                                description => "Name of the service instance.",
-                            },
-                            %{$metadata_common_props},
+                description => "Monitors configured in the cluster and their properties,"
+                    . " keyed by '<name>@<host>'.",
+                additionalProperties => {
+                    type => "object",
+                    description => "Useful properties are listed, but not the full list.",
+                    additionalProperties => 1,
+                    properties => {
+                        addrs => {
+                            type => "string",
+                            description => "Bind addresses and ports.",
+                            optional => 1,
                         },
+                        name => {
+                            type => "string",
+                            description => "Name of the service instance.",
+                            optional => 1,
+                        },
+                        %{$metadata_common_props},
                     },
                 },
             },
             node => {
                 type => "object",
-                description => "Ceph version installed on the nodes.",
-                properties => {
-                    "{node}" => {
-                        type => "object",
-                        properties => {
-                            buildcommit => {
-                                type => "string",
-                                description => "GIT commit used for the build.",
-                            },
-                            version => {
-                                type => "object",
-                                description => "Version info.",
-                                properties => {
-                                    str => {
+                description => "Ceph version installed on the nodes, keyed by node name.",
+                additionalProperties => {
+                    type => "object",
+                    additionalProperties => 1,
+                    properties => {
+                        buildcommit => {
+                            type => "string",
+                            description => "GIT commit used for the build.",
+                        },
+                        version => {
+                            type => "object",
+                            description => "Version info.",
+                            properties => {
+                                str => {
+                                    type => "string",
+                                    description => "Version as single string.",
+                                },
+                                parts => {
+                                    type => "array",
+                                    description => "Major, minor and patch version numbers.",
+                                    items => {
                                         type => "string",
-                                        description => "Version as single string.",
-                                    },
-                                    parts => {
-                                        type => "array",
-                                        description => "major, minor & patch",
+                                        description => "Version-component string.",
                                     },
                                 },
                             },
@@ -193,39 +204,51 @@ __PACKAGE__->register_method({
             osd => {
                 type => "array",
                 description => "OSDs configured in the cluster and their properties.",
-                properties => {
-                    "{id}" => {
-                        type => "object",
-                        description => "Useful properties are listed, but not the full list.",
-                        properties => {
-                            id => {
-                                type => "integer",
-                                description => "OSD ID.",
-                            },
-                            front_addr => {
-                                type => "string",
-                                description =>
-                                    "Bind addresses and ports for frontend traffic to OSDs.",
-                            },
-                            back_addr => {
-                                type => "string",
-                                description =>
-                                    "Bind addresses and ports for backend inter OSD traffic.",
-                            },
-                            device_id => {
-                                type => "string",
-                                description => "Devices used by the OSD.",
-                            },
-                            osd_data => {
-                                type => "string",
-                                description => "Path to the OSD data directory.",
-                            },
-                            osd_objectstore => {
-                                type => "string",
-                                description => "OSD objectstore type.",
-                            },
-                            %{$metadata_common_props},
+                items => {
+                    type => "object",
+                    description => "Useful properties are listed, but not the full list.",
+                    properties => {
+                        id => {
+                            type => "integer",
+                            description => "OSD ID.",
                         },
+                        front_addr => {
+                            type => "string",
+                            description =>
+                                "Bind addresses and ports for frontend traffic to OSDs.",
+                        },
+                        back_addr => {
+                            type => "string",
+                            description =>
+                                "Bind addresses and ports for backend inter OSD traffic.",
+                        },
+                        devices => {
+                            type => "string",
+                            optional => 1,
+                            description =>
+                                "Comma-joined list of underlying device names (e.g. 'sdb,sdc').",
+                        },
+                        device_ids => {
+                            type => "string",
+                            optional => 1,
+                            description => "Comma-joined list of device identifiers"
+                                . " (e.g. 'sdb=<serial>,sdc=<serial>').",
+                        },
+                        device_paths => {
+                            type => "string",
+                            optional => 1,
+                            description => "Comma-joined list of /dev/disk/by-path entries"
+                                . " for the underlying devices.",
+                        },
+                        osd_data => {
+                            type => "string",
+                            description => "Path to the OSD data directory.",
+                        },
+                        osd_objectstore => {
+                            type => "string",
+                            description => "OSD objectstore type.",
+                        },
+                        %{$metadata_common_props},
                     },
                 },
             },
@@ -386,7 +409,10 @@ __PACKAGE__->register_method({
     name => 'set_flags',
     path => 'flags',
     method => 'PUT',
-    description => "Set/Unset multiple ceph flags at once.",
+    description => "Set/Unset multiple Ceph flags at once. Each flag is a top-level"
+        . " optional boolean: passing true sets the flag, false unsets it,"
+        . " omitting it leaves the current state untouched. Runs as a"
+        . " worker task; returns a UPID to follow.",
     protected => 1,
     permissions => {
         check => ['perm', '/', ['Sys.Modify']],
@@ -478,7 +504,9 @@ __PACKAGE__->register_method({
     name => 'update_flag',
     path => 'flags/{flag}',
     method => 'PUT',
-    description => "Set or clear (unset) a specific ceph flag",
+    description => "Set or clear (unset) a specific Ceph flag. Runs synchronously"
+        . " (unlike the bulk PUT /cluster/ceph/flags endpoint, which forks"
+        . " a worker task).",
     protected => 1,
     permissions => {
         check => ['perm', '/', ['Sys.Modify']],

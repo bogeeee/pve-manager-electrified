@@ -217,16 +217,62 @@ __PACKAGE__->register_method({
         items => {
             type => "object",
             properties => {
-                addr => { type => 'string', optional => 1 },
-                ceph_version => { type => 'string', optional => 1 },
-                ceph_version_short => { type => 'string', optional => 1 },
-                direxists => { type => 'string', optional => 1 },
-                host => { type => 'boolean', optional => 1 },
-                name => { type => 'string' },
-                quorum => { type => 'boolean', optional => 1 },
-                rank => { type => 'integer', optional => 1 },
-                service => { type => 'integer', optional => 1 },
-                state => { type => 'string', optional => 1 },
+                addr => {
+                    type => 'string',
+                    optional => 1,
+                    description =>
+                        "Address as advertised by the monitor; Ceph-formatted (typically"
+                        . " 'IP:PORT/NONCE', possibly as a messenger-v2 vector depending on Ceph"
+                        . " version and ceph.conf shape).",
+                },
+                ceph_version => {
+                    type => 'string',
+                    optional => 1,
+                    description => "Full Ceph version string of the monitor daemon.",
+                },
+                ceph_version_short => {
+                    type => 'string',
+                    optional => 1,
+                    description =>
+                        "Short Ceph version string of the monitor daemon (e.g. '19.2.0').",
+                },
+                direxists => {
+                    type => 'boolean',
+                    optional => 1,
+                    description => "Set when the monitor's data directory exists on this node.",
+                },
+                host => {
+                    type => 'string',
+                    optional => 1,
+                    description => "Host the monitor runs on.",
+                },
+                name => {
+                    type => 'string',
+                    description => "Monitor id (typically the hostname).",
+                },
+                quorum => {
+                    type => 'boolean',
+                    optional => 1,
+                    description => "Set when the monitor is part of the current quorum.",
+                },
+                rank => {
+                    type => 'integer',
+                    optional => 1,
+                    description => "Rank of the monitor within the mon map.",
+                },
+                service => {
+                    type => 'boolean',
+                    optional => 1,
+                    description => "Set if a ceph-mon@<id> systemd unit is enabled on the"
+                        . " hosting node; absent otherwise.",
+                },
+                state => {
+                    type => 'string',
+                    optional => 1,
+                    description => "Run state of the monitor: 'running' (in quorum), 'stopped'"
+                        . " (systemd unit configured but daemon not visible to the cluster), or"
+                        . " 'unknown' (no rados access).",
+                },
             },
         },
         links => [{ rel => 'child', href => "{name}" }],
@@ -275,7 +321,7 @@ __PACKAGE__->register_method({
     name => 'createmon',
     path => '{monid}',
     method => 'POST',
-    description => "Create Ceph Monitor and Manager",
+    description => "Create a Ceph Monitor. Also auto-creates a Manager for the first monitor.",
     proxyto => 'node',
     protected => 1,
     permissions => {
@@ -288,9 +334,10 @@ __PACKAGE__->register_method({
             monid => {
                 type => 'string',
                 optional => 1,
+                default => 'nodename',
                 pattern => PVE::Ceph::Services::SERVICE_REGEX,
                 maxLength => 200,
-                description => "The ID for the monitor, when omitted the same as the nodename",
+                description => "The ID for the monitor, when omitted the same as the nodename.",
             },
             'mon-address' => {
                 description => 'Overwrites autodetected monitor IP address(es). '
@@ -515,7 +562,9 @@ __PACKAGE__->register_method({
     name => 'destroymon',
     path => '{monid}',
     method => 'DELETE',
-    description => "Destroy Ceph Monitor and Manager.",
+    description => "Destroy a Ceph Monitor. Refuses to remove the last monitor of the"
+        . " cluster. Does not destroy any Manager on the same node;"
+        . " use /nodes/{node}/ceph/mgr/{id} for that.",
     proxyto => 'node',
     protected => 1,
     permissions => {

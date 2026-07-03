@@ -298,3 +298,17 @@ sha512sum: 779cf8bbdf788057234eb439e4f165a39bb90bf9e65b5eded73354425376fe93a0e27
 Infopage: https://pve.proxmox.com/wiki/Linux_Container#pct_supported_distributions
 Description: Ubuntu 25.04 Plucky (standard)
  A small Ubuntu 25.04 Plucky Puffin system including all standard packages.
+
+Package: ubuntu-26.04-standard
+Version: 26.04-1
+Type: lxc
+OS: ubuntu-26.04
+Section: system
+Maintainer: Proxmox Support Team <support@proxmox.com>
+Architecture: amd64
+Location: system/ubuntu-26.04-standard_26.04-1_amd64.tar.zst
+md5sum: 7ad11fd200b1ae9eec8422a4f55ef673
+sha512sum: d5607f124d01f8ddfebd8e7da34c0022fb2a464e1662ee1e39a13f5ed1bae08a7364c486247fbd9f69f26c710729884ee5047aadb89f33a40066cd5f0d9def88
+Infopage: https://pve.proxmox.com/wiki/Linux_Container#pct_supported_distributions
+Description: Ubuntu 26.04 Resolute (standard)
+ A small Ubuntu 26.04 Resolute Raccoon system including all standard packages.

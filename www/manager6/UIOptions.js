@@ -60,12 +60,20 @@ Ext.define('PVE.UIOptions', {
         let overrides = style?.['color-map'];
         PVE.UIOptions.updateTagOverrides(PVE.UIOptions.parseTagOverrides(overrides ?? ''));
 
-        let shape = style?.shape ?? 'circle';
-        if (shape === '__default__') {
-            style = 'circle';
-        }
+        Ext.ComponentQuery.query('pveResourceTree')[0].setUserCls(
+            PVE.UIOptions.tagStyleClass(style),
+        );
+        Ext.ComponentQuery.query('vmselector').forEach((component) => {
+            component.setUserCls(PVE.UIOptions.tagStyleClass(style, true));
+        });
+    },
 
-        Ext.ComponentQuery.query('pveResourceTree')[0].setUserCls(`proxmox-tags-${shape}`);
+    tagStyleClass: function (style, replaceNone = false) {
+        let shape = style?.shape ?? 'circle';
+        if (shape === '__default__' || (shape === 'none' && replaceNone)) {
+            shape = 'circle';
+        }
+        return `proxmox-tags-${shape}`;
     },
 
     tagTreeStyles: {

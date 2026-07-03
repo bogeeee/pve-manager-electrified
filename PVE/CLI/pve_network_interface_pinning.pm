@@ -158,7 +158,7 @@ my sub parse_link_file {
     my $data = {};
 
     for my $line (@lines) {
-        next if $line =~ m/^\s*$/;
+        next if $line =~ m/^\s*(?:[#;]|$)/;
 
         if ($line =~ m/^\[(Match|Link)\]$/) {
             $section = $1;
@@ -185,9 +185,11 @@ my sub get_pinned {
 
     ensure_link_directory_exists();
 
+    # parse both the product-neutral '50-pmx-' prefix and the legacy '50-pve-' one so pinning
+    # entries written by older versions of this tool or by the pre-rename installer stay visible.
     PVE::Tools::dir_glob_foreach(
         $LINK_DIRECTORY,
-        qr/^50-pve-(.+)\.link$/,
+        qr/^50-(?:pmx|pve)-(.+)\.link$/,
         sub {
             my $parsed = parse_link_file($LINK_DIRECTORY . $_[0]);
             $link_files->{ $parsed->{'Match'}->{'MACAddress'} } = $parsed->{'Link'}->{'Name'};
@@ -208,6 +210,11 @@ EOF
 
 my sub link_file_name {
     my ($iface_name) = @_;
+    return "50-pmx-$iface_name.link";
+}
+
+my sub legacy_link_file_name {
+    my ($iface_name) = @_;
     return "50-pve-$iface_name.link";
 }
 
@@ -217,11 +224,12 @@ my sub delete_link_files {
     ensure_link_directory_exists();
 
     for my $iface_name (values %$pinned) {
-        my $link_file = $LINK_DIRECTORY . link_file_name($iface_name);
-
-        if (!unlink $link_file) {
-            return if $! == ENOENT;
-            warn "failed to delete $link_file";
+        # remove both prefix forms so a stale legacy file does not get re-discovered after the pin
+        # was deleted; previously this `return`ed on the first ENOENT, leaving siblings untouched.
+        for my $name (link_file_name($iface_name), legacy_link_file_name($iface_name)) {
+            my $link_file = $LINK_DIRECTORY . $name;
+            next if !-e $link_file;
+            unlink $link_file or warn "failed to delete $link_file: $!\n";
         }
     }
 }
@@ -242,6 +250,11 @@ my sub generate_link_files {
             $LINK_DIRECTORY . link_file_name($mapped_name),
             $link_file_content,
         );
+
+        # drop a stale legacy-prefix sibling so the same interface name does not end up claimed
+        # by two .link files for different physical NICs after a tool upgrade.
+        my $legacy = $LINK_DIRECTORY . legacy_link_file_name($mapped_name);
+        unlink $legacy if -e $legacy;
     }
 }
 

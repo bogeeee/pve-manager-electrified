@@ -26,7 +26,7 @@ Ext.define('PVE.sdn.zones.SimpleInputPanel', {
                 inputValue: 'dnsmasq',
                 uncheckedValue: null,
                 checked: false,
-                fieldLabel: gettext('automatic DHCP'),
+                fieldLabel: gettext('Automatic DHCP'),
                 deleteEmpty: !me.isCreate,
             },
         ];

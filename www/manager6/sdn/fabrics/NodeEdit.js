@@ -11,6 +11,12 @@ Ext.define('PVE.sdn.Fabric.Node.Edit', {
     nodeId: undefined,
     protocol: undefined,
 
+    hasIpv4Support: true,
+    hasIpv6Support: true,
+
+    fabricIpPrefix: undefined,
+    fabricIp6Prefix: undefined,
+
     disallowedNodes: [],
 
     baseUrl: '/cluster/sdn/fabrics/node',
@@ -22,22 +28,12 @@ Ext.define('PVE.sdn.Fabric.Node.Edit', {
             hidden: true,
             allowBlank: true,
         },
-        {
-            xtype: 'proxmoxtextfield',
-            fieldLabel: gettext('IPv4'),
-            labelWidth: 120,
-            name: 'ip',
-            allowBlank: true,
-            skipEmptyText: true,
-            cbind: {
-                deleteEmpty: '{!isCreate}',
-            },
-        },
     ],
 
     additionalItems: [],
 
     addAnotherCallback: undefined,
+    includeWireguardInterfaces: false,
 
     initComponent: function () {
         let me = this;
@@ -52,6 +48,36 @@ Ext.define('PVE.sdn.Fabric.Node.Edit', {
             me.url = `${me.baseUrl}/${me.fabricId}`;
         }
 
+        if (me.hasIpv4Support && me.fabricIpPrefix) {
+            me.items.push({
+                xtype: 'proxmoxtextfield',
+                fieldLabel: gettext('IPv4'),
+                labelWidth: 120,
+                name: 'ip',
+                vtype: 'IPAddress',
+                allowBlank: true,
+                skipEmptyText: true,
+                cbind: {
+                    deleteEmpty: '{!isCreate}',
+                },
+            });
+        }
+
+        if (me.hasIpv6Support && me.fabricIp6Prefix) {
+            me.items.push({
+                xtype: 'proxmoxtextfield',
+                fieldLabel: gettext('IPv6'),
+                labelWidth: 120,
+                name: 'ip6',
+                vtype: 'IP6Address',
+                allowBlank: true,
+                skipEmptyText: true,
+                cbind: {
+                    deleteEmpty: '{!isCreate}',
+                },
+            });
+        }
+
         me.nodeSelector = me.getNodeSelector();
         me.interfaceSelector = me.getInterfaceSelector();
 
@@ -61,7 +87,7 @@ Ext.define('PVE.sdn.Fabric.Node.Edit', {
 
         if (me.isCreate && me.addAnotherCallback) {
             let addAnotherBtn = Ext.create('Ext.Button', {
-                text: gettext('Create another'),
+                text: gettext('Create Another'),
                 disabled: !me.isCreate,
                 handler: function () {
                     me.apiCallDone = (success, _response, _options) => {
@@ -107,23 +133,57 @@ Ext.define('PVE.sdn.Fabric.Node.Edit', {
     loadNodeInterfaces: async function () {
         let me = this;
 
-        let req = await Proxmox.Async.api2({
-            url: `/api2/extjs/nodes/${me.nodeId}/network`,
-            method: 'GET',
-        });
+        let requests = [
+            Proxmox.Async.api2({
+                url: `/api2/extjs/nodes/${me.nodeId}/network`,
+                method: 'GET',
+            }),
+        ];
 
-        return req.result.data.map((iface) => ({
+        if (me.includeWireguardInterfaces) {
+            requests.push(
+                Proxmox.Async.api2({
+                    url: `/api2/extjs/cluster/sdn/fabrics/node/`,
+                    method: 'GET',
+                }),
+            );
+        }
+
+        let result = await Promise.all(requests);
+
+        let interfaces = result[0].result.data.map((iface) => ({
             name: iface.iface,
             type: iface.type,
             ip: iface.cidr,
-            ipv6: iface.cidr6,
+            ip6: iface.cidr6,
         }));
+
+        if (me.includeWireguardInterfaces) {
+            let wireguardNodes = result[1].result.data.filter((node) => {
+                return (
+                    node.node_id === me.nodeId && node.protocol === 'wireguard' && node.interfaces
+                );
+            });
+
+            for (const node of wireguardNodes) {
+                for (const ifacePropertyString of node.interfaces) {
+                    let iface = PVE.Parser.parsePropertyString(ifacePropertyString);
+
+                    interfaces.push({
+                        name: iface.name,
+                        type: 'wireguard',
+                    });
+                }
+            }
+        }
+
+        return interfaces;
     },
 
     load: function () {
         let me = this;
 
-        me.setLoading('fetching node information');
+        me.setLoading(gettext('Fetching Node Information'));
 
         Promise.all([me.loadNode(me.fabricId, me.nodeId), me.loadNodeInterfaces(me.nodeId)])
             .catch(Proxmox.Utils.alertResponseFailure)
@@ -136,12 +196,12 @@ Ext.define('PVE.sdn.Fabric.Node.Edit', {
             });
     },
 
-    getNodeSelector: function () {
+    getNodeSelectorConfig: function () {
         let me = this;
 
-        return Ext.create('PVE.form.NodeSelector', {
+        return {
             xtype: 'pveNodeSelector',
-            reference: 'nodeselector',
+            reference: 'nodeSelector',
             fieldLabel: gettext('Node'),
             labelWidth: 120,
             name: 'node_id',
@@ -193,13 +253,20 @@ Ext.define('PVE.sdn.Fabric.Node.Edit', {
                     },
                 },
             },
-        });
+        };
+    },
+
+    getNodeSelector: function () {
+        let me = this;
+        return Ext.create('PVE.form.NodeSelector', me.getNodeSelectorConfig());
     },
 
     getInterfacePanel: function (protocol) {
         const INTERFACE_PANELS = {
             openfabric: 'PVE.sdn.Fabric.OpenFabric.InterfacePanel',
             ospf: 'PVE.sdn.Fabric.Ospf.InterfacePanel',
+            wireguard: 'PVE.sdn.Fabric.WireGuard.InterfacePanel',
+            bgp: 'PVE.sdn.Fabric.Bgp.InterfacePanel',
         };
 
         return INTERFACE_PANELS[protocol];
@@ -208,8 +275,11 @@ Ext.define('PVE.sdn.Fabric.Node.Edit', {
     getInterfaceSelector: function () {
         let me = this;
 
-        return Ext.create(me.getInterfacePanel(me.protocol), {
+        let componentName = me.getInterfacePanel(me.protocol);
+
+        return Ext.create(componentName, {
             name: 'interfaces',
+            reference: 'interfaceSelector',
         });
     },
 });

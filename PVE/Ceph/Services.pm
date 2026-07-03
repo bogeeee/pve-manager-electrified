@@ -28,7 +28,7 @@ sub get_local_services {
             $regex,
             sub {
                 my (undef, $id) = @_;
-                $res->{$type}->{$id}->{service} = 1;
+                $res->{$type}->{$id}->{service} = JSON::true;
             },
         );
 
@@ -39,7 +39,7 @@ sub get_local_services {
             $regex,
             sub {
                 my (undef, $clustername, $id) = @_;
-                $res->{$type}->{$id}->{direxists} = 1;
+                $res->{$type}->{$id}->{direxists} = JSON::true;
             },
         );
     }
@@ -209,9 +209,9 @@ sub get_cluster_mds_state {
         my $state = {};
         $state->{addr} = $mds->{addr};
         $state->{rank} = $mds->{rank};
-        $state->{standby_replay} = $mds->{standby_replay} ? 1 : 0;
+        $state->{standby_replay} = $mds->{standby_replay} ? JSON::true : JSON::false;
         $state->{state} = $mds->{state};
-        $state->{fs_name} = $fsname;
+        $state->{fs_name} = $fsname if defined($fsname);
 
         $mds_state->{ $mds->{name} } = $state;
     };

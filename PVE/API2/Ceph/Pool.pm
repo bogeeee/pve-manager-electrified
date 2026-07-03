@@ -56,79 +56,110 @@ __PACKAGE__->register_method({
                 pool => {
                     type => 'integer',
                     title => 'ID',
+                    description => "Numeric pool id assigned by Ceph.",
                 },
                 pool_name => {
                     type => 'string',
                     title => 'Name',
+                    description => "Operator-visible name of the pool.",
                 },
                 size => {
                     type => 'integer',
                     title => 'Size',
+                    description => "Replication factor (target number of object replicas).",
                 },
                 type => {
                     type => 'string',
                     title => 'Type',
                     enum => ['replicated', 'erasure', 'unknown'],
+                    description =>
+                        "Pool type: 'replicated' for n-way replication, 'erasure' for"
+                        . " an erasure-coded pool, 'unknown' for types PVE does not yet map.",
                 },
                 min_size => {
                     type => 'integer',
                     title => 'Min Size',
+                    description => "Minimum number of replicas required to accept writes.",
                 },
                 pg_num => {
                     type => 'integer',
                     title => 'PG Num',
+                    description => "Current placement-group count.",
                 },
                 pg_num_min => {
                     type => 'integer',
                     title => 'min. PG Num',
                     optional => 1,
+                    description =>
+                        "Minimum placement-group count the pg_autoscaler may choose.",
                 },
                 pg_num_final => {
                     type => 'integer',
                     title => 'Optimal PG Num',
                     optional => 1,
+                    description => "Optimal placement-group count computed by pg_autoscaler.",
                 },
                 pg_autoscale_mode => {
                     type => 'string',
                     title => 'PG Autoscale Mode',
                     optional => 1,
+                    description => "Placement-group autoscaler mode ('on', 'warn' or 'off').",
                 },
                 crush_rule => {
                     type => 'integer',
                     title => 'Crush Rule',
+                    description => "Numeric id of the CRUSH rule used by this pool.",
                 },
                 crush_rule_name => {
                     type => 'string',
                     title => 'Crush Rule Name',
+                    optional => 1,
+                    description => "Human-readable name of the CRUSH rule used by this"
+                        . " pool; absent if the rule id is not in the current"
+                        . " CRUSH map.",
                 },
                 percent_used => {
                     type => 'number',
                     title => '%-Used',
+                    optional => 1,
+                    description => "Percentage of pool capacity currently used; absent"
+                        . " if no usage statistics are reported.",
                 },
                 bytes_used => {
                     type => 'integer',
                     title => 'Used',
                     renderer => 'bytes',
+                    optional => 1,
+                    description => "Bytes currently used in the pool; absent if no usage"
+                        . " statistics are reported.",
                 },
                 target_size => {
                     type => 'integer',
                     title => 'PG Autoscale Target Size',
                     optional => 1,
+                    description =>
+                        "Operator-supplied target size in bytes; hints the pg_autoscaler.",
                 },
                 target_size_ratio => {
                     type => 'number',
                     title => 'PG Autoscale Target Ratio',
                     optional => 1,
+                    description => "Operator-supplied target ratio of total pool capacity;"
+                        . " hints the pg_autoscaler.",
                 },
                 autoscale_status => {
                     type => 'object',
                     title => 'Autoscale Status',
                     optional => 1,
+                    description => "Raw pg_autoscaler status object for this pool;"
+                        . " shape varies between Ceph releases.",
                 },
                 application_metadata => {
                     type => 'object',
                     title => 'Associated Applications',
                     optional => 1,
+                    description => "Application tags attached to the pool (mapping of"
+                        . " application name to its metadata object).",
                 },
             },
         },
@@ -196,6 +227,12 @@ __PACKAGE__->register_method({
                 $d->{bytes_used} = $s->{bytes_used};
                 $d->{percent_used} = $s->{percent_used};
             }
+
+            # Ceph's `osd dump` returns numeric pool id and crush rule id as
+            # JSON strings since at least Octopus; coerce to integers to
+            # match the schema (and to keep the JSON output honest).
+            $d->{pool} = int($d->{pool}) if defined($d->{pool});
+            $d->{crush_rule} = int($d->{crush_rule}) if defined($d->{crush_rule});
 
             # Cephs numerical pool types are barely documented. Found the following in the Ceph
             # codebase: https://github.com/ceph/ceph/blob/ff144995a849407c258bcb763daa3e03cfce5059/src/osd/osd_types.h#L1221-L1233
@@ -402,10 +439,12 @@ __PACKAGE__->register_method({
         properties => {
             node => get_standard_option('pve-node'),
             add_storages => {
-                description => "Configure VM and CT storage using the new pool.",
+                description => "Configure VM and CT storage using the new pool. Defaults to"
+                    . " false for replicated pools and to true for erasure-coded pools"
+                    . " (since EC pools are typically only useful when wired up to storage).",
                 type => 'boolean',
                 optional => 1,
-                default => "0; for erasure coded pools: 1",
+                default => 0,
             },
             'erasure-coding' => {
                 description => "Create an erasure coded pool for RBD with an accompaning"
@@ -720,21 +759,85 @@ __PACKAGE__->register_method({
     returns => {
         type => "object",
         properties => {
-            id => { type => 'integer', title => 'ID' },
-            pgp_num => { type => 'integer', title => 'PGP num' },
-            noscrub => { type => 'boolean', title => 'noscrub' },
-            'nodeep-scrub' => { type => 'boolean', title => 'nodeep-scrub' },
-            nodelete => { type => 'boolean', title => 'nodelete' },
-            nopgchange => { type => 'boolean', title => 'nopgchange' },
-            nosizechange => { type => 'boolean', title => 'nosizechange' },
-            write_fadvise_dontneed => { type => 'boolean', title => 'write_fadvise_dontneed' },
-            hashpspool => { type => 'boolean', title => 'hashpspool' },
-            use_gmt_hitset => { type => 'boolean', title => 'use_gmt_hitset' },
-            fast_read => { type => 'boolean', title => 'Fast Read' },
-            application_list => { type => 'array', title => 'Application', optional => 1 },
-            statistics => { type => 'object', title => 'Statistics', optional => 1 },
-            autoscale_status =>
-                { type => 'object', title => 'Autoscale Status', optional => 1 },
+            id => {
+                type => 'integer',
+                title => 'ID',
+                description => "Numeric pool id assigned by Ceph.",
+            },
+            pgp_num => {
+                type => 'integer',
+                title => 'PGP num',
+                description => "Placement-group-for-placement count.",
+            },
+            noscrub => {
+                type => 'boolean',
+                title => 'noscrub',
+                description => "Set if scrubbing is disabled for this pool.",
+            },
+            'nodeep-scrub' => {
+                type => 'boolean',
+                title => 'nodeep-scrub',
+                description => "Set if deep-scrubbing is disabled for this pool.",
+            },
+            nodelete => {
+                type => 'boolean',
+                title => 'nodelete',
+                description => "Set if pool delete is blocked.",
+            },
+            nopgchange => {
+                type => 'boolean',
+                title => 'nopgchange',
+                description => "Set if changing the placement-group count is blocked.",
+            },
+            nosizechange => {
+                type => 'boolean',
+                title => 'nosizechange',
+                description => "Set if changing the replication size is blocked.",
+            },
+            write_fadvise_dontneed => {
+                type => 'boolean',
+                title => 'write_fadvise_dontneed',
+                description => "Set if the pool sets the FADV_DONTNEED hint on writes.",
+            },
+            hashpspool => {
+                type => 'boolean',
+                title => 'hashpspool',
+                description => "Set if the pool hashes pool id into its CRUSH placement-seed.",
+            },
+            use_gmt_hitset => {
+                type => 'boolean',
+                title => 'use_gmt_hitset',
+                description => "Set if hitsets use GMT timestamps (for cache-tier pools).",
+            },
+            fast_read => {
+                type => 'boolean',
+                title => 'Fast Read',
+                description => "Set if the pool uses fast-read for erasure-coded reads.",
+            },
+            application_list => {
+                type => 'array',
+                title => 'Application',
+                optional => 1,
+                description => "Names of applications currently associated with the" . " pool.",
+                items => {
+                    type => 'string',
+                    description => "Application name (e.g. 'rbd', 'cephfs', 'rgw').",
+                },
+            },
+            statistics => {
+                type => 'object',
+                title => 'Statistics',
+                optional => 1,
+                description => "Optional pool usage and IO statistics (only present"
+                    . " when verbose=1 is requested).",
+            },
+            autoscale_status => {
+                type => 'object',
+                title => 'Autoscale Status',
+                optional => 1,
+                description => "Raw pg_autoscaler status object for this pool;"
+                    . " shape varies between Ceph releases.",
+            },
             %{ $ceph_pool_common_options->() },
         },
     },
@@ -763,15 +866,15 @@ __PACKAGE__->register_method({
             pgp_num => $res->{pgp_num},
             crush_rule => $res->{crush_rule},
             pg_autoscale_mode => $res->{pg_autoscale_mode},
-            noscrub => "$res->{noscrub}",
-            'nodeep-scrub' => "$res->{'nodeep-scrub'}",
-            nodelete => "$res->{nodelete}",
-            nopgchange => "$res->{nopgchange}",
-            nosizechange => "$res->{nosizechange}",
-            write_fadvise_dontneed => "$res->{write_fadvise_dontneed}",
-            hashpspool => "$res->{hashpspool}",
-            use_gmt_hitset => "$res->{use_gmt_hitset}",
-            fast_read => "$res->{fast_read}",
+            noscrub => $res->{noscrub} ? JSON::true : JSON::false,
+            'nodeep-scrub' => $res->{'nodeep-scrub'} ? JSON::true : JSON::false,
+            nodelete => $res->{nodelete} ? JSON::true : JSON::false,
+            nopgchange => $res->{nopgchange} ? JSON::true : JSON::false,
+            nosizechange => $res->{nosizechange} ? JSON::true : JSON::false,
+            write_fadvise_dontneed => $res->{write_fadvise_dontneed} ? JSON::true : JSON::false,
+            hashpspool => $res->{hashpspool} ? JSON::true : JSON::false,
+            use_gmt_hitset => $res->{use_gmt_hitset} ? JSON::true : JSON::false,
+            fast_read => $res->{fast_read} ? JSON::true : JSON::false,
             target_size => $res->{target_size_bytes},
             target_size_ratio => $res->{target_size_ratio},
         };
@@ -783,11 +886,12 @@ __PACKAGE__->register_method({
             # pg_autoscaler module is not enabled in Nautilus
             # avoid partial read further down, use new rados instance
             my $autoscale_status = eval { $get_autoscale_status->() };
-            $data->{autoscale_status} = $autoscale_status->{$pool};
+            $data->{autoscale_status} = $autoscale_status->{$pool}
+                if $autoscale_status;
 
             foreach my $d (@{ $res->{pools} }) {
                 next if !$d->{stats};
-                next if !defined($d->{name}) && !$d->{name} ne "$pool";
+                next if $d->{name} ne $pool;
                 $data->{statistics} = $d->{stats};
             }
 

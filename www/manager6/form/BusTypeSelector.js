@@ -1,9 +1,11 @@
 Ext.define('PVE.form.BusTypeSelector', {
-    extend: 'Proxmox.form.KVComboBox',
+    extend: 'PVE.form.FilteredKVComboBox',
     alias: 'widget.pveBusSelector',
 
     withVirtIO: true,
     withUnused: false,
+
+    allowedValuesPerCategory: PVE.qemu.Architecture.allowedBusses,
 
     initComponent: function () {
         var me = this;

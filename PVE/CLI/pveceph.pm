@@ -334,126 +334,6 @@ __PACKAGE__->register_method({
     },
 });
 
-my $get_storages = sub {
-    my ($fs, $is_default) = @_;
-
-    my $cfg = PVE::Storage::config();
-
-    my $storages = $cfg->{ids};
-    my $res = {};
-    foreach my $storeid (keys %$storages) {
-        my $curr = $storages->{$storeid};
-        next if $curr->{type} ne 'cephfs';
-        my $cur_fs = $curr->{'fs-name'};
-        $res->{$storeid} = $storages->{$storeid}
-            if (!defined($cur_fs) && $is_default) || (defined($cur_fs) && $fs eq $cur_fs);
-    }
-
-    return $res;
-};
-
-__PACKAGE__->register_method({
-    name => 'destroyfs',
-    path => 'destroyfs',
-    method => 'DELETE',
-    description => "Destroy a Ceph filesystem",
-    parameters => {
-        additionalProperties => 0,
-        properties => {
-            node => get_standard_option('pve-node'),
-            name => {
-                description => "The ceph filesystem name.",
-                type => 'string',
-            },
-            'remove-storages' => {
-                description => "Remove all pveceph-managed storages configured for this fs.",
-                type => 'boolean',
-                optional => 1,
-                default => 0,
-            },
-            'remove-pools' => {
-                description => "Remove data and metadata pools configured for this fs.",
-                type => 'boolean',
-                optional => 1,
-                default => 0,
-            },
-        },
-    },
-    returns => { type => 'string' },
-    code => sub {
-        my ($param) = @_;
-
-        PVE::Ceph::Tools::check_ceph_inited();
-
-        my $rpcenv = PVE::RPCEnvironment::get();
-        my $user = $rpcenv->get_user();
-
-        my $fs_name = $param->{name};
-
-        my $fs;
-        my $fs_list = PVE::Ceph::Tools::ls_fs();
-        for my $entry (@$fs_list) {
-            next if $entry->{name} ne $fs_name;
-            $fs = $entry;
-            last;
-        }
-        die "no such cephfs '$fs_name'\n" if !$fs;
-
-        my $worker = sub {
-            my $rados = PVE::RADOS->new();
-
-            if ($param->{'remove-storages'}) {
-                my $defaultfs;
-                my $fs_dump = $rados->mon_command({ prefix => "fs dump" });
-                for my $fs ($fs_dump->{filesystems}->@*) {
-                    next if $fs->{id} != $fs_dump->{default_fscid};
-                    $defaultfs = $fs->{mdsmap}->{fs_name};
-                }
-                warn "no default fs found, maybe not all relevant storages are removed\n"
-                    if !defined($defaultfs);
-
-                my $storages = $get_storages->($fs_name, $fs_name eq ($defaultfs // ''));
-                for my $storeid (keys %$storages) {
-                    my $store = $storages->{$storeid};
-                    if (!$store->{disable}) {
-                        die "storage '$storeid' is not disabled, make sure to disable "
-                            . "and unmount the storage first\n";
-                    }
-                }
-
-                my $err;
-                for my $storeid (keys %$storages) {
-                    # skip external clusters, not managed by pveceph
-                    next if $storages->{$storeid}->{monhost};
-                    eval { PVE::API2::Storage::Config->delete({ storage => $storeid }) };
-                    if ($@) {
-                        warn "failed to remove storage '$storeid': $@\n";
-                        $err = 1;
-                    }
-                }
-                die "failed to remove (some) storages - check log and remove manually!\n"
-                    if $err;
-            }
-
-            PVE::Ceph::Tools::destroy_fs($fs_name, $rados);
-
-            if ($param->{'remove-pools'}) {
-                warn "removing metadata pool '$fs->{metadata_pool}'\n";
-                eval { PVE::Ceph::Tools::destroy_pool($fs->{metadata_pool}, $rados) };
-                warn "$@\n" if $@;
-
-                foreach my $pool ($fs->{data_pools}->@*) {
-                    warn "removing data pool '$pool'\n";
-                    eval { PVE::Ceph::Tools::destroy_pool($pool, $rados) };
-                    warn "$@\n" if $@;
-                }
-            }
-
-        };
-        return $rpcenv->fork_worker('cephdestroyfs', $fs_name, $user, $worker);
-    },
-});
-
 __PACKAGE__->register_method({
     name => 'osd-details',
     path => 'osd-details',
@@ -574,7 +454,7 @@ our $cmddef = {
     destroypool => { alias => 'pool destroy' },
     fs => {
         create => ['PVE::API2::Ceph::FS', 'createfs', [], { node => $nodename }],
-        destroy => [__PACKAGE__, 'destroyfs', ['name'], { node => $nodename }],
+        destroy => ['PVE::API2::Ceph::FS', 'destroyfs', ['name'], { node => $nodename }],
     },
     osd => {
         create =>

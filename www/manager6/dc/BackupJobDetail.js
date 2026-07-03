@@ -109,41 +109,21 @@ Ext.define('PVE.dc.BackupDiskTree', {
             header: {
                 items: [
                     {
-                        xtype: 'textfield',
+                        xtype: 'pveRecordSearchField',
                         fieldLabel: gettext('Search'),
                         labelWidth: 50,
-                        emptyText: 'Name, VMID, Type',
-                        width: 200,
                         padding: '0 5 0 0',
-                        enableKeyEvents: true,
+                        emptyText: gettext('Name, VMID, Type'),
+                        searchFields: ['name', 'id', 'type'],
                         listeners: {
-                            buffer: 500,
-                            keyup: function (field) {
-                                let searchValue = field.getValue().toLowerCase();
+                            searchchange: function (field) {
                                 me.store.clearFilter(true);
-                                me.store.filterBy(function (record) {
-                                    let data = {};
-                                    if (record.data.depth === 0) {
+                                me.store.filterBy(function (rec) {
+                                    if (rec.data.depth === 0) {
                                         return true;
-                                    } else if (record.data.depth === 1) {
-                                        data = record.data;
-                                    } else if (record.data.depth === 2) {
-                                        data = record.parentNode.data;
                                     }
-
-                                    for (const property of ['name', 'id', 'type']) {
-                                        if (!data[property]) {
-                                            continue;
-                                        }
-                                        let v = data[property].toString();
-                                        if (v !== undefined) {
-                                            v = v.toLowerCase();
-                                            if (v.includes(searchValue)) {
-                                                return true;
-                                            }
-                                        }
-                                    }
-                                    return false;
+                                    let target = rec.data.depth === 2 ? rec.parentNode : rec;
+                                    return field.matchesRecord(target);
                                 });
                             },
                         },
@@ -479,32 +459,10 @@ Ext.define('PVE.dc.BackedGuests', {
                 gettext('Search') + ':',
                 ' ',
                 {
-                    xtype: 'textfield',
-                    width: 200,
-                    emptyText: 'Name, VMID, Type',
-                    enableKeyEvents: true,
-                    listeners: {
-                        buffer: 500,
-                        keyup: function (field) {
-                            let searchValue = field.getValue().toLowerCase();
-                            me.store.clearFilter(true);
-                            me.store.filterBy(function (record) {
-                                let data = record.data;
-                                for (const property of ['name', 'vmid', 'type']) {
-                                    if (data[property] === null) {
-                                        continue;
-                                    }
-                                    let v = data[property].toString();
-                                    if (v !== undefined) {
-                                        if (v.toLowerCase().includes(searchValue)) {
-                                            return true;
-                                        }
-                                    }
-                                }
-                                return false;
-                            });
-                        },
-                    },
+                    xtype: 'pveRecordSearchField',
+                    emptyText: gettext('Name, VMID, Type'),
+                    searchFields: ['name', 'vmid', 'type'],
+                    targetStore: me.store,
                 },
             ],
         });

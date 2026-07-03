@@ -47,7 +47,7 @@ Ext.define('PVE.Utils', {
 
         kvm_ostypes: {
             Linux: [
-                { desc: '6.x - 2.6 Kernel', val: 'l26' },
+                { desc: '7.x - 2.6 Kernel', val: 'l26' },
                 { desc: '2.4 Kernel', val: 'l24' },
             ],
             'Microsoft Windows': [
@@ -193,13 +193,17 @@ Ext.define('PVE.Utils', {
                 } else {
                     return `<span style="text-decoration: line-through;">${Ext.htmlEncode(value)}</span>`;
                 }
-            } else if (rec.data.pending[key] !== undefined && rec.data.pending[key] !== null) {
+            } else if (
+                rec.data?.pending?.[key] !== undefined &&
+                rec.data?.pending?.[key] !== null
+            ) {
                 if (rec.data.pending[key] === 'deleted') {
                     return ' ';
                 } else {
                     return Ext.htmlEncode(rec.data.pending[key]);
                 }
             }
+
             return Ext.htmlEncode(value);
         },
 
@@ -216,7 +220,7 @@ Ext.define('PVE.Utils', {
 
             let tip = gettext('Pending Changes') + ': <br>';
 
-            for (const [key, keyvalue] of Object.entries(rec.data.pending)) {
+            for (const [key, keyvalue] of Object.entries(rec.data.pending ?? {})) {
                 if (
                     (rec.data[key] !== undefined && rec.data.pending[key] !== rec.data[key]) ||
                     rec.data[key] === undefined
@@ -268,6 +272,34 @@ Ext.define('PVE.Utils', {
             }
 
             return '<i class="fa fa-' + iconCls + '"></i> ' + value;
+        },
+
+        validateZfsBlocksize: function (value) {
+            if (!value) {
+                return true;
+            }
+
+            let match = value.match(/^([1-9][0-9]*)([km])?$/i);
+            if (!match) {
+                return gettext(
+                    'Invalid format. Use numbers with optional k or m suffix (e.g., 16k).',
+                );
+            }
+
+            let bytes = parseInt(match[1], 10);
+            let suffix = match[2]?.toLowerCase();
+
+            if (suffix === 'k') {
+                bytes *= 1024;
+            } else if (suffix === 'm') {
+                bytes *= 1024 * 1024;
+            }
+
+            if (bytes < 512 || (bytes & (bytes - 1)) !== 0 || bytes > 16 * 1024 * 1024) {
+                return gettext('Value must be a power of 2 between 512 and 16m');
+            }
+
+            return true;
         },
 
         render_pbs_fingerprint: (fp) => fp.substring(0, 23),
@@ -500,13 +532,22 @@ Ext.define('PVE.Utils', {
             return agentstring;
         },
 
-        render_qemu_machine: function (value) {
-            return value || Proxmox.Utils.defaultText + ' (i440fx)';
+        render_qemu_machine: function (value, arch = 'x86_64') {
+            let machineTextMap = {
+                pc: 'i440fx',
+            };
+            if (!value) {
+                let machine = PVE.qemu.Architecture.defaultMachines[arch];
+                let machineText = machineTextMap[machine] ?? machine;
+                return `${Proxmox.Utils.defaultText} (${machineText})`;
+            }
+            return value;
         },
 
-        render_qemu_bios: function (value) {
+        render_qemu_bios: function (value, arch = 'x86_64') {
             if (!value) {
-                return Proxmox.Utils.defaultText + ' (SeaBIOS)';
+                let defaultBios = arch === 'aarch64' ? 'OVMF (UEFI)' : 'SeaBIOS';
+                return `${Proxmox.Utils.defaultText} (${defaultBios})`;
             } else if (value === 'seabios') {
                 return 'SeaBIOS';
             } else if (value === 'ovmf') {
@@ -1231,7 +1272,8 @@ Ext.define('PVE.Utils', {
         calculate_disk_usage: function (data) {
             if (
                 !Ext.isNumeric(data.disk) ||
-                ((data.type === 'qemu' || data.type === 'lxc') && data.uptime === 0) ||
+                data.type === 'qemu' ||
+                (data.type === 'lxc' && data.uptime === 0) ||
                 data.maxdisk === 0
             ) {
                 return -1;
@@ -1256,7 +1298,8 @@ Ext.define('PVE.Utils', {
             if (
                 !Ext.isNumeric(disk) ||
                 maxdisk === 0 ||
-                ((type === 'qemu' || type === 'lxc') && record.data.uptime === 0)
+                type === 'qemu' ||
+                (type === 'lxc' && record.data.uptime === 0)
             ) {
                 return '';
             }
@@ -1767,6 +1810,9 @@ Ext.define('PVE.Utils', {
         qemu_min_version: function (toCheck, minVersion) {
             let i;
             for (i = 0; i < toCheck.length && i < minVersion.length; i++) {
+                if (toCheck[i] > minVersion[i]) {
+                    return true;
+                }
                 if (toCheck[i] < minVersion[i]) {
                     return false;
                 }
@@ -1953,10 +1999,8 @@ Ext.define('PVE.Utils', {
             return true;
         },
 
-        sortByPreviousUsage: function (vmconfig, controllerList) {
-            if (!controllerList) {
-                controllerList = ['ide', 'virtio', 'scsi', 'sata'];
-            }
+        sortByPreviousUsage: function (vmconfig, nodename) {
+            let controllerList = ['ide', 'virtio', 'scsi', 'sata'];
             let usedControllers = {};
             for (const type of Object.keys(PVE.Utils.diskControllerMaxIDs)) {
                 usedControllers[type] = 0;
@@ -1972,7 +2016,8 @@ Ext.define('PVE.Utils', {
                 }
             }
 
-            let sortPriority = PVE.qemu.OSDefaults.getDefaults(vmconfig.ostype).busPriority;
+            let arch = PVE.qemu.Architecture.getGuestArchitecture(vmconfig.arch, nodename);
+            let sortPriority = PVE.qemu.OSDefaults.getDefaults(vmconfig.ostype, arch).busPriority;
 
             let sortedList = Ext.clone(controllerList);
             sortedList.sort(function (a, b) {

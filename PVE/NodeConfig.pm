@@ -186,6 +186,14 @@ $confdesc->{acme} = {
     optional => 1,
 };
 
+$confdesc->{location} = {
+    type => 'string',
+    format => 'pve-node-location',
+    description =>
+        "The location of the node. Overrides the default from the datacenter config.",
+    optional => 1,
+};
+
 for my $i (0 .. $MAXDOMAINS) {
     $confdesc->{"acmedomain$i"} = {
         type => 'string',

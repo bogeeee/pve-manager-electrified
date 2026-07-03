@@ -90,7 +90,10 @@ __PACKAGE__->register_method({
         my ($param) = @_;
 
         my $result = [
-            { name => 'cpu' }, { name => 'machines' }, { name => 'migration' },
+            { name => 'cpu' },
+            { name => 'cpu-flags' },
+            { name => 'machines' },
+            { name => 'migration' },
         ];
 
         return $result;

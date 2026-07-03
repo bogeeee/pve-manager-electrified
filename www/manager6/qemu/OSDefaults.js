@@ -24,8 +24,17 @@ Ext.define('PVE.qemu.OSDefaults', {
 
         let addOS = function (settings) {
             if (Object.hasOwn(settings, 'parent')) {
-                let child = Ext.clone(me[settings.parent]);
-                me[settings.pveOS] = Ext.apply(child, settings);
+                let architectures = settings.architectures;
+                delete settings.architectures;
+
+                let child = {
+                    x86_64: Ext.apply({}, settings, me[settings.parent].x86_64),
+                };
+
+                for (const arch of Object.keys(architectures ?? {})) {
+                    child[arch] = Ext.apply({}, architectures[arch], me[settings.parent][arch]);
+                }
+                me[settings.pveOS] = child;
             } else {
                 throw 'Could not find your genitor';
             }
@@ -33,16 +42,32 @@ Ext.define('PVE.qemu.OSDefaults', {
 
         // default values
         me.generic = {
-            busType: 'ide',
-            networkCard: 'e1000',
-            busPriority: {
-                ide: 4,
-                sata: 3,
-                scsi: 2,
-                virtio: 1,
+            x86_64: {
+                busType: 'ide',
+                networkCard: 'e1000',
+                busPriority: {
+                    ide: 4,
+                    sata: 3,
+                    scsi: 2,
+                    virtio: 1,
+                },
+                scsihw: 'virtio-scsi-single',
             },
-            scsihw: 'virtio-scsi-single',
-            cputype: 'x86-64-v2-AES',
+
+            aarch64: {
+                // aarch64 has no ide, and ovmf can't boot from sata
+                busType: 'scsi',
+                networkCard: 'e1000',
+                busPriority: {
+                    scsi: 4,
+                    sata: 3,
+                    virtio: 2,
+                    ide: 1,
+                },
+                scsihw: 'virtio-scsi-single',
+                cputype: 'neoverse-n2',
+                bios: 'ovmf',
+            },
         };
 
         // virtio-net is in kernel since 2.6.25
@@ -58,6 +83,18 @@ Ext.define('PVE.qemu.OSDefaults', {
                 ide: 1,
             },
             networkCard: 'virtio',
+
+            architectures: {
+                aarch64: {
+                    busPriority: {
+                        scsi: 4,
+                        virtio: 2,
+                        sata: 2,
+                        ide: 1,
+                    },
+                    networkCard: 'virtio',
+                },
+            },
         });
 
         // recommendation from http://wiki.qemu.org/Windows2000
@@ -73,12 +110,25 @@ Ext.define('PVE.qemu.OSDefaults', {
             parent: 'w2k',
         });
 
-        me.getDefaults = function (ostype) {
-            if (PVE.qemu.OSDefaults[ostype]) {
-                return PVE.qemu.OSDefaults[ostype];
-            } else {
-                return PVE.qemu.OSDefaults.generic;
+        addOS({
+            pveOS: 'win11',
+            parent: 'generic',
+            machine: 'q35',
+            bios: 'ovmf',
+        });
+
+        me.getDefaults = function (ostype, arch = 'x86_64') {
+            if (!PVE.qemu.OSDefaults[ostype]) {
+                ostype = 'generic';
             }
+
+            let os = PVE.qemu.OSDefaults[ostype];
+            if (os[arch]) {
+                return os[arch];
+            }
+
+            // default
+            return os.x86_64;
         };
     },
 });

@@ -53,7 +53,6 @@ Ext.define('PVE.ceph.CephVersionSelector', {
             {
                 release: 'tentacle',
                 version: '20.2',
-                preview: true /* TODO: drop after stabilisation */,
             },
         ],
     },
@@ -150,7 +149,7 @@ Ext.define('PVE.ceph.CephInstallWizard', {
     viewModel: {
         data: {
             nodename: '',
-            cephRelease: 'squid', // default
+            cephRelease: 'tentacle', // default
             cephRepo: 'enterprise',
             configuration: true,
             isInstalled: false,

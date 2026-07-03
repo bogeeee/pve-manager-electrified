@@ -33,6 +33,8 @@ Ext.define('PVE.sdn.Fabric.View', {
                     const PROTOCOL_DISPLAY_NAMES = {
                         openfabric: 'OpenFabric',
                         ospf: 'OSPF',
+                        wireguard: 'WireGuard',
+                        bgp: 'BGP',
                     };
                     const displayValue = PROTOCOL_DISPLAY_NAMES[value];
                     if (rec.data.state === undefined || rec.data.state === null) {
@@ -82,6 +84,10 @@ Ext.define('PVE.sdn.Fabric.View', {
             dataIndex: 'interface',
             renderer: function (value, metaData, rec) {
                 const interfaces = rec.data.pending?.interfaces || rec.data.interfaces || [];
+
+                if (interfaces === 'deleted') {
+                    return;
+                }
 
                 let names = interfaces.map((iface) => {
                     const properties = Proxmox.Utils.parsePropertyString(iface);
@@ -174,6 +180,7 @@ Ext.define('PVE.sdn.Fabric.View', {
             let selection = me.view.getSelection();
 
             if (selection.length === 0) {
+                addNodeButton.setDisabled(true);
                 return;
             }
 
@@ -193,6 +200,14 @@ Ext.define('PVE.sdn.Fabric.View', {
                         {
                             text: 'OSPF',
                             handler: 'addOspf',
+                        },
+                        {
+                            text: 'WireGuard',
+                            handler: 'addWireGuard',
+                        },
+                        {
+                            text: 'BGP',
+                            handler: 'addBgp',
                         },
                     ],
                 },
@@ -272,6 +287,8 @@ Ext.define('PVE.sdn.Fabric.View', {
             const FABRIC_PANELS = {
                 openfabric: 'PVE.sdn.Fabric.OpenFabric.Fabric.Edit',
                 ospf: 'PVE.sdn.Fabric.Ospf.Fabric.Edit',
+                wireguard: 'PVE.sdn.Fabric.WireGuard.Fabric.Edit',
+                bgp: 'PVE.sdn.Fabric.Bgp.Fabric.Edit',
             };
 
             return FABRIC_PANELS[protocol];
@@ -281,9 +298,25 @@ Ext.define('PVE.sdn.Fabric.View', {
             const NODE_PANELS = {
                 openfabric: 'PVE.sdn.Fabric.OpenFabric.Node.Edit',
                 ospf: 'PVE.sdn.Fabric.Ospf.Node.Edit',
+                wireguard: 'PVE.sdn.Fabric.WireGuard.Node.Edit',
+                bgp: 'PVE.sdn.Fabric.Bgp.Node.Edit',
             };
 
             return NODE_PANELS[protocol];
+        },
+
+        getFabricPrefix: function (fabric, prefixKey) {
+            let prefix = fabric?.[prefixKey];
+            return prefix === 'deleted' ? undefined : prefix;
+        },
+
+        fabricHasConfiguredNodes: function (fabric) {
+            return (fabric.children ?? []).some((node) => node.state !== 'deleted');
+        },
+
+        addWireGuard: function () {
+            let me = this;
+            me.openFabricAddWindow('wireguard');
         },
 
         addOpenfabric: function () {
@@ -294,6 +327,11 @@ Ext.define('PVE.sdn.Fabric.View', {
         addOspf: function () {
             let me = this;
             me.openFabricAddWindow('ospf');
+        },
+
+        addBgp: function () {
+            let me = this;
+            me.openFabricAddWindow('bgp');
         },
 
         openFabricAddWindow: function (protocol) {
@@ -341,6 +379,8 @@ Ext.define('PVE.sdn.Fabric.View', {
                 autoShow: true,
                 fabricId: fabric.id,
                 protocol: fabric.protocol,
+                fabricIpPrefix: me.getFabricPrefix(fabric, 'ip_prefix'),
+                fabricIp6Prefix: me.getFabricPrefix(fabric, 'ip6_prefix'),
                 disallowedNodes,
                 addAnotherCallback: () => {
                     let successCallback = () => {
@@ -370,12 +410,13 @@ Ext.define('PVE.sdn.Fabric.View', {
             let window = Ext.create(component, {
                 autoShow: true,
                 fabricId: fabric.id,
+                disableIpPrefixEdit: me.fabricHasConfiguredNodes(fabric),
             });
 
             window.on('destroy', () => me.reload());
         },
 
-        openNodeEditWindow: function (node) {
+        openNodeEditWindow: function (node, fabric) {
             let me = this;
 
             let component = me.getNodeEditPanel(node.protocol);
@@ -385,6 +426,8 @@ Ext.define('PVE.sdn.Fabric.View', {
                 fabricId: node.fabric_id,
                 nodeId: node.node_id,
                 protocol: node.protocol,
+                fabricIpPrefix: me.getFabricPrefix(fabric, 'ip_prefix'),
+                fabricIp6Prefix: me.getFabricPrefix(fabric, 'ip6_prefix'),
             });
 
             window.on('destroy', () => me.reload());
@@ -396,7 +439,7 @@ Ext.define('PVE.sdn.Fabric.View', {
             if (rec.data.type === 'fabric') {
                 me.openFabricEditWindow(rec.data);
             } else if (rec.data.type === 'node') {
-                me.openNodeEditWindow(rec.data);
+                me.openNodeEditWindow(rec.data, rec.parentNode.data);
             } else {
                 console.warn(`unknown type ${rec.data.type}`);
             }

@@ -8,6 +8,7 @@ Ext.define('PVE.qemu.CreateWizard', {
             nodename: '',
             current: {
                 scsihw: '',
+                architecture: '',
             },
         },
         formulas: {
@@ -60,6 +61,25 @@ Ext.define('PVE.qemu.CreateWizard', {
         return undefined;
     },
 
+    setArchitecture: function () {
+        let me = this;
+        let vm = me.getViewModel();
+
+        let nodename = me.lookup('nodenameSelector').getValue();
+        if (!nodename) {
+            // we can't set an architecture if we don't have a nodename
+            return;
+        }
+        let arch = me.lookup('archSelector').getValue();
+        if (arch === '__default__') {
+            arch = undefined;
+        }
+        arch = PVE.qemu.Architecture.getGuestArchitecture(arch, nodename);
+        vm.set('current.architecture', arch);
+    },
+
+    referenceHolder: true,
+
     items: [
         {
             xtype: 'inputpanel',
@@ -69,6 +89,7 @@ Ext.define('PVE.qemu.CreateWizard', {
                 {
                     xtype: 'pveNodeSelector',
                     name: 'nodename',
+                    reference: 'nodenameSelector',
                     cbind: {
                         selectCurNode: '{!nodename}',
                         preferredValue: '{nodename}',
@@ -79,6 +100,11 @@ Ext.define('PVE.qemu.CreateWizard', {
                     fieldLabel: gettext('Node'),
                     allowBlank: false,
                     onlineValidator: true,
+                    listeners: {
+                        change: function () {
+                            this.up('window').setArchitecture();
+                        },
+                    },
                 },
                 {
                     xtype: 'pveGuestIDSelector',
@@ -152,6 +178,20 @@ Ext.define('PVE.qemu.CreateWizard', {
 
             advancedColumnB: [
                 {
+                    xtype: 'proxmoxKVComboBox',
+                    name: 'arch',
+                    value: '__default__',
+                    reference: 'archSelector',
+                    fieldLabel: gettext('vCPU Architecture'),
+                    labelWidth: 120,
+                    comboItems: PVE.qemu.Architecture.selection,
+                    listeners: {
+                        change: function () {
+                            this.up('window').setArchitecture();
+                        },
+                    },
+                },
+                {
                     xtype: 'pveTagFieldSet',
                     name: 'tags',
                     maxHeight: 150,
@@ -183,30 +223,11 @@ Ext.define('PVE.qemu.CreateWizard', {
             },
         },
         {
-            xtype: 'container',
-            layout: 'hbox',
-            defaults: {
-                flex: 1,
-                padding: '0 10',
-            },
+            xtype: 'pveQemuOSPanel',
             title: gettext('OS'),
-            items: [
-                {
-                    xtype: 'pveQemuCDInputPanel',
-                    bind: {
-                        nodename: '{nodename}',
-                    },
-                    confid: 'ide2',
-                    insideWizard: true,
-                },
-                {
-                    xtype: 'pveQemuOSTypePanel',
-                    insideWizard: true,
-                    bind: {
-                        nodename: '{nodename}',
-                    },
-                },
-            ],
+            bind: {
+                arch: '{current.architecture}',
+            },
         },
         {
             xtype: 'pveQemuSystemPanel',
@@ -225,6 +246,9 @@ Ext.define('PVE.qemu.CreateWizard', {
             xtype: 'pveQemuProcessorPanel',
             insideWizard: true,
             title: gettext('CPU'),
+            bind: {
+                arch: '{current.architecture}',
+            },
         },
         {
             xtype: 'pveQemuMemoryPanel',
@@ -285,6 +309,13 @@ Ext.define('PVE.qemu.CreateWizard', {
                         kv.boot = boot;
                     }
 
+                    if (
+                        kv.arch &&
+                        !PVE.qemu.Architecture.isHostArchitecture(kv.arch, kv.nodename)
+                    ) {
+                        kv.kvm = 0;
+                    }
+
                     Ext.Object.each(kv, function (key, value) {
                         if (key === 'delete') {
                             // ignore
@@ -313,6 +344,10 @@ Ext.define('PVE.qemu.CreateWizard', {
                 let boot = wizard.calculateBootOrder(kv);
                 if (boot) {
                     kv.boot = boot;
+                }
+
+                if (kv.arch && !PVE.qemu.Architecture.isHostArchitecture(kv.arch, nodename)) {
+                    kv.kvm = 0;
                 }
 
                 Proxmox.Utils.API2Request({

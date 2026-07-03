@@ -86,7 +86,9 @@ Ext.define('PVE.qemu.Options', {
             },
             ostype: {
                 header: gettext('OS Type'),
-                editor: caps.vms['VM.Config.Options'] ? 'PVE.qemu.OSTypeEdit' : undefined,
+                editor: caps.vms['VM.Config.Options']
+                    ? { xtype: 'pveQemuOSTypeEdit', nodename }
+                    : undefined,
                 renderer: PVE.Utils.render_kvm_ostype,
                 defaultValue: 'other',
             },

@@ -107,44 +107,11 @@ Ext.define(
                 });
             }
             tbar.push('->', gettext('Search') + ':', ' ', {
-                xtype: 'textfield',
-                width: 200,
-                enableKeyEvents: true,
+                xtype: 'pveRecordSearchField',
                 emptyText:
                     content === 'backup' ? gettext('Name, Format, Notes') : gettext('Name, Format'),
-                listeners: {
-                    keyup: {
-                        buffer: 500,
-                        fn: function (field) {
-                            let needle = field.getValue().toLocaleLowerCase();
-                            store.clearFilter(true);
-                            store.filter([
-                                {
-                                    filterFn: ({ data }) =>
-                                        data.text?.toLocaleLowerCase().includes(needle) ||
-                                        data.notes?.toLocaleLowerCase().includes(needle),
-                                },
-                            ]);
-                        },
-                    },
-                    change: function (field, newValue, oldValue) {
-                        if (newValue !== this.originalValue) {
-                            this.triggers.clear.setVisible(true);
-                        }
-                    },
-                },
-                triggers: {
-                    clear: {
-                        cls: 'pmx-clear-trigger',
-                        weight: -1,
-                        hidden: true,
-                        handler: function () {
-                            this.triggers.clear.setVisible(false);
-                            this.setValue(this.originalValue);
-                            store.clearFilter();
-                        },
-                    },
-                },
+                searchFields: ['text', 'notes'],
+                targetStore: store,
             });
 
             let availableColumns = {
@@ -187,8 +154,22 @@ Ext.define(
                 size: {
                     header: gettext('Size'),
                     width: 100,
-                    renderer: Proxmox.Utils.format_size,
                     dataIndex: 'size',
+                    renderer: function (value, _meta, record) {
+                        if (value !== undefined) {
+                            return Proxmox.Utils.format_size(value);
+                        }
+                        let approx = record.data['approximate-size'];
+                        if (approx !== undefined) {
+                            return Ext.String.format('~{0}', Proxmox.Utils.format_size(approx));
+                        }
+                        return Proxmox.Utils.unknownText;
+                    },
+                    sorter: {
+                        sorterFn: (a, b) =>
+                            (a.data.size ?? a.data['approximate-size'] ?? 0) -
+                            (b.data.size ?? b.data['approximate-size'] ?? 0),
+                    },
                 },
             };
 
@@ -227,6 +208,7 @@ Ext.define(
                 'content',
                 'format',
                 'size',
+                'approximate-size',
                 'used',
                 'vmid',
                 'channel',

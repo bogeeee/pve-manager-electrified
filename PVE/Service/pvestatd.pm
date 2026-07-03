@@ -138,6 +138,8 @@ my sub broadcast_static_node_info {
     my $cgroup_mode = eval { PVE::CGroup::cgroup_mode(); };
     syslog('err', "cgroup mode error: $@") if $@;
 
+    my $host_arch = PVE::Tools::get_host_arch();
+
     my $old = PVE::Cluster::get_node_kv('static-info', $nodename);
     $old = eval { decode_json($old->{$nodename}) } if defined($old->{$nodename});
 
@@ -147,11 +149,18 @@ my sub broadcast_static_node_info {
         || !defined($old->{memory})
         || $old->{memory} != $memory
         || ($old->{'cgroup-mode'} // -1) != ($cgroup_mode // -1)
+        || (defined($host_arch)
+            && $host_arch ne 'x86_64'
+            && (!defined($old->{'host-arch'}) || $old->{'host-arch'} ne $host_arch))
     ) {
         my $info = {
             cpus => $cpus,
             memory => $memory,
         };
+
+        # only save architecture info for non-x86 ones
+        $info->{'host-arch'} = $host_arch if defined($host_arch) && $host_arch ne 'x86_64';
+
         $info->{'cgroup-mode'} = $cgroup_mode if defined($cgroup_mode);
         PVE::Cluster::broadcast_node_kv('static-info', encode_json($info));
     }

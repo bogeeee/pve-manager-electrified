@@ -66,6 +66,12 @@ Ext.define('PVE.qemu.HardwareView', {
         };
 
         let rows = {
+            arch: {
+                header: gettext('vCPU Architecture'),
+                tdCls: 'pve-itype-icon-cpu',
+                never_delete: true,
+                renderer: PVE.qemu.Architecture.render_vcpu_architecture,
+            },
             memory: {
                 header: gettext('Memory'),
                 editor: caps.vms['VM.Config.Memory'] ? 'PVE.qemu.MemoryEdit' : undefined,
@@ -187,13 +193,17 @@ Ext.define('PVE.qemu.HardwareView', {
                 defaultValue: '',
                 renderer: function (value, metaData, record, rowIndex, colIndex, store, pending) {
                     let ostype = me.getObjectValue('ostype', undefined, pending);
+                    let arch = PVE.qemu.Architecture.getGuestArchitecture(
+                        me.getObjectValue('arch'),
+                        nodename,
+                    );
                     if (
                         PVE.Utils.is_windows(ostype) &&
                         (!value || value === 'pc' || value === 'q35')
                     ) {
                         return value === 'q35' ? 'pc-q35-5.1' : 'pc-i440fx-5.1';
                     }
-                    return PVE.Utils.render_qemu_machine(value);
+                    return PVE.Utils.render_qemu_machine(value, arch);
                 },
             },
             scsihw: {
@@ -419,6 +429,10 @@ Ext.define('PVE.qemu.HardwareView', {
                 pveSelNode: me.pveSelNode,
                 confid: rec.data.key,
                 url: `/api2/extjs/${baseurl}`,
+                arch: PVE.qemu.Architecture.getGuestArchitecture(
+                    me.getObjectValue('arch'),
+                    nodename,
+                ),
                 listeners: {
                     destroy: () => me.reload(),
                 },
@@ -926,5 +940,22 @@ Ext.define('PVE.qemu.HardwareView', {
         me.on('destroy', me.rstore.stopUpdate, me.rstore);
 
         me.mon(me.getStore(), 'datachanged', set_button_status, me);
+
+        me.mon(me.getStore(), 'datachanged', function () {
+            if (!me.pendingVolid) {
+                return;
+            }
+            let volid = me.pendingVolid;
+            delete me.pendingVolid;
+            let index = me
+                .getStore()
+                .findBy(
+                    (r) =>
+                        typeof r.data.value === 'string' && r.data.value.split(',', 1)[0] === volid,
+                );
+            if (index >= 0) {
+                me.getSelectionModel().select(index);
+            }
+        });
     },
 });

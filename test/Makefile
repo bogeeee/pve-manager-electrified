@@ -5,7 +5,7 @@ all:
 export PERLLIB=..
 
 .PHONY: check
-check: test-replication test-balloon test-vzdump test-osd
+check: test-replication test-balloon test-vzdump test-osd test-custom-cpu-models
 
 .PHONY: test-balloon
 test-balloon:
@@ -31,6 +31,10 @@ test-vzdump-new:
 .PHONY: test-osd
 test-osd:
 	./OSD_test.pl
+
+.PHONY: test-custom-cpu-models
+test-custom-cpu-models:
+	./CustomCPUModels_test.pl
 
 .PHONY: install
 install:

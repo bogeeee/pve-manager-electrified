@@ -36,20 +36,26 @@ __PACKAGE__->register_method({
             type => "object",
             properties => {
                 name => {
-                    description => "The name (ID) for the MDS",
+                    description => "The name (ID) for the MDS.",
                     type => 'string',
                 },
                 addr => {
                     type => 'string',
                     optional => 1,
+                    description => "Address as advertised by the MDS; Ceph-formatted"
+                        . " (typically 'IP:PORT/NONCE').",
                 },
                 host => {
                     type => 'string',
                     optional => 1,
+                    description => "Host the MDS runs on.",
                 },
                 state => {
                     type => 'string',
-                    description => 'State of the MDS',
+                    description => "MDS state: Ceph-reported run state (e.g. 'up:active',"
+                        . " 'up:standby', 'up:standby-replay') for daemons known to the"
+                        . " cluster; 'stopped' or 'unknown' for configured daemons not"
+                        . " visible to the cluster.",
                 },
                 standby_replay => {
                     type => 'boolean',
@@ -60,6 +66,36 @@ __PACKAGE__->register_method({
                 rank => {
                     type => 'integer',
                     optional => 1,
+                    description => "MDS rank within the file system; -1 for standby MDSes"
+                        . " not currently bound to a rank.",
+                },
+                fs_name => {
+                    type => 'string',
+                    optional => 1,
+                    description => "Name of the CephFS this MDS is bound to; absent or null for"
+                        . " standby MDSes not currently serving a rank.",
+                },
+                ceph_version => {
+                    type => 'string',
+                    optional => 1,
+                    description => "Full Ceph version string of the MDS daemon.",
+                },
+                ceph_version_short => {
+                    type => 'string',
+                    optional => 1,
+                    description =>
+                        "Short Ceph version string of the MDS daemon (e.g. '19.2.0').",
+                },
+                direxists => {
+                    type => 'boolean',
+                    optional => 1,
+                    description => "Set when the MDS's data directory exists on this node.",
+                },
+                service => {
+                    type => 'boolean',
+                    optional => 1,
+                    description => "Set if a ceph-mds@<id> systemd unit is enabled on the"
+                        . " hosting node; absent otherwise.",
                 },
             },
         },
@@ -113,7 +149,7 @@ __PACKAGE__->register_method({
             hotstandby => {
                 type => 'boolean',
                 optional => 1,
-                default => '0',
+                default => 0,
                 description =>
                     "Determines whether a ceph-mds daemon should poll and replay the log of an active MDS. "
                     . "Faster switch on MDS failure, but needs more idle resources.",

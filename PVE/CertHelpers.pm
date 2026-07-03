@@ -7,6 +7,8 @@ use PVE::Certificate;
 use PVE::JSONSchema;
 use PVE::Tools;
 
+use Net::SSLeay qw(die_now);
+
 my $account_prefix = '/etc/pve/priv/acme';
 
 PVE::JSONSchema::register_standard_option(
@@ -81,6 +83,31 @@ sub set_cert_files {
         PVE::Tools::file_set_contents($cert_path, $cert);
         PVE::Tools::file_set_contents($key_path, $key) if $key;
         $info = PVE::Certificate::get_certificate_info($cert_path);
+
+        if (my $method = Net::SSLeay::TLS_method()) {
+            my $ctx = Net::SSLeay::CTX_new_with_method($method);
+
+            eval {
+                Net::SSLeay::CTX_use_certificate_chain_file($ctx, $cert_path)
+                    or die_now("could not load certificate (chain) ($!)");
+                Net::SSLeay::CTX_use_PrivateKey_file(
+                    $ctx,
+                    $key_path,
+                    Net::SSLeay::FILETYPE_PEM(),
+                ) or die_now("key does not match the certificate (chain) ($!)");
+            };
+
+            my $err = $@;
+
+            if ($err) {
+                # clean up invalid certificate and key
+                unlink $cert_path or $!{ENOENT} or warn "failed to clean-up $cert_path - $!\n";
+                unlink $key_path or $!{ENOENT} or warn "failed to clean-up $key_path - $!\n";
+                die $err;
+            }
+        } else {
+            warn "no TLS method to verify certificate and key match, continuing anyway\n";
+        }
     };
     my $err = $@;
 

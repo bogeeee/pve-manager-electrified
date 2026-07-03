@@ -67,6 +67,7 @@ Ext.define('PVE.storage.ZFSInputPanel', {
                 value: '4k',
                 fieldLabel: gettext('Block Size'),
                 allowBlank: false,
+                validator: PVE.Utils.validateZfsBlocksize,
             },
             {
                 xtype: me.isCreate ? 'textfield' : 'displayfield',

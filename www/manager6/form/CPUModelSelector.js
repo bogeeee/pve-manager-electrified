@@ -1,6 +1,12 @@
 Ext.define('PVE.data.CPUModel', {
     extend: 'Ext.data.Model',
-    fields: [{ name: 'name' }, { name: 'vendor' }, { name: 'custom' }, { name: 'displayname' }],
+    fields: [
+        { name: 'name' },
+        { name: 'vendor' },
+        { name: 'custom' },
+        { name: 'abstract' },
+        { name: 'displayname' },
+    ],
 });
 
 Ext.define('PVE.form.CPUModelSelector', {
@@ -17,8 +23,37 @@ Ext.define('PVE.form.CPUModelSelector', {
     anyMatch: true,
     forceSelection: true,
     autoSelect: false,
+    triggerAction: 'query',
 
     deleteEmpty: true,
+    config: {
+        showCustomModels: true,
+        // PVE-internal abstract profiles (x86-64-vN) resolve to qemu64 + flag set
+        // at VM start and are not valid as a custom CPU model's reported-model.
+        showAbstractModels: true,
+    },
+
+    getSubmitData: function () {
+        let me = this,
+            data = null,
+            val;
+        if (!me.disabled && me.submitValue) {
+            val = me.getSubmitValue();
+            if (val !== null && val !== '' && val !== undefined) {
+                data = {};
+                data[me.getName()] = val;
+            } else if (me.getDeleteEmpty()) {
+                data = {};
+                // special case to change gui default for x86
+                if (me.arch === 'x86_64') {
+                    data[me.getName()] = PVE.qemu.Architecture.defaultProcessorModel.x86_64;
+                } else {
+                    data.delete = me.getName();
+                }
+            }
+        }
+        return data;
+    },
 
     listConfig: {
         columns: [
@@ -38,6 +73,23 @@ Ext.define('PVE.form.CPUModelSelector', {
             },
         ],
         width: 360,
+    },
+
+    arch: undefined,
+
+    setArch: function (arch) {
+        let me = this;
+        me.arch = arch;
+        let params = {};
+        if (arch) {
+            params.arch = arch;
+        }
+        me.store.getProxy().setExtraParams(params);
+        me.store.reload();
+
+        let defaultCPU = PVE.qemu.Architecture.defaultProcessorModel[arch] ?? 'kvm64';
+
+        me.setEmptyText(`${Proxmox.Utils.defaultText} (${defaultCPU})`);
     },
 
     store: {
@@ -95,5 +147,15 @@ Ext.define('PVE.form.CPUModelSelector', {
                 }
             },
         },
+    },
+    initComponent: function () {
+        let me = this;
+        me.callParent();
+        if (!me.showCustomModels) {
+            me.getStore().addFilter({ filterFn: (rec) => !rec.data.custom });
+        }
+        if (!me.showAbstractModels) {
+            me.getStore().addFilter({ filterFn: (rec) => !rec.data.abstract });
+        }
     },
 });

@@ -73,6 +73,26 @@ Ext.define('PVE.sdn.controllers.BgpInputPanel', {
                 checked: false,
                 fieldLabel: 'bgp-multipath-as-path-relax',
             },
+            {
+                xtype: 'pveSDNRouteMapSelector',
+                name: 'route-map-in',
+                // TRANSLATORS: "Route map" refers to an FRR route map, some
+                // languages may prefer to keep it as-is:
+                // https://docs.frrouting.org/en/latest/routemap.html
+                fieldLabel: gettext('Incoming Route Map'),
+                deleteEmpty: !me.isCreate,
+                skipEmptyText: true,
+            },
+            {
+                xtype: 'pveSDNRouteMapSelector',
+                name: 'route-map-out',
+                // TRANSLATORS: "Route map" refers to an FRR route map, some
+                // languages may prefer to keep it as-is:
+                // https://docs.frrouting.org/en/latest/routemap.html
+                fieldLabel: gettext('Outgoing Route Map'),
+                deleteEmpty: !me.isCreate,
+                skipEmptyText: true,
+            },
         ];
 
         me.callParent();

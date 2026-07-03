@@ -6,10 +6,14 @@ Ext.define('PVE.sdn.Fabric.InterfacePanel', {
 
     nodeInterfaces: {},
 
+    hasIpv6Support: true,
+
     selModel: {
         mode: 'SIMPLE',
         type: 'checkboxmodel',
     },
+
+    maxHeight: 500,
 
     commonColumns: [
         {
@@ -56,7 +60,7 @@ Ext.define('PVE.sdn.Fabric.InterfacePanel', {
             flex: 1,
         },
         {
-            text: gettext('IP'),
+            text: gettext('IPv4'),
             xtype: 'widgetcolumn',
             dataIndex: 'ip',
             flex: 1,
@@ -106,6 +110,28 @@ Ext.define('PVE.sdn.Fabric.InterfacePanel', {
     initComponent: function () {
         let me = this;
 
+        let columns = [...me.commonColumns];
+
+        if (me.hasIpv6Support) {
+            columns.push({
+                text: gettext('IPv6'),
+                xtype: 'widgetcolumn',
+                dataIndex: 'ip6',
+                flex: 1,
+                widget: {
+                    xtype: 'proxmoxtextfield',
+                    isFormField: false,
+                    bind: {
+                        disabled: '{record.isDisabled}',
+                    },
+                },
+            });
+        }
+
+        if (me.additionalColumns.length > 0) {
+            columns.push(...me.additionalColumns);
+        }
+
         Ext.apply(me, {
             store: Ext.create('Ext.data.Store', {
                 model: 'Pve.sdn.Interface',
@@ -114,7 +140,7 @@ Ext.define('PVE.sdn.Fabric.InterfacePanel', {
                     direction: 'ASC',
                 },
             }),
-            columns: me.commonColumns.concat(me.additionalColumns),
+            columns,
         });
 
         me.callParent();

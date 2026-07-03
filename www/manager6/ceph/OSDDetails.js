@@ -159,6 +159,15 @@ Ext.define('PVE.CephOsdDetails', {
                                 },
                                 {
                                     xtype: 'text',
+                                    name: 'encrypted',
+                                    text: gettext('Encrypted'),
+                                    renderer: (v) =>
+                                        v
+                                            ? `<i class="fa fa-fw fa-lock good"></i> ${Proxmox.Utils.yesText}`
+                                            : Proxmox.Utils.noText,
+                                },
+                                {
+                                    xtype: 'text',
                                     name: 'mem_usage',
                                     text: gettext('Memory usage (PSS)'),
                                     renderer: Proxmox.Utils.render_size,

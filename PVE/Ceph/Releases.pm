@@ -70,7 +70,6 @@ my sub get_ceph_release_def {
         },
         squid => {
             release => '19.2',
-            'current-backend-default' => 1,
             'initial-upstream-release' => '2024-09-27',
             'estimated-end-of-upstream-support' => '2026-09-19',
             'available-for-pve-release' => {
@@ -80,8 +79,7 @@ my sub get_ceph_release_def {
         },
         tentacle => {
             release => '20.2',
-            # 'current-backend-default' => 1,
-            unsupported => 1, # TODO: drop once deemed as fully stabilized.
+            'current-backend-default' => 1,
             'initial-upstream-release' => '2025-11-18',
             'estimated-end-of-upstream-support' => '2027-11-18',
             'available-for-pve-release' => {

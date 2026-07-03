@@ -7,6 +7,7 @@ use File::Path;
 use File::Basename;
 use IO::File;
 use JSON;
+use List::Util qw(any);
 
 use PVE::Tools qw(run_command dir_glob_foreach extract_param);
 use PVE::Cluster qw(cfs_read_file);
@@ -133,7 +134,7 @@ sub purge_all_ceph_files {
         foreach my $name (keys %$type) {
             my $dir_exists = $type->{$name}->{direxists};
 
-            $is_local_mon = grep($type->{$name}->{addr}, @$monlist)
+            $is_local_mon = any { $_ eq $type->{$name}->{addr} } @$monlist
                 if $service eq 'mon';
 
             my $path = "/var/lib/ceph/$service";

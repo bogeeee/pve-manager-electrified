@@ -89,13 +89,43 @@ __PACKAGE__->register_method({
         type => 'array',
         items => {
             type => 'object',
+            additionalProperties => 1,
             properties => {
-                section => { type => "string" },
-                name => { type => "string" },
-                value => { type => "string" },
-                level => { type => "string" },
-                'can_update_at_runtime' => { type => "boolean" },
-                mask => { type => "string" },
+                section => {
+                    type => "string",
+                    description =>
+                        "Ceph config section the entry applies to: 'global', a daemon"
+                        . " type ('mon', 'osd', 'mgr', 'mds', 'client'), or a specific"
+                        . " daemon (e.g. 'osd.0', 'mon.<name>').",
+                },
+                name => {
+                    type => "string",
+                    description => "Config key name.",
+                },
+                value => {
+                    type => "string",
+                    description => "Configured value for the key (always serialised as a string"
+                        . " by Ceph, regardless of the option's underlying type).",
+                },
+                level => {
+                    type => "string",
+                    enum => ['basic', 'advanced', 'dev'],
+                    description => "Config level the entry is exposed at: 'basic' for"
+                        . " operator-visible settings, 'advanced' for tuning parameters,"
+                        . " 'dev' for developer-only knobs.",
+                },
+                'can_update_at_runtime' => {
+                    type => "boolean",
+                    description =>
+                        "Set if the value can be changed at runtime without restarting"
+                        . " the affected daemons. Emitted as the integer 1/0 to match the"
+                        . " existing PVE wire convention.",
+                },
+                mask => {
+                    type => "string",
+                    description => "Match expression restricting the entry's scope; empty when"
+                        . " the entry has no mask. Examples: 'host:foo', 'class:ssd'.",
+                },
             },
         },
     },
@@ -115,7 +145,7 @@ __PACKAGE__->register_method({
 });
 
 my $SINGLE_CONFIGKEY_RE = qr/[0-9a-z\-_\.]+:[0-9a-zA-Z\-_]+/i;
-my $CONFIGKEYS_RE = qr/^(:?${SINGLE_CONFIGKEY_RE})(:?[;, ]${SINGLE_CONFIGKEY_RE})*$/;
+my $CONFIGKEYS_RE = qr/^(?:${SINGLE_CONFIGKEY_RE})(?:[;, ]${SINGLE_CONFIGKEY_RE})*$/;
 
 __PACKAGE__->register_method({
     name => 'value',
@@ -126,22 +156,27 @@ __PACKAGE__->register_method({
     permissions => {
         check => ['perm', '/', ['Sys.Audit']],
     },
-    description => "Get configured values from either the config file or config DB.",
+    description => "Get configured values from either ceph.conf or the mon config DB."
+        . " Underscores in section and key names are normalised to hyphens in the response,"
+        . " regardless of how they're written in the source.",
     parameters => {
         additionalProperties => 0,
         properties => {
             node => get_standard_option('pve-node'),
             'config-keys' => {
                 type => "string",
-                typetext => "<section>:<config key>[;<section>:<config key>]",
+                typetext => "<section>:<config key>[;|,| <section>:<config key>]",
                 pattern => $CONFIGKEYS_RE,
-                description => "List of <section>:<config key> items.",
+                maxLength => 4096,
+                description => "List of <section>:<config key> items separated by"
+                    . " semicolon, comma or space.",
             },
         },
     },
     returns => {
         type => 'object',
-        description => "Contains {section}->{key} children with the values",
+        description => "Two-level map of {section} -> {key} -> value. Underscores in"
+            . " section and key names are normalised to hyphens.",
     },
     code => sub {
         my ($param) = @_;
@@ -174,7 +209,7 @@ __PACKAGE__->register_method({
             my $n_name = $normalize->($name);
 
             $config->{$n_section}->{$n_name} = $value
-                if defined $requested_keys->{$n_section} && $n_name eq $n_name;
+                if $requested_keys->{$n_section}->{$n_name};
         }
 
         # read ceph.conf after config db as it has priority if settings are present in both

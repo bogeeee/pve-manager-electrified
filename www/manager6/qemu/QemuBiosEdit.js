@@ -4,7 +4,6 @@ Ext.define('PVE.qemu.BiosEdit', {
 
     onlineHelp: 'qm_bios_and_uefi',
     subject: 'BIOS',
-    autoLoad: true,
 
     viewModel: {
         data: {
@@ -22,7 +21,10 @@ Ext.define('PVE.qemu.BiosEdit', {
             onlineHelp: 'qm_bios_and_uefi',
             name: 'bios',
             value: '__default__',
-            bind: '{bios}',
+            bind: {
+                value: '{bios}',
+                category: '{arch}',
+            },
             fieldLabel: 'BIOS',
         },
         {
@@ -42,4 +44,27 @@ Ext.define('PVE.qemu.BiosEdit', {
             },
         },
     ],
+
+    initComponent: function () {
+        let me = this;
+
+        me.nodename = me.pveSelNode?.data.node;
+
+        if (!me.nodename) {
+            throw 'no nodename given';
+        }
+
+        me.callParent();
+
+        if (!me.isCreate) {
+            me.load({
+                success: function ({ result }) {
+                    let values = result.data;
+                    let arch = PVE.qemu.Architecture.getGuestArchitecture(values.arch, me.nodename);
+                    me.setValues(values);
+                    me.down('pveQemuBiosSelector').setCategory(arch);
+                },
+            });
+        }
+    },
 });

@@ -35,18 +35,47 @@ __PACKAGE__->register_method({
         type => 'array',
         items => {
             type => "object",
+            additionalProperties => 1,
             properties => {
                 name => {
                     description => "The ceph filesystem name.",
                     type => 'string',
                 },
                 metadata_pool => {
-                    description => "The name of the metadata pool.",
+                    description => "Name of the metadata pool.",
                     type => 'string',
                 },
+                metadata_pool_id => {
+                    description => "Numeric id of the metadata pool.",
+                    type => 'integer',
+                    optional => 1,
+                },
                 data_pool => {
-                    description => "The name of the data pool.",
+                    description => "Name of the filesystem's first data pool. A CephFS can have"
+                        . " more than one data pool; consumers interested in the full set"
+                        . " should read 'data_pools' instead. Kept for backwards compatibility.",
                     type => 'string',
+                },
+                data_pools => {
+                    description =>
+                        "Names of all data pools assigned to the filesystem; a CephFS"
+                        . " can have multiple data pools (e.g. replicated metadata plus EC"
+                        . " data, or multiple device-class-specific data pools).",
+                    type => 'array',
+                    optional => 1,
+                    items => {
+                        description => "Data pool name.",
+                        type => 'string',
+                    },
+                },
+                data_pool_ids => {
+                    description => "Numeric ids of the data pools.",
+                    type => 'array',
+                    optional => 1,
+                    items => {
+                        description => "Data pool id.",
+                        type => 'integer',
+                    },
                 },
             },
         },
@@ -65,7 +94,12 @@ __PACKAGE__->register_method({
             map { {
                 name => $_->{name},
                 metadata_pool => $_->{metadata_pool},
+                metadata_pool_id => $_->{metadata_pool_id},
+                # FIXME: remove with PVE 10; backwards-compat alias for
+                # consumers that have not switched to data_pools yet.
                 data_pool => $_->{data_pools}->[0],
+                data_pools => $_->{data_pools},
+                data_pool_ids => $_->{data_pool_ids},
             } } @$cephfs_list
         ];
 
@@ -139,7 +173,7 @@ __PACKAGE__->register_method({
         die "no standby Metadata Server (MDS) found!\n"
             if !grep { $_->{state} eq 'up:standby' } values(%$running_mds);
 
-        PVE::Storage::assert_sid_unused($fs_name) if $param->{add_storage};
+        PVE::Storage::assert_sid_unused($fs_name) if $param->{'add-storage'};
 
         my $worker = sub {
             $rados = PVE::RADOS->new();
@@ -217,6 +251,135 @@ __PACKAGE__->register_method({
         my $user = $rpcenv->get_user();
 
         return $rpcenv->fork_worker('cephfscreate', $fs_name, $user, $worker);
+    },
+});
+
+my $get_pveceph_managed_storages = sub {
+    my ($fs, $is_default) = @_;
+
+    my $cfg = PVE::Storage::config();
+    my $storages = $cfg->{ids};
+    my $res = {};
+    for my $storeid (keys %$storages) {
+        my $curr = $storages->{$storeid};
+        next if $curr->{type} ne 'cephfs';
+        my $cur_fs = $curr->{'fs-name'};
+        $res->{$storeid} = $curr
+            if (!defined($cur_fs) && $is_default) || (defined($cur_fs) && $fs eq $cur_fs);
+    }
+    return $res;
+};
+
+__PACKAGE__->register_method({
+    name => 'destroyfs',
+    path => '{name}',
+    method => 'DELETE',
+    description =>
+        "Destroy a Ceph filesystem. Refuses if any PVE storage entry of type 'cephfs'"
+        . " still references the filesystem and is not disabled. Optionally also removes the"
+        . " storage entries and/or the underlying metadata and data pools.",
+    proxyto => 'node',
+    protected => 1,
+    permissions => {
+        check => ['perm', '/', ['Sys.Modify']],
+    },
+    parameters => {
+        additionalProperties => 0,
+        properties => {
+            node => get_standard_option('pve-node'),
+            name => {
+                description => "The Ceph filesystem name.",
+                type => 'string',
+            },
+            'remove-storages' => {
+                description =>
+                    "Remove pveceph-managed storages configured for this filesystem.",
+                type => 'boolean',
+                optional => 1,
+                default => 0,
+            },
+            'remove-pools' => {
+                description => "Remove the metadata and data pools used by this filesystem.",
+                type => 'boolean',
+                optional => 1,
+                default => 0,
+            },
+        },
+    },
+    returns => { type => 'string' },
+    code => sub {
+        my ($param) = @_;
+
+        PVE::Ceph::Tools::check_ceph_inited();
+
+        my $rpcenv = PVE::RPCEnvironment::get();
+        my $user = $rpcenv->get_user();
+
+        my $fs_name = $param->{name};
+
+        my $fs;
+        my $fs_list = PVE::Ceph::Tools::ls_fs();
+        for my $entry (@$fs_list) {
+            next if $entry->{name} ne $fs_name;
+            $fs = $entry;
+            last;
+        }
+        die "no such cephfs '$fs_name'\n" if !$fs;
+
+        my $worker = sub {
+            my $rados = PVE::RADOS->new();
+
+            if ($param->{'remove-storages'}) {
+                my $defaultfs;
+                my $fs_dump = $rados->mon_command({ prefix => "fs dump" });
+                for my $entry ($fs_dump->{filesystems}->@*) {
+                    next if $entry->{id} != $fs_dump->{default_fscid};
+                    $defaultfs = $entry->{mdsmap}->{fs_name};
+                }
+                warn "no default fs found, maybe not all relevant storages are removed\n"
+                    if !defined($defaultfs);
+
+                my $storages = $get_pveceph_managed_storages->(
+                    $fs_name, $fs_name eq ($defaultfs // ''),
+                );
+                for my $storeid (keys %$storages) {
+                    my $store = $storages->{$storeid};
+                    if (!$store->{disable}) {
+                        die "storage '$storeid' is not disabled, make sure to disable"
+                            . " and unmount the storage first\n";
+                    }
+                }
+
+                my $err;
+                for my $storeid (keys %$storages) {
+                    # skip external clusters, not managed by pveceph
+                    next if $storages->{$storeid}->{monhost};
+                    eval { PVE::API2::Storage::Config->delete({ storage => $storeid }) };
+                    if ($@) {
+                        warn "failed to remove storage '$storeid': $@\n";
+                        $err = 1;
+                    }
+                }
+                die "failed to remove (some) storages - check log and remove manually!\n"
+                    if $err;
+            }
+
+            PVE::Ceph::Tools::destroy_fs($fs_name, $rados);
+
+            if ($param->{'remove-pools'}) {
+                warn "removing metadata pool '$fs->{metadata_pool}'\n";
+                eval { PVE::Ceph::Tools::destroy_pool($fs->{metadata_pool}, $rados) };
+                warn "$@\n" if $@;
+
+                for my $pool ($fs->{data_pools}->@*) {
+                    warn "removing data pool '$pool'\n";
+                    eval { PVE::Ceph::Tools::destroy_pool($pool, $rados) };
+                    warn "$@\n" if $@;
+                }
+            }
+        };
+
+        return $rpcenv->fork_worker('cephdestroyfs', $fs_name, $user, $worker);
     },
 });
 

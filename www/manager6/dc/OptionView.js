@@ -393,7 +393,7 @@ Ext.define('PVE.dc.OptionView', {
                 let colors = PVE.UIOptions.parseTagOverrides(value?.['color-map']);
                 let shape = value.shape;
                 let shapeText = PVE.UIOptions.tagTreeStyles[shape ?? '__default__'];
-                let txt = Ext.String.format(gettext('Tree Shape: {0}'), shapeText);
+                let txt = Ext.String.format(gettext('Shape: {0}'), shapeText);
                 let orderText = PVE.UIOptions.tagOrderOptions[value.ordering ?? '__default__'];
                 txt += `, ${Ext.String.format(gettext('Ordering: {0}'), orderText)}`;
                 if (value['case-sensitive']) {
@@ -457,7 +457,7 @@ Ext.define('PVE.dc.OptionView', {
                             {
                                 name: 'shape',
                                 xtype: 'proxmoxComboGrid',
-                                fieldLabel: gettext('Tree Shape'),
+                                fieldLabel: gettext('Shape'),
                                 valueField: 'value',
                                 displayField: 'display',
                                 allowBlank: false,
@@ -567,6 +567,15 @@ Ext.define('PVE.dc.OptionView', {
             },
             onlineHelp: 'gui_consent_banner',
         });
+
+        me.rows.location = {
+            required: true,
+            header: gettext('Location'),
+            renderer: Proxmox.Utils.renderLocation,
+            editor: {
+                xtype: 'pmxLocationEditWindow',
+            },
+        };
 
         me.selModel = Ext.create('Ext.selection.RowModel', {});
 

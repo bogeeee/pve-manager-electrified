@@ -267,6 +267,8 @@ Ext.define('PVE.form.VMSelector', {
                 me.getSelectionModel().selectAll(false);
             });
         }
+
+        me.userCls = PVE.UIOptions.tagStyleClass(PVE.UIOptions.options['tag-style'], true);
     },
 });
 

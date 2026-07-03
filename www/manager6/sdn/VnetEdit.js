@@ -7,6 +7,30 @@ Ext.define('PVE.sdn.VnetInputPanel', {
 
         if (me.isCreate) {
             values.type = 'vnet';
+            return values;
+        }
+
+        // Fields disabled because the selected zone does not support them are excluded from
+        // getSubmitData, so deleteEmpty cannot fire for them. Explicitly stage a delete so a
+        // previously persisted value gets dropped instead of left behind in the config.
+        let addDelete = (key) => {
+            if (values.delete) {
+                if (Ext.isArray(values.delete)) {
+                    values.delete.push(key);
+                } else {
+                    values.delete = [values.delete, key];
+                }
+            } else {
+                values.delete = [key];
+            }
+            delete values[key];
+        };
+
+        if (me.down('#sdnVnetTagField').isDisabled()) {
+            addDelete('tag');
+        }
+        if (me.down('#sdnVnetVlanAwareField').isDisabled()) {
+            addDelete('vlanaware');
         }
 
         return values;
@@ -101,18 +125,22 @@ Ext.define('PVE.sdn.VnetInputPanel', {
 
         let tagField = me.down('#sdnVnetTagField');
         if (!zoneType || zoneType === 'simple') {
-            tagField.setVisible(false);
+            tagField.setDisabled(true);
             tagField.setValue('');
+            tagField.allowBlank = true;
         } else {
-            tagField.setVisible(true);
+            tagField.setDisabled(false);
+            // vlan, vxlan and evpn zones require a tag; qinq and faucet allow tag-less vnets.
+            tagField.allowBlank = zoneType === 'qinq' || zoneType === 'faucet';
         }
+        tagField.validate();
 
         let vlanField = me.down('#sdnVnetVlanAwareField');
         if (!zoneType || zoneType === 'evpn') {
-            vlanField.setVisible(false);
+            vlanField.setDisabled(true);
             vlanField.setValue('');
         } else {
-            vlanField.setVisible(true);
+            vlanField.setDisabled(false);
         }
     },
 });

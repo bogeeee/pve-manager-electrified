@@ -57,19 +57,24 @@ Ext.define('PVE.qemu.SystemInputPanel', {
                 change: 'biosChange',
             },
             '#': {
-                afterrender: 'setMachine',
+                afterrender: 'setDefaults',
             },
         },
 
-        setMachine: function () {
+        setDefaults: function () {
             let me = this;
             let vm = this.getViewModel();
+
             let ostype = vm.get('current.ostype');
+            let architecture = vm.get('current.architecture');
+
+            let defaults = PVE.qemu.OSDefaults.getDefaults(ostype, architecture);
             if (ostype === 'win11') {
-                me.lookup('machine').setValue('q35');
-                me.lookup('bios').setValue('ovmf');
                 me.lookup('addtpmbox').setValue(true);
             }
+
+            me.lookup('machine').setValue(defaults.machine ?? '__default__');
+            me.lookup('bios').setValue(defaults.bios ?? '__default__');
         },
     },
 
@@ -83,15 +88,14 @@ Ext.define('PVE.qemu.SystemInputPanel', {
             comboItems: Object.entries(PVE.Utils.kvm_vga_drivers),
         },
         {
-            xtype: 'proxmoxKVComboBox',
+            xtype: 'pveQemuMachineSelector',
             name: 'machine',
             reference: 'machine',
             value: '__default__',
             fieldLabel: gettext('Machine'),
-            comboItems: [
-                ['__default__', PVE.Utils.render_qemu_machine('')],
-                ['q35', 'q35'],
-            ],
+            bind: {
+                category: '{current.architecture}',
+            },
         },
         {
             xtype: 'displayfield',
@@ -103,6 +107,9 @@ Ext.define('PVE.qemu.SystemInputPanel', {
             reference: 'bios',
             value: '__default__',
             fieldLabel: 'BIOS',
+            bind: {
+                category: '{current.architecture}',
+            },
         },
         {
             xtype: 'proxmoxcheckbox',
@@ -139,6 +146,7 @@ Ext.define('PVE.qemu.SystemInputPanel', {
             name: 'scsihw',
             value: '__default__',
             bind: {
+                category: '{current.architecture}',
                 value: '{current.scsihw}',
             },
             fieldLabel: gettext('SCSI Controller'),

@@ -7,6 +7,7 @@ use PVE::Status::Plugin;
 use PVE::Status::Graphite;
 use PVE::Status::InfluxDB;
 use PVE::Status::OpenTelemetry;
+use PVE::SafeSyslog;
 
 PVE::Status::Graphite->register();
 PVE::Status::InfluxDB->register();
@@ -53,8 +54,11 @@ sub transactions_start {
         sub {
             my ($plugin, $id, $plugin_config) = @_;
 
-            my $connection = $plugin->_connect($plugin_config, $id);
-
+            my $connection = eval { $plugin->_connect($plugin_config, $id); };
+            if (my $err = $@) {
+                syslog("warning", "connection for plugin '$id' failed: $err");
+                return;
+            }
             push @$transactions,
                 {
                     connection => $connection,

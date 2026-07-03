@@ -27,10 +27,11 @@ use PVE::API2::Backup;
 use PVE::API2::Cluster::BackupInfo;
 use PVE::API2::Cluster::BulkAction;
 use PVE::API2::Cluster::Ceph;
-use PVE::API2::Cluster::Mapping;
 use PVE::API2::Cluster::Jobs;
+use PVE::API2::Cluster::Mapping;
 use PVE::API2::Cluster::MetricServer;
 use PVE::API2::Cluster::Notifications;
+use PVE::API2::Cluster::Qemu;
 use PVE::API2::ClusterConfig;
 use PVE::API2::Firewall::Cluster;
 use PVE::API2::HAConfig;
@@ -57,6 +58,11 @@ __PACKAGE__->register_method({
 __PACKAGE__->register_method({
     subclass => "PVE::API2::Cluster::Notifications",
     path => 'notifications',
+});
+
+__PACKAGE__->register_method({
+    subclass => "PVE::API2::Cluster::Qemu",
+    path => 'qemu',
 });
 
 __PACKAGE__->register_method({
@@ -166,6 +172,7 @@ __PACKAGE__->register_method({
             { name => 'notifications' },
             { name => 'nextid' },
             { name => 'options' },
+            { name => 'qemu' },
             { name => 'replication' },
             { name => 'resources' },
             { name => 'status' },
@@ -489,6 +496,13 @@ __PACKAGE__->register_method({
                     type => "string",
                     optional => 1,
                 },
+                'host-arch' => {
+                    description => "The node's CPU architecture. (for type 'node').",
+                    type => 'string',
+                    enum => [qw(x86_64 aarch64)],
+                    default => 'x86_64',
+                    optional => 1,
+                },
             },
         },
     },
@@ -612,6 +626,9 @@ __PACKAGE__->register_method({
                 my $info = eval { decode_json($static_node_info->{$node}); };
                 if (defined(my $mode = $info->{'cgroup-mode'})) {
                     $entry->{'cgroup-mode'} = int($mode);
+                }
+                if (defined(my $host_arch = $info->{'host-arch'})) {
+                    $entry->{'host-arch'} = $host_arch;
                 }
                 if (defined(my $status = $hastatus->{node_status}->{$node})) {
                     $entry->{'hastate'} = $status;
@@ -769,7 +786,19 @@ __PACKAGE__->register_method({
     },
     returns => {
         type => "object",
-        properties => {},
+        # the writable datacenter options plus the read-only 'allowed-tags'; left open
+        # ('additionalProperties' unset) as not all options are returned without 'Sys.Audit'
+        properties => {
+            $dc_schema->{properties}->%*,
+            'allowed-tags' => {
+                type => 'array',
+                description => 'The tags the current user is allowed to set and see.',
+                items => {
+                    type => 'string',
+                    description => 'A tag.',
+                },
+            },
+        },
     },
     code => sub {
         my ($param) = @_;

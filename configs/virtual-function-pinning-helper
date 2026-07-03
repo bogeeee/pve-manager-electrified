@@ -10,8 +10,10 @@ fi
 PHYSFN_SYSFS_PCI_PATH=$(realpath "${DEVICE_SYSFS_PCI_PATH}/physfn");
 PHYSFN_IFACE_NAME=$(ls "${PHYSFN_SYSFS_PCI_PATH}/net")
 
-# interface is not pinned
-if [ ! -f "/usr/local/lib/systemd/network/50-pve-${PHYSFN_IFACE_NAME}.link" ]; then
+# interface is not pinned by either the product-neutral or legacy prefix
+LINK_DIR="/usr/local/lib/systemd/network"
+if [ ! -f "${LINK_DIR}/50-pmx-${PHYSFN_IFACE_NAME}.link" ] \
+    && [ ! -f "${LINK_DIR}/50-pve-${PHYSFN_IFACE_NAME}.link" ]; then
     exit;
 fi
 

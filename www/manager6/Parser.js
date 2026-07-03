@@ -54,7 +54,12 @@ Ext.define('PVE.Parser', {
 
             try {
                 value.split(',').forEach((property) => {
-                    let [k, v] = property.split('=', 2);
+                    let idx = property.indexOf('=');
+                    let [k, v] =
+                        idx === -1
+                            ? [property, undefined]
+                            : [property.substring(0, idx), property.substring(idx + 1)];
+
                     if (Ext.isDefined(v)) {
                         res[k] = v;
                     } else if (Ext.isDefined(defaultKey)) {

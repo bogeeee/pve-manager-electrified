@@ -149,6 +149,15 @@ Ext.define('PVE.panel.OpenIDInputPanel', {
                 deleteEmpty: '{!isCreate}',
             },
         },
+        {
+            xtype: 'proxmoxtextfield',
+            name: 'audiences',
+            fieldLabel: gettext('Audiences'),
+            submitEmpty: false,
+            cbind: {
+                deleteEmpty: '{!isCreate}',
+            },
+        },
     ],
 
     initComponent: function () {

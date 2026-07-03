@@ -5,8 +5,8 @@ use warnings;
 
 use PVE::JSONSchema qw(get_standard_option);
 
+use PVE::QemuServer::PCI::Mdev;
 use PVE::RESTHandler;
-use PVE::SysFSTools;
 
 use base qw(PVE::RESTHandler);
 
@@ -225,7 +225,7 @@ __PACKAGE__->register_method({
         if ($param->{'pci-id-or-mapping'} =~
             m/^(?:[0-9a-fA-F]{4}:)?[0-9a-fA-F]{2}:[0-9a-fA-F]{2}\.[0-9a-fA-F]$/
         ) {
-            return PVE::SysFSTools::get_mdev_types($param->{'pci-id-or-mapping'}); # PCI ID
+            return PVE::QemuServer::PCI::Mdev::get_mdev_types($param->{'pci-id-or-mapping'}); # PCI ID
         } else {
             my $mapping = $param->{'pci-id-or-mapping'};
 
@@ -235,7 +235,7 @@ __PACKAGE__->register_method({
                 my $id = $device->{path};
                 next if $id =~ m/;/; # mdev not supported for multifunction devices
 
-                my $device_types = PVE::SysFSTools::get_mdev_types($id);
+                my $device_types = PVE::QemuServer::PCI::Mdev::get_mdev_types($id);
 
                 for my $type_definition ($device_types->@*) {
                     my $type = $type_definition->{type};

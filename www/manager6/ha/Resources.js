@@ -151,6 +151,12 @@ Ext.define('PVE.ha.ResourcesView', {
                     dataIndex: 'failback',
                 },
                 {
+                    header: gettext('Auto-Rebalance'),
+                    width: 100,
+                    sortable: true,
+                    dataIndex: 'auto-rebalance',
+                },
+                {
                     header: gettext('Description'),
                     flex: 1,
                     renderer: Ext.String.htmlEncode,

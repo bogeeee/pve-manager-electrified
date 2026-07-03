@@ -20,7 +20,7 @@ Ext.define('PVE.dc.PCIMapView', {
         data.forEach((entry) => {
             ids[entry.id] = entry;
         });
-        // extract the mdev property from the global entry and insert to the individiual entries,
+        // extract the mdev property from the global entry and set it for the individual entries,
         // so we can reuse the normal checking logic
         let mdev;
         me.getRootNode()?.cascade(function (rec) {

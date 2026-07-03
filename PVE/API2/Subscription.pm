@@ -58,7 +58,7 @@ sub check_key {
 
 sub read_etc_subscription {
     my $req_sockets = get_sockets();
-    my $server_id = PVE::API2Tools::get_hwaddress();
+    my $server_id_candidates = Proxmox::RS::Subscription::get_hardware_address_candidates();
 
     my $info = Proxmox::RS::Subscription::read_subscription($filename);
 
@@ -89,7 +89,7 @@ my sub cache_is_valid {
 sub write_etc_subscription {
     my ($info) = @_;
 
-    my $server_id = PVE::API2Tools::get_hwaddress();
+    my $server_id_candidates = Proxmox::RS::Subscription::get_hardware_address_candidates();
     mkdir "/etc/apt/auth.conf.d";
     Proxmox::RS::Subscription::write_subscription(
         $filename,
@@ -205,7 +205,8 @@ __PACKAGE__->register_method({
         my $authuser = $rpcenv->get_user();
         my $has_permission = $rpcenv->check($authuser, "/nodes/$node", ['Sys.Audit'], 1);
 
-        my $server_id = PVE::API2Tools::get_hwaddress();
+        my $server_id_candidates = Proxmox::RS::Subscription::get_hardware_address_candidates();
+        my $server_id = $server_id_candidates->[0]->[1];
         my $url = "https://www.proxmox.com/en/proxmox-virtual-environment/pricing";
 
         my $info = read_etc_subscription();
@@ -227,7 +228,15 @@ __PACKAGE__->register_method({
             };
         }
 
-        $info->{serverid} = $server_id;
+        # none set yet
+        $info->{serverid} = $server_id if !defined($info->{serverid});
+
+        if (
+            (grep { my $id = $_->[1]; $id eq $info->{serverid} } $server_id_candidates->@*) < 1
+        ) {
+            # mismatch, reset
+            $info->{serverid} = $server_id;
+        }
         $info->{sockets} = get_sockets();
         $info->{url} = $url;
 
@@ -264,8 +273,12 @@ __PACKAGE__->register_method({
         my $info = read_etc_subscription();
         return undef if !$info;
 
-        my $server_id = PVE::API2Tools::get_hwaddress();
+        my $server_id_candidates = Proxmox::RS::Subscription::get_hardware_address_candidates();
         my $key = $info->{key};
+        my $server_id = $info->{serverid} // $server_id_candidates->[0]->[1];
+        if ((grep { my $id = $_->[1]; $id eq $server_id } $server_id_candidates->@*) < 1) {
+            die "no matching server ID found\n";
+        }
 
         die
             "Updating offline key not possible - please remove and re-add subscription key to switch to online key.\n"
@@ -324,7 +337,10 @@ __PACKAGE__->register_method({
         };
 
         my $req_sockets = get_sockets();
-        my $server_id = PVE::API2Tools::get_hwaddress();
+        my $server_id_candidates = Proxmox::RS::Subscription::get_hardware_address_candidates();
+        my $server_id = $server_id_candidates->[0]->[1];
+
+        die "Failed to generate server ID\n" if !$server_id;
 
         check_key($key, $req_sockets);
 

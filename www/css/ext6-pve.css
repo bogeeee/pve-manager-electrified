@@ -89,12 +89,6 @@
     content: "\f115";
 }
 
-/* loading in task list */
-.x-grid-row-loading {
-    background: no-repeat center center;
-    background-image: url(../images/spinner.svg);
-}
-
 /* for font-awesome colors */
 /* tree icons */
 

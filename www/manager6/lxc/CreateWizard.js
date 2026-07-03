@@ -234,6 +234,9 @@ Ext.define('PVE.lxc.CreateWizard', {
             isCreate: true,
             unused: false,
             confid: 'rootfs',
+            bind: {
+                nodename: '{nodename}',
+            },
         },
         {
             xtype: 'pveLxcCPUInputPanel',

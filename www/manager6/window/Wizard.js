@@ -3,8 +3,8 @@ Ext.define('PVE.window.Wizard', {
 
     activeTitle: '', // used for automated testing
 
-    width: 720,
-    height: 540,
+    width: 760,
+    height: 570,
 
     modal: true,
     border: false,

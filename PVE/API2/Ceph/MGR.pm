@@ -37,20 +37,47 @@ __PACKAGE__->register_method({
             type => "object",
             properties => {
                 name => {
-                    description => "The name (ID) for the MGR",
+                    description => "The name (ID) for the MGR.",
                     type => 'string',
                 },
                 addr => {
                     type => 'string',
                     optional => 1,
+                    description => "Address as advertised by the manager; Ceph-formatted"
+                        . " (typically 'IP:PORT/NONCE').",
                 },
                 host => {
                     type => 'string',
                     optional => 1,
+                    description => "Host the manager runs on.",
                 },
                 state => {
                     type => 'string',
-                    description => 'State of the MGR',
+                    description => "Manager state: 'active' or 'standby' for daemons visible to"
+                        . " the mgr cluster, 'stopped' or 'unknown' for configured daemons not"
+                        . " currently visible.",
+                },
+                ceph_version => {
+                    type => 'string',
+                    optional => 1,
+                    description => "Full Ceph version string of the manager daemon.",
+                },
+                ceph_version_short => {
+                    type => 'string',
+                    optional => 1,
+                    description =>
+                        "Short Ceph version string of the manager daemon (e.g. '19.2.0').",
+                },
+                direxists => {
+                    type => 'boolean',
+                    optional => 1,
+                    description => "Set when the manager's data directory exists on this node.",
+                },
+                service => {
+                    type => 'boolean',
+                    optional => 1,
+                    description => "Set if a ceph-mgr@<id> systemd unit is enabled on the"
+                        . " hosting node; absent otherwise.",
                 },
             },
         },
@@ -98,9 +125,10 @@ __PACKAGE__->register_method({
             id => {
                 type => 'string',
                 optional => 1,
+                default => 'nodename',
                 pattern => PVE::Ceph::Services::SERVICE_REGEX,
                 maxLength => 200,
-                description => "The ID for the manager, when omitted the same as the nodename",
+                description => "The ID for the manager, when omitted the same as the nodename.",
             },
         },
     },

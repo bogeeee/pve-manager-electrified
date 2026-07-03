@@ -3,6 +3,7 @@ Ext.define('PVE.form.CRSOptions', {
     alias: 'widget.pveCRSOptions',
 
     width: 450,
+    subject: gettext('Cluster Resource Scheduling'),
     url: '/api2/extjs/cluster/options',
     onlineHelp: 'ha_manager_crs',
 
@@ -16,39 +17,51 @@ Ext.define('PVE.form.CRSOptions', {
         });
     },
 
-    viewModel: {},
+    viewModel: {
+        data: {
+            crsMode: '__default__',
+            autoRebalancing: 0,
+        },
+        formulas: {
+            canUseAutoRebalancing: (get) =>
+                get('crsMode') === 'static' || get('crsMode') === 'dynamic',
+            autoRebalancingDisabled: (get) =>
+                !get('autoRebalancing') || !get('canUseAutoRebalancing'),
+        },
+    },
 
     items: [
         {
             xtype: 'inputpanel',
             onGetValues: function (values) {
-                if (values === undefined || Object.keys(values).length === 0) {
+                let crs = values ? PVE.Parser.printPropertyString(values) : '';
+                if (crs === '') {
                     return { delete: 'crs' };
-                } else {
-                    return { crs: PVE.Parser.printPropertyString(values) };
                 }
+                return { crs };
             },
             items: [
                 {
                     xtype: 'proxmoxKVComboBox',
                     name: 'ha',
-                    fieldLabel: gettext('HA Scheduling'),
+                    fieldLabel: gettext('Scheduling Mode'),
                     deleteEmpty: false,
-                    value: '__default__',
                     comboItems: [
                         ['__default__', Proxmox.Utils.defaultText + ' (basic)'],
                         ['basic', gettext('Basic (Resource Count)')],
                         ['static', gettext('Static Load')],
                         ['dynamic', gettext('Dynamic Load')],
                     ],
-                    defaultValue: '__default__',
+                    bind: {
+                        value: '{crsMode}',
+                    },
                 },
                 {
                     xtype: 'proxmoxcheckbox',
                     name: 'ha-rebalance-on-start',
                     fieldLabel: gettext('Rebalance on Start'),
                     boxLabel: gettext(
-                        'Use CRS to select the least loaded node when starting an HA service',
+                        'Use CRS to select the least loaded node when starting an HA resource',
                     ),
                     value: 0,
                 },
@@ -57,18 +70,21 @@ Ext.define('PVE.form.CRSOptions', {
                     name: 'ha-auto-rebalance',
                     fieldLabel: gettext('Automatic Rebalance'),
                     boxLabel: gettext('Automatically rebalance HA resources'),
-                    value: 0,
-                    reference: 'enableAutoRebalance',
+                    bind: {
+                        value: '{autoRebalancing}',
+                        disabled: '{!canUseAutoRebalancing}',
+                    },
                 },
                 {
                     xtype: 'numberfield',
                     name: 'ha-auto-rebalance-threshold',
-                    fieldLabel: gettext('Imbalance Threshold'),
-                    emptyText: '0.3',
-                    minValue: 0.0,
-                    step: 0.01,
+                    fieldLabel: gettext('Imbalance Threshold (%)'),
+                    emptyText: Proxmox.Utils.defaultText + ' (30)',
+                    minValue: 0,
+                    maxValue: 100,
+                    step: 1,
                     bind: {
-                        disabled: '{!enableAutoRebalance.checked}',
+                        disabled: '{autoRebalancingDisabled}',
                     },
                 },
                 {
@@ -84,30 +100,30 @@ Ext.define('PVE.form.CRSOptions', {
                     ],
                     defaultValue: '__default__',
                     bind: {
-                        disabled: '{!enableAutoRebalance.checked}',
+                        disabled: '{autoRebalancingDisabled}',
                     },
                 },
                 {
                     xtype: 'numberfield',
                     name: 'ha-auto-rebalance-hold-duration',
                     fieldLabel: gettext('Hold Duration'),
-                    emptyText: '3',
+                    emptyText: Proxmox.Utils.defaultText + ' (3)',
                     minValue: 0,
                     step: 1,
                     bind: {
-                        disabled: '{!enableAutoRebalance.checked}',
+                        disabled: '{autoRebalancingDisabled}',
                     },
                 },
                 {
                     xtype: 'numberfield',
                     name: 'ha-auto-rebalance-margin',
-                    fieldLabel: gettext('Minimum Imbalance Improvement'),
-                    emptyText: '0.1',
-                    minValue: 0.0,
-                    maxValue: 1.0,
-                    step: 0.01,
+                    fieldLabel: gettext('Minimum Imbalance Improvement (%)'),
+                    emptyText: Proxmox.Utils.defaultText + ' (10)',
+                    minValue: 0,
+                    maxValue: 100,
+                    step: 1,
                     bind: {
-                        disabled: '{!enableAutoRebalance.checked}',
+                        disabled: '{autoRebalancingDisabled}',
                     },
                 },
             ],
