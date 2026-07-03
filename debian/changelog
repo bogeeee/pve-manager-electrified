@@ -1,3 +1,11 @@
+pve-manager-electrified (9.16.0) trixie; urgency=medium
+  * Implement "Rename node" action
+  * Fix quirks in cpu bars
+  * Revert: Performance: Precache guest config files on startup
+  * Plugin API: Implement execShellCommandInPopupTerminalWindow
+  * Proxmox 9.2.4 features merged
+ -- PVE-electrified crew <crew@pve-electrified.net>  Sat, 04 Jul 2026 00:00:17 +0200
+
 pve-manager-electrified (9.15.1) trixie; urgency=medium
   * Performance: Precache guest config files on startup
   * Minor fixes and improvements, see git log
