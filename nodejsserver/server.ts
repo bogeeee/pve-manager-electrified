@@ -464,7 +464,12 @@ class AppServer {
             if (await fileExists(`/usr/share/pve-i18n/pve-lang-${lang}.js`)) { // Language file exists ?
                 indexHtml = indexHtml.replace("$LANGFILE$", `<script type='text/javascript' src='/pve2/locale/pve-lang-${lang}.js?ver=${buildId}'/>`);
             } else {
-                indexHtml = indexHtml.replace("$LANGFILE$", "<script type='text/javascript'>function gettext(message) { return message; }; function ngettext(singular, plural, count) { return count === 1 ? singular : plural; }</script>");
+                indexHtml = indexHtml.replace("$LANGFILE$", "<script type='text/javascript'>\n" +
+                    "function gettext(message) { return message; };\n" +
+                    "function ngettext(singular, plural, count) { return count === 1 ? singular : plural; }\n" +
+                    "function pgettext(context, message) { return message; }\n" +
+                    "function npgettext(context, singular, plural, count) { return count === 1 ? singular : plural; }\n" +
+                    "</script>");
             }
 
 
