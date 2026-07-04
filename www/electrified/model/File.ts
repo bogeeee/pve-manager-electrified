@@ -325,8 +325,11 @@ export class File {
         // Subscribe for file changes:
         if(!this.watchesForChanges) { // not yet already watching?
             this.watchesForChanges = true;
-            await this.node.electrifiedClient.withReconnect(async () => {
+            await this.node.electrifiedClient.withReconnect(async (isReconnect) => {
                 await this.node.electrifiedApi.onFileChanged(this.path, this.changeOnDiskHandler);
+                if(isReconnect) {
+                    spawnAsync(async () => {this.changeOnDiskHandler(await(this.node.electrifiedApi.getFileStat(this.path)))}, false)
+                }
             })
         }
     }
