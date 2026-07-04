@@ -1,3 +1,7 @@
+pve-manager-electrified (9.16.1) trixie; urgency=medium
+  * Fix dependency
+ -- PVE-electrified crew <crew@pve-electrified.net>  Sat, 04 Jul 2026 00:00:18 +0200
+
 pve-manager-electrified (9.16.0) trixie; urgency=medium
   * Implement "Rename node" action
   * Fix quirks in cpu bars
