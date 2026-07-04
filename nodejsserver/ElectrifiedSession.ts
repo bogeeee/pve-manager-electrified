@@ -767,6 +767,19 @@ export class ElectrifiedSession extends ServerSession {
         spawnAsync(async () => {await execa("reboot", [])}, false); // Reboot
 
     }
+
+    /**
+     * For testing, what happens on connection loss
+     */
+    @remote debug_stopForAWhile() {
+        console.log("Stopping server for a while")
+        appServer.httpsServer.closeAllConnections();
+        appServer.httpsServer.close();
+        setTimeout(()=> {
+            console.log("Starting server again");
+            appServer.httpsServer.listen(appServer.config.port)
+        }, 10000)
+    }
 }
 
 /**

@@ -29,7 +29,8 @@ import session, {MemoryStore, SessionData} from "express-session";
 import {unsign} from "cookie-signature"
 import nacl_util from "tweetnacl-util";
 import nacl from "tweetnacl";
-import {IncomingMessage} from "node:http";
+import {IncomingMessage, ServerResponse} from "node:http";
+import {Server} from "node:https";
 import {ExpressMemoryStoreExt} from "./util/ExpressMemoryStoreExt.js";
 import {ElectrifiedJsonConfig} from "./Common.js";
 import {GuestCpuMeters} from "./GuestCpuMeters.js";
@@ -107,6 +108,7 @@ class AppServer {
     protected expressSessionSecret = nacl_util.encodeBase64(nacl.randomBytes(32));
     protected expressSessionStore = new ExpressMemoryStoreExt(); // Express's default memory store. You may use a better one for production to prevent against growing memory by a DOS attack. See https://www.npmjs.com/package/express-session
 
+    httpsServer!: Server<typeof IncomingMessage, typeof ServerResponse>;
     viteDevServer!: ViteDevServer;
 
     viteDevServer_allowUnauthorizedClients = process.env.NODE_ENV === "development";
@@ -299,15 +301,15 @@ class AppServer {
 
 
             // Create an HTTPS server
-            const httpsServer = https.createServer({
+            this.httpsServer = https.createServer({
                 key: fs.readFileSync(this.config.key),
                 cert: fs.readFileSync(this.config.cert)
             }, expressApp);
 
-            expressApp.installEngineIoServer(httpsServer);
+            expressApp.installEngineIoServer(this.httpsServer);
 
             // Forward vite dev server websocket connections + the rest of all websocket connections (not handled by Restfuncs)  to the original server (most simple implementation. If there's more special websocket paths, put the handlers **above** here):
-            forwardWebsocketConnections(httpsServer, (req) => {
+            forwardWebsocketConnections(this.httpsServer, (req) => {
                 if(req.url?.startsWith("/viteHmr")) { // For vite ?
                     // Note: Duplicate logic:
                     if(!this.useViteDevServer) {
@@ -337,7 +339,7 @@ class AppServer {
                 }
             }, false);
 
-            httpsServer.listen(this.config.port, () => {
+            this.httpsServer.listen(this.config.port, () => {
                 console.log(`Server running at http://localhost:${this.config.port}`);
             });
         }, true);
