@@ -754,6 +754,9 @@ export class ElectrifiedSession extends ServerSession {
     @remote async renameNode(newName: string) {
         const oldName = await appServer.getHostName();
         const adjustConfigs = async (dryRun: boolean) => {
+            if(await fileExists("/etc/pve/corosync.conf")) { // Node is in a cluster
+                await this.searchAndReplaceInConfigFile("/etc/pve/corosync.conf", `\\b${oldName}\\b`, newName, dryRun);
+            }
             await this.searchAndReplaceInConfigFile("/etc/hostname", `\\b${oldName}\\b`, newName, dryRun);
             await this.searchAndReplaceInConfigFile("/etc/hosts", `\\b${oldName}\\b`, newName, dryRun);
         }

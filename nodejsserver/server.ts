@@ -706,7 +706,7 @@ class AppServer {
      */
     async checkPveDirIsMounted() {
         if(!await fileExists("/etc/pve/nodes")) { // just picked nodes as a dir that always exists
-            throw new Error("Cannot do the write operation. /etc/pve is not mounted.")
+            throw new Error("Cannot do the write operation. /etc/pve is not mounted. (Caused by a running dist-upgrade or after creating a cluster? If the problem persists, try a reboot.)")
         }
     }
 
@@ -715,7 +715,7 @@ class AppServer {
      */
     checkPveDirIsMountedSync() {
         if(!fs.existsSync("/etc/pve/nodes")) { // just picked nodes as a dir that always exists
-            throw new Error("Cannot do the write operation. /etc/pve is not mounted.")
+            throw new Error("Cannot do the write operation. /etc/pve is not mounted. (Caused by a running dist-upgrade or after creating a cluster? If the problem persists, try a reboot.)")
         }
     }
 
@@ -789,7 +789,7 @@ class AppServer {
      */
     async handle_nodeRenamed() {
         const JOB_FILENAME = "renameNode.job";
-        try {
+        spawnAsync(async () => {
             const thisNodeName = await this.getHostName();
             for (const childDir of await fsPromises.readdir("/etc/pve/nodes", {encoding: "utf8"})) {
                 const oldDir = `/etc/pve/nodes/${childDir}`;
@@ -797,17 +797,26 @@ class AppServer {
                     const markerContent = (await fsPromises.readFile(`${oldDir}/${JOB_FILENAME}`, {encoding: "utf8"})).trim();
                     if (markerContent === thisNodeName) { // Marker file targets this node?
                         const newDir = `/etc/pve/nodes/${thisNodeName}`
-                        console.log(`Post rename node: Moving files from ${oldDir} to ${newDir}`);
+                        console.log(`Post rename node: Moving files from ${oldDir} to ${newDir}...`);
+                        await this.checkPveDirIsMounted();
+                        // Wait til the dir is writeable:
+                        const isWritable = async() => (await fileExists(newDir)) && ((await fsPromises.stat(newDir)).mode & fs.constants.S_IWUSR);
+                        if(!await isWritable()) {
+                            console.log(`Waiting til ${newDir} is writeable...`)
+                            while (!await isWritable()) {
+                                await sleep(1000);
+                            }
+                        }
+
+
                         await this.checkPveDirIsMounted();
                         await moveFiles(oldDir, newDir);
                         await fsPromises.rm(oldDir, {recursive: true});
+                        console.log(`...moving files completed`);
                     }
                 }
             }
-        }
-        catch (e) {
-            console.log(toError(e));
-        }
+        }, false);
 
         /**
          * Moves files, ignores existing dirs/files

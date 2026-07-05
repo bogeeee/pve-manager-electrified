@@ -771,9 +771,17 @@ export class Node extends GuestsContainerBase implements NotificationTarget {
                         return;
                     }
 
+                    if(!await this.parent.queryHasQuorum()) {
+                        throw new Error("Cannot rename node. Datacenter has no quorum.");
+                    }
+
                     if(!await confirm(t`Rename node`, t`The host name and several config files will change. Afterwards, the system will reboot. This is a risky operation. Make sure, you have a backup. Are you sure?`)) {
                         return;
                     }
+
+                    props.resolve(true);
+
+                    // TODO: show progress dialog here. renameNode can take ~15 seconds
 
                     await this.electrifiedApi.renameNode(newName);
 
@@ -785,7 +793,6 @@ export class Node extends GuestsContainerBase implements NotificationTarget {
                         document.write("Redirecting to new url: " + newHost);
                         window.location.host = newHost;
                     }
-                    props.resolve(true);
                 })
             }
             return <div>
