@@ -123,7 +123,8 @@ class AppServer {
             process.on('SIGTERM', () => spawnAsync(async () => await this.shutDown(), true));  // Properly shut down after SIGTERM event. (Especially needed in develop with tsx, otherwise it takes 5 seconds till a forced process kill)
 
             await this.cleanUpIfInstallHung();
-            await this.handle_nodeRenamed()
+            await this.handle_nodeRenamed();
+            await this.ensurePveRootCertificateIsRegistered();
             this.listenForUdevEvents();
 
             if (process.env.NODE_ENV === "development") {
@@ -848,6 +849,24 @@ class AppServer {
                 }
             }
         }
+    }
+
+    /**
+     * Makes sure, /etc/pve/pve-root-ca.pem is registered in the os and usable. This was not done by the pve installation.
+     * Otherwise, https connections to localhost or to other hosts in the cluster fail.
+     */
+    async ensurePveRootCertificateIsRegistered() {
+        const pveCertFile = "/etc/pve/pve-root-ca.pem"
+        const pveCertFileInOsRegistry = "/etc/ssl/certs/pve-root-ca.pem";
+        if(!await fileExists(pveCertFileInOsRegistry) || (fs.statSync(pveCertFile).mtimeMs > fs.lstatSync(pveCertFileInOsRegistry).mtimeMs)) { // pveCertFileInOsRegistry does not exist / not up2date
+            // Register certificate:
+            console.log(`Registering certificate ${pveCertFile}. This may take a few seconds.`);
+            await fsPromises.rm(pveCertFileInOsRegistry, {force: true}); // Delete old symlink
+            await execa("ln", ["-s", pveCertFile, pveCertFileInOsRegistry]); // Create / recreate with current date
+            await execa("c_rehash", ["/etc/ssl/certs"]); // It's only possible to re-hash the whole dir. This may take a while
+            await execa("update-ca-certificates", []); // Registers it properly (not necessary for this app) for other apps / triggers systemd units.
+        }
+
     }
 
     /**
