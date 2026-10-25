@@ -59,7 +59,7 @@ Ext.define('PVE.sdn.DnsView', {
 
         let remove_btn = Ext.create('Proxmox.button.StdRemoveButton', {
             selModel: sm,
-            baseurl: '/cluster/sdn/dns/',
+            baseurl: '/cluster/sdn/dns',
             callback: () => store.load(),
         });
 

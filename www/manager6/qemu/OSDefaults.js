@@ -65,7 +65,6 @@ Ext.define('PVE.qemu.OSDefaults', {
                     ide: 1,
                 },
                 scsihw: 'virtio-scsi-single',
-                cputype: 'neoverse-n2',
                 bios: 'ovmf',
             },
         };

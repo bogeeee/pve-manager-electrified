@@ -1,7 +1,7 @@
 Ext.define('PVE.sdn.controllers.IsisInputPanel', {
     extend: 'PVE.panel.SDNControllerBase',
 
-    onlineHelp: 'pvesdn_controller_plugin_evpn',
+    onlineHelp: 'pvesdn_controller_plugin_ISIS',
 
     onGetValues: function (values) {
         var me = this;

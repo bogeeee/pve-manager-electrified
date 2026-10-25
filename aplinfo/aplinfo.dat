@@ -56,6 +56,19 @@ sha512sum: d6835836b59888d8bb3971668820483a246cfa46e992f62209464b6faabd6a223f413
 Infopage: https://linuxcontainers.org
 Description: LXC default image for alpine 3.23 (20260116)
 
+Package: alpine-3.24-default
+Version: 20260714
+Type: lxc
+OS: alpine
+Section: system
+Maintainer: Proxmox Support Team <support@proxmox.com>
+Architecture: amd64
+Location: system/alpine-3.24-default_20260714_amd64.tar.xz
+md5sum: 640e03c8343d505ac1e883d480521efb
+sha512sum: 9877b74de4c4878b70450502618f7b02952e792afdbc91f146f6cba507432dae516674d0bb3a306484d58edc722ff63db1ed3c4e5b0954fb2a2773ec8d8f33bd
+Infopage: https://linuxcontainers.org
+Description: LXC default image for alpine 3.24 (20260714)
+
 Package: archlinux-base
 Version: 20260420-1
 Type: lxc
@@ -69,6 +82,19 @@ sha512sum: a6af26c3760f5683ea17140aae9398e3a793f17e3c1586edcec56fb0ed1ba780722ce
 Infopage: https://www.archlinux.org
 Description: ArchLinux base image.
  ArchLinux template with the 'base' group and the 'openssh' package installed.
+
+Package: centos-10-stream-default
+Version: 20260713
+Type: lxc
+OS: centos
+Section: system
+Maintainer: Proxmox Support Team <support@proxmox.com>
+Architecture: amd64
+Location: system/centos-10-stream-default_20260713_amd64.tar.xz
+md5sum: e4be7a2143d6489c0c2576044478ae5d
+sha512sum: 7e55c0ad588bd7164901257d9d5a07c7a7425b1f0c094cf0e065d6303d137a1df6f51672fd7dc1728b70cf888e3e24582f878326a80b917cc8c1ea463f6168c3
+Infopage: https://linuxcontainers.org
+Description: LXC default image for centos 10-stream (20260713)
 
 Package: centos-9-stream-default
 Version: 20240828
@@ -98,15 +124,15 @@ Description: Debian 12 Bookworm (standard)
  A small Debian Bookworm system including all standard packages.
 
 Package: debian-13-standard
-Version: 13.1-2
+Version: 13.6-1
 Type: lxc
 OS: debian-13
 Section: system
 Maintainer: Proxmox Support Team <support@proxmox.com>
 Architecture: amd64
-Location: system/debian-13-standard_13.1-2_amd64.tar.zst
-md5sum: 5ee736fbc37d2068ca6695d7686b7d62
-sha512sum: 5aec4ab2ac5c16c7c8ecb87bfeeb10213abe96db6b85e2463585cea492fc861d7c390b3f9c95629bf690b95e9dfe1037207fc69c0912429605f208d5cb2621f8
+Location: system/debian-13-standard_13.6-1_amd64.tar.zst
+md5sum: a6148ff6f0d60e643a6e5f33497cecea
+sha512sum: 4c0c27ca6ceab5ef0b84db57825a00f26157ef1854bafe97297813e1cbe8ecb8cc9c453cab6b3b0efe1ba193a50c47ece1e41d950e411b8730b835b71e9e754b
 Infopage: https://pve.proxmox.com/wiki/Linux_Container#pct_supported_distributions
 Description: Debian 13 Trixie (standard)
  A small Debian Trixie system including all standard packages.
@@ -125,19 +151,6 @@ Infopage: https://devuan.org
 Description: Devuan 5 (standard)
  A small Devuan Daedalus system including a minimal set of essential packages.
 
-Package: fedora-42-default
-Version: 20250428
-Type: lxc
-OS: fedora
-Section: system
-Maintainer: Proxmox Support Team <support@proxmox.com>
-Architecture: amd64
-Location: system/fedora-42-default_20250428_amd64.tar.xz
-md5sum: a187b770b8897732e0ec716a1451b2be
-sha512sum: 05d08e345648277fd35ed4b9b99832dc4ca4536340a135400ef9c9c51ac76d78d5d5d73fc478d9baf95624ef566ff4990d9dae349b949024f44b77659c7492b8
-Infopage: https://linuxcontainers.org
-Description: LXC default image for fedora 42 (20250428)
-
 Package: fedora-43-default
 Version: 20260115
 Type: lxc
@@ -150,6 +163,19 @@ md5sum: a50b573c7a24e6de2227709349606ca0
 sha512sum: 2a1d710f8d9671e6cea2e775bff94c7e00a9dfde3aaaa07cc932e4df8938de398d65f7b2c4d7242196fec25101a33be9f6b8200185e4c24a4b869acf9f174781
 Infopage: https://linuxcontainers.org
 Description: LXC default image for fedora 43 (20260115)
+
+Package: fedora-44-default
+Version: 20260713
+Type: lxc
+OS: fedora
+Section: system
+Maintainer: Proxmox Support Team <support@proxmox.com>
+Architecture: amd64
+Location: system/fedora-44-default_20260713_amd64.tar.xz
+md5sum: 3e86e5e38af5e895703eb6c3db38b25a
+sha512sum: 868c83c15ba476aed986f324e698ac5d80c59f49440f70036da350d2faf0b117435150fce853ca6d553005da86956f0b71d34b40a94456473ad09fc87395d5c9
+Infopage: https://linuxcontainers.org
+Description: LXC default image for fedora 44 (20260713)
 
 Package: gentoo-current-openrc
 Version: 20250508
@@ -217,18 +243,18 @@ Infopage: https://www.proxmox.com/en/proxmox-mail-gateway/overview
 Description: Proxmox Mail Gateway 8.2
  A full featured mail proxy for spam and virus filtering, optimized for container environment.
 
-Package: proxmox-mail-gateway-9.0-standard
-Version: 9.0-1
+Package: proxmox-mail-gateway-9.1-standard
+Version: 9.1-1
 Type: lxc
 OS: debian-13
 Section: mail
 Maintainer: Proxmox Support Team <support@proxmox.com>
 Architecture: amd64
-Location: mail/proxmox-mail-gateway-9.0-standard_9.0-1_amd64.tar.zst
-md5sum: 2346458e2947248b25ebbe3484086e5c
-sha512sum: 8c20d93aa5af8a94526ecedb6b1a18e45ea2dd80d48d1ca9c413fffcd93cccaf4f6767e6326d9fe12e737388a9fbe328ef16e677f7442d7da29b75c5eb9f5b01
+Location: mail/proxmox-mail-gateway-9.1-standard_9.1-1_amd64.tar.zst
+md5sum: 2dd27723d1df3b8024e23fb863de9631
+sha512sum: 3e03914fbee7989177b4b5debbb4cf1196faa7d93c2091aca50956e2ab1401aebc90dff3f25aa3ab9dc9708ea4d666f3915245e5f3e69c7fe9421e2b65bbf4e6
 Infopage: https://www.proxmox.com/en/proxmox-mail-gateway/overview
-Description: Proxmox Mail Gateway 9.0
+Description: Proxmox Mail Gateway 9.1
  A full featured mail proxy for spam and virus filtering, optimized for container environment.
 
 Package: rockylinux-10-default

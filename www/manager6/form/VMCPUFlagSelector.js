@@ -292,8 +292,21 @@ Ext.define('PVE.form.VMCPUFlagSelector', {
                         xtype: 'segmentedbutton',
                         allowMultiple: false,
                         items: [
-                            { text: 'KVM', value: 1, pressed: true },
-                            { text: 'TCG', value: 0 },
+                            {
+                                text: 'KVM',
+                                value: 1,
+                                pressed: true,
+                                tooltip: gettext(
+                                    'Hardware-accelerated virtualization (fast, recommended)',
+                                ),
+                            },
+                            {
+                                text: 'TCG',
+                                value: 0,
+                                tooltip: gettext(
+                                    'Software emulation (slow, needed for cross-architecture emulation)',
+                                ),
+                            },
                         ],
                         listeners: {
                             change: function (field, value) {

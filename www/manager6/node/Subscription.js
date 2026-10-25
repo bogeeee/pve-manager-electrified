@@ -13,6 +13,28 @@ Ext.define('PVE.node.SubscriptionKeyEdit', {
         getSubmitValue: function () {
             return this.processRawValue(this.getRawValue())?.trim();
         },
+        validator: function (value) {
+            let key = value?.trim();
+            if (!key) {
+                return true;
+            }
+            // arm64 keys carry an explicit '-arm-' marker; treat anything else as amd64, the
+            // main architecture. Warn early on a mismatch with this node, the backend rejects
+            // it too.
+            let keyArch = /^pve[1248][cbsp]-arm-[0-9a-f]{10}$/.test(key) ? 'arm64' : 'amd64';
+            let nodeArch = Proxmox.NodeArch;
+            if (nodeArch && keyArch !== nodeArch) {
+                return Ext.String.format(
+                    gettext(
+                        "This subscription key is for the '{0}' architecture, but this" +
+                            " node is '{1}'.",
+                    ),
+                    keyArch,
+                    nodeArch,
+                );
+            }
+            return true;
+        },
     },
 
     initComponent: function () {

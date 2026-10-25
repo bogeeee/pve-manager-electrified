@@ -14,6 +14,22 @@ Ext.apply(Ext.form.field.VTypes, {
     IP64AddressListMask: /[A-Fa-f0-9,:.; ]/,
     PciIdText: gettext('Example') + ': 0x8086',
     PciId: (v) => /^0x[0-9a-fA-F]{4}$/.test(v),
+
+    IP64FullRangeCIDRAddress: function (v) {
+        let result = Proxmox.Utils.IP64_cidr_match.exec(v);
+        if (result === null) {
+            return false;
+        }
+        if (result[1] !== undefined) {
+            return result[1] >= 0 && result[1] <= 128;
+        } else if (result[2] !== undefined) {
+            return result[2] >= 0 && result[2] <= 32;
+        } else {
+            return false;
+        }
+    },
+    IP64FullRangeCIDRAddressText: gettext('Example') + ': 192.168.1.1/24 2001:DB8::42/64',
+    IP64FullRangeCIDRAddressMask: /[A-Fa-f0-9.:/]/,
 });
 
 Ext.define('PVE.form.field.Display', {

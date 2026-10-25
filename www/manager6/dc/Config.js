@@ -445,7 +445,7 @@ Ext.define('PVE.dc.Config', {
                 {
                     xtype: 'pveCPUTypeView',
                     iconCls: 'fa fa-microchip',
-                    title: gettext('Custom CPU models'),
+                    title: gettext('Custom CPU Models'),
                     itemId: 'cputypes',
                 },
                 {

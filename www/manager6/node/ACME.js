@@ -184,7 +184,7 @@ Ext.define('PVE.node.ACMEAccountCreate', {
         {
             xtype: 'displayfield',
             itemId: 'tos_url_display',
-            renderer: PVE.Utils.render_optional_url,
+            renderer: Proxmox.Utils.render_optional_url,
             name: 'tos_url_display',
         },
         {

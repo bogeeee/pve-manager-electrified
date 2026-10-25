@@ -21,6 +21,7 @@ use PVE::Jobs;
 use PVE::JSONSchema;
 use PVE::Network;
 use PVE::NodeConfig;
+use PVE::ProcFSTools;
 use PVE::RPCEnvironment;
 use PVE::Storage;
 use PVE::Storage::Plugin;
@@ -628,9 +629,41 @@ sub check_ceph {
                 "Ceph health reported as 'HEALTH_WARN' with a single failing check and 'noout' flag set."
             );
         } else {
-            log_warn(
-                "Ceph health reported as '$ceph_health'.\n      Use the PVE dashboard or 'ceph -s'"
-                    . " to determine the specific issues and try to resolve them.");
+            my $checks = $ceph_status->{health}->{checks} // {};
+            # the two global-id reclaim checks also start with AUTH_INSECURE_ but are unrelated
+            # and actionable, so they must not match
+            my @cephx =
+                grep { /^AUTH_INSECURE_(KEYS|SERVICE|CLIENT|ROTATING)_/ } sort keys %$checks;
+            # 'noout' is set on our own recommendation, so it is not actionable either
+            my $excused = scalar(@cephx) + ($noout && $checks->{OSDMAP_FLAGS} ? 1 : 0);
+
+            # named in both branches: an unrelated warning alongside them is the common
+            # case, and it must not hide what to do about these
+            my $cephx_hint =
+                "Migrate them with"
+                . " '/usr/share/pve-manager/migrations/pve-cephx-rotate-service-keys',"
+                . " which runs as a dry run unless '--apply' is passed.";
+
+            if (@cephx && $excused == scalar(keys %$checks)) {
+                log_info(
+                    "Ceph health reported as '$ceph_health' because cephx keys still use the"
+                        . " old cipher.\n      Ceph 19.2.6 and newer flag keys that are not yet"
+                        . " migrated to aes256k. Storage keeps working and the upgrade is not"
+                        . " affected.\n      $cephx_hint");
+            } else {
+                log_warn(
+                    "Ceph health reported as '$ceph_health'.\n      Use the PVE dashboard or"
+                        . " 'ceph -s' to determine the specific issues and try to resolve them."
+                        . (
+                            @cephx
+                            ? "\n      These come from the cephx key cipher migration and do"
+                            . " not block the upgrade: "
+                            . join(', ', @cephx)
+                            . ".\n      $cephx_hint"
+                            : ""
+                        )
+                );
+            }
         }
     }
 
@@ -935,7 +968,7 @@ my sub check_qemu_machine_versions {
         my $conf = PVE::QemuConfig->load_config($vmid);
 
         # first, actually configured machine version
-        my $machine_type = PVE::QemuServer::Machine::get_vm_machine($conf, undef, $conf->{arch});
+        my $machine_type = PVE::QemuServer::Machine::get_vm_machine($conf);
         if (
             PVE::QemuServer::Machine::extract_version($machine_type) # no version means latest
             && !PVE::QemuServer::Machine::is_machine_version_at_least($machine_type, @baseline)
@@ -946,9 +979,7 @@ my sub check_qemu_machine_versions {
         # second, if hibernated, running machine version
         if ($conf->{vmstate}) {
             my $machine_type = PVE::QemuServer::Machine::get_vm_machine(
-                $conf,
-                $conf->{runningmachine},
-                $conf->{arch},
+                $conf, $conf->{runningmachine},
             );
             if (
                 PVE::QemuServer::Machine::extract_version($machine_type) # no version means latest
@@ -968,7 +999,6 @@ my sub check_qemu_machine_versions {
                 my $machine_type = PVE::QemuServer::Machine::get_vm_machine(
                     $snap_conf,
                     $snap_conf->{runningmachine},
-                    $snap_conf->{arch},
                 );
                 if ( # no version means latest
                     PVE::QemuServer::Machine::extract_version($machine_type)
@@ -1599,6 +1629,15 @@ sub check_bootloader {
             }
         }
     } else {
+        if (!PVE::ProcFSTools::is_mounted('/boot/efi')) {
+            log_warn(
+                "System booted in UEFI mode but the EFI System Partition (ESP) is not mounted at"
+                    . " /boot/efi. Mount it at /boot/efi before upgrading and ensure it mounts"
+                    . " automatically at boot (e.g. via /etc/fstab), otherwise GRUB updates may leave"
+                    . " the system unbootable."
+            );
+            $boot_ok = 0;
+        }
         if (!-f "/usr/share/doc/grub-efi-amd64/changelog.Debian.gz") {
             log_warn("System booted in uefi mode but grub-efi-amd64 meta-package not installed,"
                 . " new grub versions will not be installed to /boot/efi! Install grub-efi-amd64."

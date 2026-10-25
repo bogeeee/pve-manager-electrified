@@ -349,6 +349,10 @@ sub create_pool {
     $mon_params->{erasure_code_profile} = extract_param($param, 'erasure_code_profile')
         if $param->{erasure_code_profile};
 
+    # Ceph checks mon_max_pg_per_osd against the rule given on create, not on a later rule change
+    $mon_params->{rule} = extract_param($param, 'crush_rule')
+        if $param->{crush_rule} && ($mon_params->{pool_type} // '') ne 'erasure';
+
     $rados->mon_command($mon_params);
 
     set_pool($pool, $param);
@@ -602,6 +606,11 @@ sub get_possible_osd_flags {
         },
         notieragent => {
             description => 'Cache tiering activity is suspended.',
+            type => 'boolean',
+            optional => 1,
+        },
+        noautoscale => {
+            description => 'The PG autoscaler does not change the number of PGs of any pool.',
             type => 'boolean',
             optional => 1,
         },

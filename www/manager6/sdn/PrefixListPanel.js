@@ -85,7 +85,7 @@ Ext.define('PVE.sdn.EditPrefixListEntryWindow', {
             xtype: 'proxmoxtextfield',
             fieldLabel: gettext('Prefix'),
             name: 'prefix',
-            vtype: 'IP64CIDRAddress',
+            vtype: 'IP64FullRangeCIDRAddress',
             allowBlank: false,
         },
         {

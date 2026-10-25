@@ -8,6 +8,10 @@ Ext.define(
         valueField: 'dns',
         displayField: 'dns',
 
+        isEqual: function (value1, value2) {
+            return String(value1 ?? '') === String(value2 ?? '');
+        },
+
         initComponent: function () {
             var me = this;
 

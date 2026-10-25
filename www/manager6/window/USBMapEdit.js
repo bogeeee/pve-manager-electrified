@@ -153,6 +153,7 @@ Ext.define('PVE.window.USBMapEditWindow', {
                     },
                     name: 'name',
                     allowBlank: false,
+                    vtype: 'ConfigId',
                 },
                 {
                     xtype: 'displayfield',

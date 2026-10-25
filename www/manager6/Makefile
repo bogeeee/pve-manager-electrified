@@ -151,6 +151,7 @@ JSSRC= 							\
 	window/DirMapEdit.js				\
 	window/GuestImport.js				\
 	ha/Fencing.js					\
+	ha/NodePrioritySelector.js			\
 	ha/ResourceEdit.js				\
 	ha/Resources.js					\
 	ha/RuleEdit.js					\
@@ -228,6 +229,7 @@ JSSRC= 							\
 	ceph/Config.js					\
 	ceph/Crush.js					\
 	ceph/FS.js					\
+	ceph/HealthMute.js				\
 	ceph/Log.js					\
 	ceph/Monitor.js					\
 	ceph/OSD.js					\

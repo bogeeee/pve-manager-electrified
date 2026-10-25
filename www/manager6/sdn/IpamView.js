@@ -58,7 +58,7 @@ Ext.define('PVE.sdn.IpamView', {
 
         let remove_btn = Ext.create('Proxmox.button.StdRemoveButton', {
             selModel: sm,
-            baseurl: '/cluster/sdn/ipams/',
+            baseurl: '/cluster/sdn/ipams',
             callback: () => store.load(),
         });
 

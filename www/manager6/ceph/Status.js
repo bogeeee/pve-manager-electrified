@@ -1,8 +1,103 @@
 Ext.define('pve-ceph-warnings', {
     extend: 'Ext.data.Model',
-    fields: ['id', 'summary', 'detail', 'severity'],
+    fields: [
+        'id',
+        'summary',
+        'detail',
+        'severity',
+        'muted',
+        'canMute',
+        'muteValue',
+        'muteIcon',
+        'muteLabel',
+        'cephxMigration',
+        'cephxHelpLink',
+        'cephxHelpLabel',
+        'hasActions',
+    ],
     idProperty: 'id',
 });
+
+// Ceph reports the same cipher change through several checks, with a detail that lists the
+// affected entities but not what to do about them. Keyed by the exact check, so the unrelated
+// AUTH_INSECURE_GLOBAL_ID_RECLAIM* checks keep ceph's own text.
+const CEPHX_CIPHER_STATUS_HINT = gettext(
+    'Cephx key migration checks are active. By themselves, they do not indicate unavailable' +
+        ' storage, failed services, or degraded data.',
+);
+
+// The onlineHelp property makes the local documentation index include this subsection.
+const CEPHX_CIPHER_HELP = {
+    onlineHelp: 'pveceph_cephx_migration',
+};
+
+const cephxMigrationHintHtml = function () {
+    let hint = Ext.htmlEncode(CEPHX_CIPHER_STATUS_HINT);
+    let helpLink = Ext.htmlEncode(Proxmox.Utils.get_help_link(CEPHX_CIPHER_HELP.onlineHelp));
+    let helpLabel = Ext.htmlEncode(gettext('Cephx migration guide'));
+
+    return (
+        '<i class="fa fa-fw fa-info-circle info-blue" aria-hidden="true"></i>' +
+        `${hint} <a target="_blank" rel="noopener noreferrer" href="${helpLink}">${helpLabel}</a>`
+    );
+};
+
+const CEPHX_CIPHER_HOWTO = {
+    AUTH_INSECURE_SERVICE_KEY_TYPE: gettext(
+        'Use the Cephx migration helper to migrate service daemon keys.',
+    ),
+    AUTH_INSECURE_SERVICE_TICKETS: gettext(
+        'Use the Cephx migration helper to switch service tickets to aes256k.',
+    ),
+    AUTH_INSECURE_CLIENT_KEY_TYPE: gettext(
+        'Use the migration helper for cluster-owned keys and keys of compatible Ceph users.' +
+            ' Leave user keys required by incompatible clients unchanged.',
+    ),
+    AUTH_INSECURE_KEYS_ALLOWED: gettext(
+        'Keep aes enabled while any key or client still needs it. Restrict the ciphers only' +
+            ' after the migration helper reports no blocker.',
+    ),
+    AUTH_INSECURE_KEYS_CREATABLE: gettext('Finish the migration after no key or client needs aes.'),
+    AUTH_INSECURE_ROTATING_SERVICE_KEY_TYPE: gettext(
+        'This usually clears within a few hours after the monitors start issuing aes256k' +
+            ' service tickets.',
+    ),
+};
+
+// The Mute/Unmute button lives in the detail of the row that reports the check, which is
+// template markup rather than a component, so the grid catches its events and the check is
+// read back off the button.
+let cephHealthMuteAction = function (target) {
+    let code = target.getAttribute('data-code');
+    let panel = Ext.Component.from(target)?.up('pveNodeCephStatus');
+    let reload = () => panel?.store.load();
+
+    if (target.getAttribute('data-mute') === '1') {
+        Ext.create('PVE.ceph.HealthMute', {
+            code: code,
+            autoShow: true,
+            listeners: { close: reload },
+        });
+        return;
+    }
+
+    Ext.Msg.confirm(
+        gettext('Confirm'),
+        Ext.String.format(gettext("Unmute health check '{0}'?"), code),
+        function (btn) {
+            if (btn !== 'yes') {
+                return;
+            }
+            Proxmox.Utils.API2Request({
+                url: `/cluster/ceph/health-mute/${code}`,
+                method: 'PUT',
+                params: { value: 0 },
+                failure: (response) => Ext.Msg.alert(gettext('Error'), response.htmlStatus),
+                success: reload,
+            });
+        },
+    );
+};
 
 Ext.define('PVE.node.CephStatus', {
     extend: 'Ext.panel.Panel',
@@ -83,6 +178,14 @@ Ext.define('PVE.node.CephStatus', {
                     viewConfig: {
                         enableTextSelection: true,
                         listeners: {
+                            // The button sits in the row body, which is template markup rather
+                            // than a component, so the view catches its clicks and the check is
+                            // read back off the button.
+                            click: {
+                                element: 'el',
+                                delegate: '.pve-ceph-warning-action',
+                                fn: (e, target) => cephHealthMuteAction(target),
+                            },
                             collapsebody: function (rowNode, record) {
                                 record.set('expanded', false);
                                 record.commit();
@@ -106,6 +209,9 @@ Ext.define('PVE.node.CephStatus', {
                     },
                     updateHealth: function (health) {
                         let checks = health.checks || {};
+                        // muting needs Sys.Modify, while this panel only needs an audit
+                        // privilege, so an audit user must not be offered the action
+                        let canMute = !!Ext.state.Manager.get('GuiCap')?.dc['Sys.Modify'];
 
                         let checkRecords = Object.keys(checks)
                             .sort()
@@ -118,7 +224,23 @@ Ext.define('PVE.node.CephStatus', {
                                         .reduce((acc, v) => `${acc}\n${v.message}`, '')
                                         .trimStart(),
                                     severity: check.severity,
+                                    muted: !!check.muted,
+                                    canMute: canMute,
                                 };
+                                data.muteValue = data.muted ? 0 : 1;
+                                data.muteIcon = data.muted ? 'fa-bell' : 'fa-bell-slash';
+                                data.muteLabel = data.muted ? gettext('Unmute') : gettext('Mute');
+                                let howto = CEPHX_CIPHER_HOWTO[key];
+                                data.cephxMigration = !!howto;
+                                if (howto) {
+                                    data.cephxHelpLink = Proxmox.Utils.get_help_link(
+                                        CEPHX_CIPHER_HELP.onlineHelp,
+                                    );
+                                    data.cephxHelpLabel = gettext('Cephx migration guide');
+                                    // ahead of ceph's own detail, which would push this out of view
+                                    data.detail = howto + (data.detail ? `\n\n${data.detail}` : '');
+                                }
+                                data.hasActions = data.cephxMigration || data.canMute;
                                 data.noDetails = data.detail.length === 0;
                                 data.detailsCls = data.detail.length === 0 ? 'pmx-opacity-75' : '';
                                 if (data.detail.length === 0) {
@@ -138,7 +260,13 @@ Ext.define('PVE.node.CephStatus', {
                             tooltip: gettext('Severity'),
                             align: 'center',
                             width: 38,
-                            renderer: function (value) {
+                            renderer: function (value, metaData, record) {
+                                if (record.get('muted')) {
+                                    metaData.tdAttr = `data-qtip="${Ext.String.htmlEncode(
+                                        gettext('Muted in Ceph, ignored for the overall status'),
+                                    )}"`;
+                                    return '<i class="fa fa-fw faded fa-bell-slash"></i>';
+                                }
                                 let health = PVE.Utils.map_ceph_health[value];
                                 let icon = PVE.Utils.get_health_icon(health);
                                 return `<i class="fa fa-fw ${icon}"></i>`;
@@ -159,6 +287,9 @@ Ext.define('PVE.node.CephStatus', {
                             renderer: function (value, metaData, record, rI, cI, store, view) {
                                 if (record.get('expanded')) {
                                     metaData.tdCls = 'pmx-column-wrapped';
+                                }
+                                if (record.get('muted')) {
+                                    metaData.tdCls += ' pmx-opacity-75';
                                 }
                                 return Ext.htmlEncode(value);
                             },
@@ -212,6 +343,28 @@ Ext.define('PVE.node.CephStatus', {
                                 '<pre class="pve-ceph-warning-detail {detailsCls}">',
                                 '{detail:htmlEncode}',
                                 '</pre>',
+                                '<tpl if="hasActions">',
+                                '<div class="pve-ceph-warning-actions">',
+                                '<tpl if="cephxMigration">',
+                                '<a target="_blank" rel="noopener noreferrer"',
+                                ' href="{cephxHelpLink:htmlEncode}">{cephxHelpLabel:htmlEncode}</a>',
+                                '</tpl>',
+                                '<tpl if="canMute">',
+                                // ExtJS' own button markup, so that both themes style it
+                                '<a class="x-btn x-unselectable x-btn-default-toolbar-small',
+                                ' pve-ceph-warning-action" role="button"',
+                                ' data-code="{id:htmlEncode}" data-mute="{muteValue}">',
+                                '<span class="x-btn-wrap x-btn-wrap-default-toolbar-small">',
+                                '<span class="x-btn-button x-btn-button-default-toolbar-small',
+                                ' x-btn-button-center x-btn-text x-btn-icon x-btn-icon-left">',
+                                '<span class="x-btn-icon-el x-btn-icon-el-default-toolbar-small',
+                                ' fa {muteIcon}"></span>',
+                                '<span class="x-btn-inner x-btn-inner-default-toolbar-small">',
+                                '{muteLabel:htmlEncode}',
+                                '</span></span></span></a>',
+                                '</tpl>',
+                                '</div>',
+                                '</tpl>',
                             ],
                         },
                     ],
@@ -345,8 +498,13 @@ Ext.define('PVE.node.CephStatus', {
         var rec = records[0];
         me.status = rec.data;
 
+        let checks = rec.data.health?.checks || {};
+        let showCephxMigrationHint = Object.keys(checks).some((key) => !!CEPHX_CIPHER_HOWTO[key]);
+
         // add health panel
-        me.down('#overallhealth').updateHealth(PVE.Utils.render_ceph_health(rec.data.health || {}));
+        let overallHealth = PVE.Utils.render_ceph_health(rec.data.health || {});
+        overallHealth.hintHtml = showCephxMigrationHint ? cephxMigrationHintHtml() : '';
+        me.down('#overallhealth').updateHealth(overallHealth);
         me.down('#warnings').updateHealth(rec.data.health || {}); // add errors to gridstore
 
         me.getComponent('services').updateAll(me.metadata || {}, rec.data);

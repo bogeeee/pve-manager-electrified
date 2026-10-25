@@ -197,11 +197,31 @@ Ext.define('PVE.qemu.HardwareView', {
                         me.getObjectValue('arch'),
                         nodename,
                     );
+                    let machineConf = PVE.Parser.parsePropertyString(value, 'type');
+                    let machineType = machineConf.type;
                     if (
                         PVE.Utils.is_windows(ostype) &&
-                        (!value || value === 'pc' || value === 'q35')
+                        (!machineType || machineType === 'pc' || machineType === 'q35')
                     ) {
-                        return value === 'q35' ? 'pc-q35-5.1' : 'pc-i440fx-5.1';
+                        let meta = me.getObjectValue('meta', undefined, pending);
+                        let creationQemu;
+                        if (meta) {
+                            creationQemu = PVE.Parser.parsePropertyString(meta)['creation-qemu'];
+                        }
+
+                        machineType = machineType === 'q35' ? 'q35' : '__default__';
+                        let displayMachine = PVE.Utils.qemu_implicit_machine_version(
+                            machineType,
+                            creationQemu,
+                            arch,
+                        );
+
+                        let displayValue = displayMachine + ' ' + gettext('(implicit)');
+                        if (machineConf.viommu) {
+                            displayValue += ', viommu=' + machineConf.viommu;
+                        }
+
+                        return displayValue;
                     }
                     return PVE.Utils.render_qemu_machine(value, arch);
                 },
@@ -252,6 +272,9 @@ Ext.define('PVE.qemu.HardwareView', {
                 visible: false,
             },
             ostype: {
+                visible: false,
+            },
+            meta: {
                 visible: false,
             },
             affinity: {

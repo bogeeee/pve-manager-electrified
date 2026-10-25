@@ -669,6 +669,26 @@ table.osds td:first-of-type {
     font-weight: normal;
 }
 
+.pve-ceph-warning-actions {
+    padding-bottom: 6px;
+}
+
+.pve-ceph-warning-actions > * + * {
+    margin-left: 8px;
+}
+
+.pve-health-widget-hint {
+    margin: 8px 8px 0;
+}
+
+/* Everything else about these comes from the ExtJS button classes in their markup, so that
+   both themes style them. The hover state is the exception: ExtJS sets a class for it from
+   JavaScript, which the grid drops whenever the status poll re-renders the row, so it is done
+   here with a neutral wash that darkens the light theme's button and lightens the dark one. */
+.pve-ceph-warning-action:hover {
+    box-shadow: inset 0 0 0 2em rgba(127, 127, 127, 0.18);
+}
+
 .pve-ceph-status-busy {
     color: #3892d4;
 }

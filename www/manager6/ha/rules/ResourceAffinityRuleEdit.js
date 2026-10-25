@@ -13,8 +13,8 @@ Ext.define('PVE.ha.rules.ResourceAffinityInputPanel', {
                 fieldLabel: gettext('Affinity'),
                 allowBlank: false,
                 comboItems: [
-                    ['positive', gettext('Keep Together')],
-                    ['negative', gettext('Keep Separate')],
+                    ['positive', `${gettext('Keep Together')} (positive)`],
+                    ['negative', `${gettext('Keep Separate')} (negative)`],
                 ],
             },
         ];

@@ -421,11 +421,8 @@ __PACKAGE__->register_method({
                 ],
                 format => 'plain',
             });
-            file_set_contents($ceph_bootstrap_osd_keyring, $bindata);
+            file_set_contents($ceph_bootstrap_osd_keyring, $bindata, 0600);
         }
-
-        # See FIXME below
-        my @udev_trigger_devs = ();
 
         # $size is in kibibytes
         my $osd_lvcreate = sub {
@@ -477,8 +474,6 @@ __PACKAGE__->register_method({
                     warn $@ if $@;
                 }
 
-                push @udev_trigger_devs, $dev->{devpath};
-
                 return "$vg/$lv";
 
             } elsif ($dev->{used} eq 'LVM') {
@@ -520,7 +515,6 @@ __PACKAGE__->register_method({
                     warn $@ if $@;
                 }
 
-                push @udev_trigger_devs, $part;
                 return $part;
             }
 
@@ -545,8 +539,6 @@ __PACKAGE__->register_method({
                 my $devname = $devs->{dev}->{name};
                 my $devpath = $disklist->{$devname}->{devpath};
                 print "create OSD on $devpath (bluestore)\n";
-
-                push @udev_trigger_devs, $devpath;
 
                 my $osd_size = $disklist->{$devname}->{size};
                 my $size_map = {
@@ -593,12 +585,6 @@ __PACKAGE__->register_method({
                 }
 
                 run_command($cmd);
-
-                # FIXME: Remove once we depend on systemd >= v249.
-                # Work around udev bug https://github.com/systemd/systemd/issues/18525 to ensure the
-                # udev database is updated.
-                eval { run_command(['udevadm', 'trigger', @udev_trigger_devs]); };
-                warn $@ if $@;
             });
         };
 
@@ -949,8 +935,12 @@ __PACKAGE__->register_method({
     },
 });
 
-# Check if $osdid belongs to $nodename
+# Check if $osdid belongs to $nodename, by CRUSH ownership.
 # $tree ... rados osd tree (passing the tree makes it easy to test)
+#
+# Note: PVE::Ceph::Services::get_node_daemons uses the systemd/filesystem view
+# instead for the rolling-restart path. CRUSH ownership is the right gate for
+# destroy; systemd unit existence is the right primitive for restart.
 sub osd_belongs_to_node {
     my ($tree, $nodename, $osdid) = @_;
     return 0 if !($tree && $tree->{nodes});
@@ -966,6 +956,59 @@ sub osd_belongs_to_node {
     return 0 if !$osds;
 
     return grep($_ == $osdid, @$osds);
+}
+
+# Drop everything the monitors still hold for $osdid.
+#
+# Note: 'osd destroy-actual', the monitor command behind 'ceph osd destroy', removes what is keyed
+# by the OSD's UUID, namely the lockbox entity and the dm-crypt key of an encrypted OSD. It reads
+# that UUID from the OSD map, so it has to run before 'osd rm'.
+sub remove_osd_from_monitors {
+    my ($rados, $osdid) = @_;
+
+    my $osdsection = "osd.$osdid";
+
+    print "Remove $osdsection from the CRUSH map\n";
+    $rados->mon_command({ prefix => "osd crush remove", name => $osdsection, format => 'plain' });
+
+    print "Remove the $osdsection authentication key.\n";
+    $rados->mon_command({
+        prefix => "auth del",
+        entity => $osdsection,
+        format => 'plain',
+    });
+
+    print "Remove the $osdsection lockbox key, if any\n";
+    $rados->mon_command({
+        prefix => "osd destroy-actual",
+        # the monitors read this as an integer and refuse a JSON string
+        id => int($osdid),
+        yes_i_really_mean_it => JSON::true,
+        format => 'plain',
+    });
+
+    print "Remove OSD $osdsection\n";
+    $rados->mon_command({
+        prefix => "osd rm",
+        ids => [$osdsection],
+        format => 'plain',
+    });
+
+    print "Remove $osdsection mclock max capacity iops settings from config\n";
+    $rados->mon_command(
+        {
+            prefix => "config rm",
+            who => $osdsection,
+            name => 'osd_mclock_max_capacity_iops_ssd',
+        },
+    );
+    $rados->mon_command(
+        {
+            prefix => "config rm",
+            who => $osdsection,
+            name => 'osd_mclock_max_capacity_iops_hdd',
+        },
+    );
 }
 
 __PACKAGE__->register_method({
@@ -1040,48 +1083,18 @@ __PACKAGE__->register_method({
             eval {
                 PVE::Ceph::Services::ceph_service_cmd('stop', $osdsection);
                 PVE::Ceph::Services::ceph_service_cmd('disable', $osdsection);
+                # ceph-volume enables the unit at runtime, which the disable above leaves in
+                # place, so the OSD keeps being reported as configured until the next boot
+                run_command(
+                    ['/bin/systemctl', 'disable', '--runtime', "ceph-osd\@${osdid}.service"],
+                );
             };
             warn $@ if $@;
 
-            print "Remove $osdsection from the CRUSH map\n";
-            $rados->mon_command(
-                { prefix => "osd crush remove", name => $osdsection, format => 'plain' });
-
-            print "Remove the $osdsection authentication key.\n";
-            $rados->mon_command({
-                prefix => "auth del",
-                entity => $osdsection,
-                format => 'plain',
-            });
-
-            print "Remove OSD $osdsection\n";
-            $rados->mon_command({
-                prefix => "osd rm",
-                ids => [$osdsection],
-                format => 'plain',
-            });
-
-            print "Remove $osdsection mclock max capacity iops settings from config\n";
-            $rados->mon_command(
-                {
-                    prefix => "config rm",
-                    who => $osdsection,
-                    name => 'osd_mclock_max_capacity_iops_ssd',
-                },
-            );
-            $rados->mon_command(
-                {
-                    prefix => "config rm",
-                    who => $osdsection,
-                    name => 'osd_mclock_max_capacity_iops_hdd',
-                },
-            );
+            remove_osd_from_monitors($rados, $osdid);
 
             # try to unmount from standard mount point
             my $mountpoint = "/var/lib/ceph/osd/ceph-$osdid";
-
-            # See FIXME below
-            my $udev_trigger_devs = {};
 
             my $remove_partition = sub {
                 my ($part) = @_;
@@ -1089,8 +1102,6 @@ __PACKAGE__->register_method({
                 return if !$part || (!-b $part);
                 my $partnum = PVE::Diskmanage::get_partnum($part);
                 my $devpath = PVE::Diskmanage::get_blockdev($part);
-
-                $udev_trigger_devs->{$devpath} = 1;
 
                 PVE::Diskmanage::wipe_blockdev($part);
                 print "remove partition $part (disk '${devpath}', partnum $partnum)\n";
@@ -1104,22 +1115,6 @@ __PACKAGE__->register_method({
 
                 eval { PVE::Ceph::Tools::ceph_volume_zap($osdid, $cleanup) };
                 warn $@ if $@;
-
-                if ($cleanup) {
-                    # try to remove pvs, but do not fail if it does not work
-                    for my $osd_part (@{ $osd_list->{$osdid} }) {
-                        for my $dev (@{ $osd_part->{devices} }) {
-                            ($dev) = ($dev =~ m|^(/dev/[-_.a-zA-Z0-9\/]+)$|); #untaint
-
-                            eval {
-                                run_command(['/sbin/pvremove', $dev], errfunc => sub { });
-                            };
-                            warn $@ if $@;
-
-                            $udev_trigger_devs->{$dev} = 1;
-                        }
-                    }
-                }
             } else {
                 my $partitions_to_remove = [];
                 if ($cleanup) {
@@ -1156,12 +1151,10 @@ __PACKAGE__->register_method({
                 }
             }
 
-            # FIXME: Remove once we depend on systemd >= v249.
-            # Work around udev bug https://github.com/systemd/systemd/issues/18525 to ensure the
-            # udev database is updated.
-            if ($cleanup) {
-                eval { run_command(['udevadm', 'trigger', keys $udev_trigger_devs->%*]); };
-                warn $@ if $@;
+            # after the unmount only the empty mount point directory is left of the OSD, and
+            # pvestatd would keep broadcasting it as a configured OSD
+            if (-d $mountpoint && !rmdir($mountpoint)) {
+                warn "could not remove the leftover '$mountpoint' directory - $!\n";
             }
         };
 

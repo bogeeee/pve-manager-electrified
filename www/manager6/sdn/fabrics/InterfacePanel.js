@@ -6,6 +6,7 @@ Ext.define('PVE.sdn.Fabric.InterfacePanel', {
 
     nodeInterfaces: {},
 
+    hasIpv4Support: true,
     hasIpv6Support: true,
 
     selModel: {
@@ -59,19 +60,6 @@ Ext.define('PVE.sdn.Fabric.InterfacePanel', {
             dataIndex: 'type',
             flex: 1,
         },
-        {
-            text: gettext('IPv4'),
-            xtype: 'widgetcolumn',
-            dataIndex: 'ip',
-            flex: 1,
-            widget: {
-                xtype: 'proxmoxtextfield',
-                isFormField: false,
-                bind: {
-                    disabled: '{record.isDisabled}',
-                },
-            },
-        },
     ],
 
     additionalColumns: [],
@@ -111,6 +99,22 @@ Ext.define('PVE.sdn.Fabric.InterfacePanel', {
         let me = this;
 
         let columns = [...me.commonColumns];
+
+        if (me.hasIpv4Support) {
+            columns.push({
+                text: gettext('IPv4'),
+                xtype: 'widgetcolumn',
+                dataIndex: 'ip',
+                flex: 1,
+                widget: {
+                    xtype: 'proxmoxtextfield',
+                    isFormField: false,
+                    bind: {
+                        disabled: '{record.isDisabled}',
+                    },
+                },
+            });
+        }
 
         if (me.hasIpv6Support) {
             columns.push({
@@ -174,7 +178,11 @@ Ext.define('PVE.sdn.Fabric.InterfacePanel', {
                     continue;
                 }
 
-                if (['type', 'isDisabled'].includes(key)) {
+                if (
+                    ['type', 'isDisabled'].includes(key) ||
+                    (key === 'ip' && !me.hasIpv4Support) ||
+                    (key === 'ip6' && !me.hasIpv6Support)
+                ) {
                     continue;
                 }
 

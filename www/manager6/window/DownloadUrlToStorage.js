@@ -30,6 +30,7 @@ Ext.define('PVE.window.DownloadUrlToStorage', {
             size: '-',
             mimetype: '-',
             enableQuery: true,
+            needsFormat: false,
         },
     },
 
@@ -82,6 +83,7 @@ Ext.define('PVE.window.DownloadUrlToStorage', {
 
                     let filename = data.filename || '';
                     let compression = '__default__';
+                    let needsFormat = false;
                     if (view.content === 'iso') {
                         const matches = filename.match(/^(.+)\.(gz|lzo|zst|bz2)$/i);
                         if (matches) {
@@ -89,10 +91,12 @@ Ext.define('PVE.window.DownloadUrlToStorage', {
                             compression = matches[2].toLowerCase();
                         }
                     } else if (view.content === 'import') {
-                        if (filename.endsWith('.img')) {
-                            filename += '.raw';
-                        }
+                        // the extension does not tell the image format, the user has to select it
+                        needsFormat = filename.endsWith('.img');
                     }
+                    me.queriedName = filename;
+                    me.getViewModel().set('needsFormat', needsFormat);
+                    me.lookup('imageFormat').setValue(null);
 
                     view.setValues({
                         filename,
@@ -104,6 +108,12 @@ Ext.define('PVE.window.DownloadUrlToStorage', {
                     });
                 },
             });
+        },
+
+        formatChange: function (field, format) {
+            if (format) {
+                this.getView().setValues({ filename: `${this.queriedName}.${format}` });
+            }
         },
 
         hashChange: function (field) {
@@ -167,6 +177,22 @@ Ext.define('PVE.window.DownloadUrlToStorage', {
                     emptyText: gettext('Please (re-)query URL to get meta information'),
                     getSubmitValue: function () {
                         return this.processRawValue(this.getRawValue())?.trim();
+                    },
+                },
+                {
+                    xtype: 'pveDiskFormatSelector',
+                    reference: 'imageFormat',
+                    fieldLabel: gettext('Format'),
+                    submitValue: false,
+                    allowBlank: false,
+                    hidden: true,
+                    disabled: true,
+                    bind: {
+                        hidden: '{!needsFormat}',
+                        disabled: '{!needsFormat}',
+                    },
+                    listeners: {
+                        change: 'formatChange',
                     },
                 },
             ],

@@ -26,7 +26,7 @@ Ext.define('PVE.qemu.Architecture', {
 
     defaultProcessorModel: {
         x86_64: 'x86-64-v2-AES',
-        aarch64: 'cortex-a57',
+        aarch64: 'host',
     },
 
     defaultMachines: {

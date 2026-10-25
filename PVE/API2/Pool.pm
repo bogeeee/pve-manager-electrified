@@ -94,7 +94,7 @@ __PACKAGE__->register_method({
 
         my $res = [];
         if (my $poolid = $param->{poolid}) {
-            $rpcenv->check($authuser, "/pool/$poolid", ['Pool.Audit'], 1);
+            $rpcenv->check($authuser, "/pool/$poolid", ['Pool.Audit']);
 
             my $vmlist = PVE::Cluster::get_vmlist() || {};
             my $idlist = $vmlist->{ids} || {};

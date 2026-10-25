@@ -7,6 +7,7 @@ use PVE::JSONSchema qw(get_standard_option);
 
 use PVE::QemuServer::PCI::Mdev;
 use PVE::RESTHandler;
+use PVE::RPCEnvironment;
 
 use base qw(PVE::RESTHandler);
 
@@ -180,7 +181,11 @@ __PACKAGE__->register_method({
     protected => 1,
     proxyto => "node",
     permissions => {
-        check => ['perm', '/', ['Sys.Audit', 'Sys.Modify'], any => 1],
+        description =>
+            "For a PCI ID, requires 'Sys.Audit' or 'Sys.Modify' on '/'. For a mapping,"
+            . " requires the same global permissions, or 'Mapping.Use', 'Mapping.Modify'"
+            . ", or 'Mapping.Audit' on '/mapping/pci/<id>'.",
+        user => 'all',
     },
     parameters => {
         additionalProperties => 0,
@@ -222,20 +227,34 @@ __PACKAGE__->register_method({
     code => sub {
         my ($param) = @_;
 
-        if ($param->{'pci-id-or-mapping'} =~
-            m/^(?:[0-9a-fA-F]{4}:)?[0-9a-fA-F]{2}:[0-9a-fA-F]{2}\.[0-9a-fA-F]$/
-        ) {
-            return PVE::QemuServer::PCI::Mdev::get_mdev_types($param->{'pci-id-or-mapping'}); # PCI ID
+        my $id = $param->{'pci-id-or-mapping'};
+        my $is_pci_id =
+            $id =~ m/^(?:[0-9a-fA-F]{4}:)?[0-9a-fA-F]{2}:[0-9a-fA-F]{2}\.[0-9a-fA-F]$/;
+
+        my $rpcenv = PVE::RPCEnvironment::get();
+        my $authuser = $rpcenv->get_user();
+
+        my $has_sys_perms =
+            $rpcenv->check_any($authuser, '/', ['Sys.Audit', 'Sys.Modify'], !$is_pci_id);
+
+        if ($is_pci_id) {
+            return PVE::QemuServer::PCI::Mdev::get_mdev_types($id);
         } else {
-            my $mapping = $param->{'pci-id-or-mapping'};
+            if (!$has_sys_perms) {
+                $rpcenv->check_any(
+                    $authuser,
+                    "/mapping/pci/$id",
+                    ['Mapping.Use', 'Mapping.Modify', 'Mapping.Audit'],
+                );
+            }
 
             my $types = {};
-            my $devices = PVE::Mapping::PCI::find_on_current_node($mapping);
+            my $devices = PVE::Mapping::PCI::find_on_current_node($id);
             for my $device ($devices->@*) {
-                my $id = $device->{path};
-                next if $id =~ m/;/; # mdev not supported for multifunction devices
+                my $dev_id = $device->{path};
+                next if $dev_id =~ m/;/; # mdev not supported for multifunction devices
 
-                my $device_types = PVE::QemuServer::PCI::Mdev::get_mdev_types($id);
+                my $device_types = PVE::QemuServer::PCI::Mdev::get_mdev_types($dev_id);
 
                 for my $type_definition ($device_types->@*) {
                     my $type = $type_definition->{type};
@@ -247,6 +266,5 @@ __PACKAGE__->register_method({
 
             return [sort { $a->{type} cmp $b->{type} } values($types->%*)];
         }
-
     },
 });

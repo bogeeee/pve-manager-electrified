@@ -288,6 +288,7 @@ Ext.define('PVE.qemu.PCIInputPanel', {
                 hidden: true,
                 fieldLabel: 'ROM-File',
                 reference: 'romfile',
+                htmlEncode: true,
                 name: 'romfile',
             },
             {

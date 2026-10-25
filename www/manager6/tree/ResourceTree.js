@@ -180,7 +180,9 @@ Ext.define('PVE.tree.ResourceTree', {
             let n2IsGuest = n2.type === 'qemu' || n2.type === 'lxc';
             if (me['group-guest-types'] || !n1IsGuest || !n2IsGuest) {
                 // first sort (group) by type
-                let res = me.getTypeOrder(n1.type) - me.getTypeOrder(n2.type);
+                const type1 = n1.type === 'type' ? n1.groupbyid : n1.type;
+                const type2 = n2.type === 'type' ? n2.groupbyid : n2.type;
+                const res = me.getTypeOrder(type1) - me.getTypeOrder(type2);
                 if (res !== 0) {
                     return res;
                 }

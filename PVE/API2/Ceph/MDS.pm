@@ -151,8 +151,9 @@ __PACKAGE__->register_method({
                 optional => 1,
                 default => 0,
                 description =>
-                    "Determines whether a ceph-mds daemon should poll and replay the log of an active MDS. "
-                    . "Faster switch on MDS failure, but needs more idle resources.",
+                    "Determines whether a ceph-mds daemon should poll and replay the log of an active MDS."
+                    . " Faster switch on MDS failure, but needs more idle resources."
+                    . " Deprecated: the setting was removed in Ceph 14.1.1.",
             },
         },
     },
@@ -194,11 +195,6 @@ __PACKAGE__->register_method({
             }
 
             $cfg->{$section}->{host} = $nodename;
-            $cfg->{$section}->{'mds_standby_for_name'} = 'pve';
-
-            if ($param->{hotstandby}) {
-                $cfg->{$section}->{'mds_standby_replay'} = 'true';
-            }
 
             cfs_write_file('ceph.conf', $cfg);
 

@@ -3,6 +3,7 @@ package PVE::Ceph::Releases;
 use v5.36;
 
 use PVE::pvecfg;
+use PVE::Tools;
 
 my sub get_current_pve_major_release {
     my $release_tuples = [split(/\./, PVE::pvecfg::release())];
@@ -30,6 +31,9 @@ my sub get_ceph_release_def {
     #  - `unsupported`: set to `1` to mark a release as (currently) unsupported, which most often
     #    means that upstream either had no stable release yet, or we aren't 100 % finished with QA
     #    of that release yet.
+    #  - `unavailable-for-arch`: a hash of Debian architectures for which no packages of this
+    #    release exist, so that it is not offered on such nodes. Ceph is only built for arm64
+    #    starting with the tentacle release.
     #
     # NOTE: very old releases got left out from the list, but there's _no_ need to clean-up
     # periodically check https://docs.ceph.com/en/latest/releases/ for all past releases
@@ -76,12 +80,22 @@ my sub get_ceph_release_def {
                 8 => 1,
                 9 => 1,
             },
+            'unavailable-for-arch' => {
+                arm64 => 1,
+            },
         },
         tentacle => {
             release => '20.2',
             'current-backend-default' => 1,
             'initial-upstream-release' => '2025-11-18',
             'estimated-end-of-upstream-support' => '2027-11-18',
+            'available-for-pve-release' => {
+                9 => 1,
+            },
+        },
+        umbrella => {
+            release => '21.2',
+            unsupported => 1,
             'available-for-pve-release' => {
                 9 => 1,
             },
@@ -104,16 +118,23 @@ sub get_ceph_release_info($codename) {
     return $ceph_releases->{$codename};
 }
 
+sub get_all_ceph_releases {
+    return get_ceph_release_def();
+}
+
 my $_available_ceph_releases;
 
 sub get_all_available_ceph_releases {
     if (!defined($_available_ceph_releases)) {
         my $ceph_releases = get_ceph_release_def();
+        my $arch = PVE::Tools::get_host_dpkg_arch();
         $_available_ceph_releases = {};
         for my $codename (sort keys $ceph_releases->%*) {
-            if ($ceph_releases->{$codename}->{'available-for-current-pve-release'}) {
-                $_available_ceph_releases->{$codename} = $ceph_releases->{$codename};
-            }
+            my $release = $ceph_releases->{$codename};
+            next if !$release->{'available-for-current-pve-release'};
+            my $unavailable_arch = $release->{'unavailable-for-arch'};
+            next if $unavailable_arch && $unavailable_arch->{$arch};
+            $_available_ceph_releases->{$codename} = $release;
         }
     }
     return $_available_ceph_releases;
@@ -131,7 +152,10 @@ my $_default_ceph_release_codename;
 
 sub get_default_ceph_release_codename {
     if (!defined($_default_ceph_release_codename)) {
-        my $ceph_releases = get_all_available_ceph_releases();
+        # resolve from the full definition, not the availability-filtered set, so the default stays
+        # well-defined on every architecture and PVE release. The release marked as default must
+        # thus be available for the current PVE release on all supported architectures.
+        my $ceph_releases = get_ceph_release_def();
         my @default_release =
             grep { $ceph_releases->{$_}->{'current-backend-default'} } keys $ceph_releases->%*;
         die "internal error: got multiple ceph releases with 'current-backend-default' set\n"

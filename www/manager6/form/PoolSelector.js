@@ -8,6 +8,10 @@ Ext.define(
         valueField: 'poolid',
         displayField: 'poolid',
 
+        editable: true,
+        anyMatch: true,
+        forceSelection: true,
+
         initComponent: function () {
             var me = this;
 

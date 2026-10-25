@@ -27,6 +27,8 @@ Ext.define('PVE.sdn.Fabric.WireGuard.Node.Edit', {
         },
     },
 
+    defaultFocus: 'no',
+
     additionalItems: [
         {
             xtype: 'proxmoxtextfield',
@@ -56,12 +58,41 @@ Ext.define('PVE.sdn.Fabric.WireGuard.Node.Edit', {
             allowBlank: false,
         },
         {
+            // endpoint field for internal nodes
+            xtype: 'proxmoxNetworkSelector',
+            reference: 'networkSelector',
+            fieldLabel: gettext('Endpoint'),
+            emptyText: gettext('Host that peers connect to'),
+            labelWidth: 120,
+            name: 'endpoint',
+            type: 'any_bridge',
+            valueField: 'address',
+            displayField: 'address',
+            autoSelect: false,
+            notFoundIsValid: true,
+            editable: true,
+            allowBlank: true,
+            skipEmptyText: true,
+            bind: {
+                hidden: '{!current.isPveNode}',
+                disabled: '{!current.isPveNode}',
+            },
+            cbind: {
+                deleteEmpty: '{!isCreate}',
+            },
+        },
+        {
+            // endpoint field for external nodes
             xtype: 'proxmoxtextfield',
             fieldLabel: gettext('Endpoint'),
             emptyText: gettext('Host that peers connect to'),
             labelWidth: 120,
             name: 'endpoint',
             allowBlank: false,
+            bind: {
+                hidden: '{current.isPveNode}',
+                disabled: '{current.isPveNode}',
+            },
         },
         {
             xtype: 'proxmoxtextfield',
@@ -165,6 +196,13 @@ Ext.define('PVE.sdn.Fabric.WireGuard.Node.Edit', {
                             me.lookupReference('nodeSelector').setDisabled(true);
                         }
                     },
+                },
+            },
+            listeners: {
+                change: function (_this, newValue) {
+                    if (me.getViewModel().get('current.isPveNode')) {
+                        me.lookupReference('networkSelector').setNodename(newValue);
+                    }
                 },
             },
         });

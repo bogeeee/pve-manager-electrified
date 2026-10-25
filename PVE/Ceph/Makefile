@@ -1,6 +1,7 @@
 include ../../defines.mk
 
 PERLSOURCE =   \
+	KeyMigration.pm \
 	Releases.pm \
 	Services.pm \
 	Tools.pm \

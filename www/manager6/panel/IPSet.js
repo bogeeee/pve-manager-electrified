@@ -187,6 +187,9 @@ Ext.define('PVE.IPSetCidrEdit', {
 
     cidr: undefined,
 
+    // entries already in the IPSet, not offered again when adding a new one
+    existingCidrs: [],
+
     initComponent: function () {
         var me = this;
 
@@ -211,6 +214,7 @@ Ext.define('PVE.IPSetCidrEdit', {
                 xtype: 'pveIPRefSelector',
                 name: 'cidr',
                 ref_type: 'alias',
+                excludeRefs: me.existingCidrs,
                 autoSelect: false,
                 editable: true,
                 base_url: me.list_refs_url,
@@ -359,6 +363,7 @@ Ext.define(
                     var win = Ext.create('PVE.IPSetCidrEdit', {
                         base_url: me.base_url,
                         list_refs_url: me.list_refs_url,
+                        existingCidrs: store.collect('cidr'),
                     });
                     win.show();
                     win.on('destroy', reload);

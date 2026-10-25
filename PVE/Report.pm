@@ -3,6 +3,7 @@ package PVE::Report;
 use strict;
 use warnings;
 
+use PVE::IPRoute2;
 use PVE::Tools;
 
 # output the content of all the files of a directory
@@ -141,6 +142,20 @@ my $init_report_cmds = sub {
             ],
         },
     };
+
+    eval {
+        my $interfaces = PVE::IPRoute2::ip_link_details();
+
+        for my $iface (sort keys %{$interfaces}) {
+            if (PVE::IPRoute2::ip_link_is_physical($interfaces->{$iface})) {
+                push @{ $report_def->{network}->{cmds} },
+                    "ethtool " . PVE::Tools::shellquote($iface);
+            }
+        }
+    };
+    if ($@) {
+        print STDERR "building ethtool commands failed: $@";
+    }
 
     if (cmd_exists('zfs')) {
         push @{ $report_def->{volumes}->{cmds} },

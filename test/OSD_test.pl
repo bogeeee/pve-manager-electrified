@@ -74,4 +74,45 @@ is(
     "Early-return false if there's no/empty node tree",
 );
 
-done_testing(@belong_to_B + @not_belong_to_B + 2);
+# Destroying an OSD has to leave nothing of it behind on the monitors.
+
+{
+
+    package FakeRados;
+
+    sub new {
+        my ($class) = @_;
+        return bless { commands => [] }, $class;
+    }
+
+    sub mon_command {
+        my ($self, $cmd) = @_;
+        push $self->{commands}->@*, $cmd;
+        return {};
+    }
+}
+
+my $rados = FakeRados->new();
+{
+    my $out = '';
+    open(my $stdout, '>', \$out) or die $!;
+    local *STDOUT = $stdout;
+    # the API hands over the OSD ID as a string
+    PVE::API2::Ceph::OSD::remove_osd_from_monitors($rados, '7');
+}
+
+my $commands = $rados->{commands};
+
+# The monitors look up the OSD's UUID in the OSD map to find its lockbox entity and its
+# dm-crypt key, so the destroy has to come before the 'osd rm'.
+is_deeply(
+    [map { $_->{prefix} } @$commands],
+    ['osd crush remove', 'auth del', 'osd destroy-actual', 'osd rm', 'config rm', 'config rm'],
+    'the monitors drop the CRUSH entry, the keys and the OSD itself, in that order',
+);
+
+my ($destroy) = grep { $_->{prefix} eq 'osd destroy-actual' } @$commands;
+like(encode_json($destroy), qr/"id":7[,}]/, "'osd destroy-actual' names the OSD as an integer");
+ok($destroy->{yes_i_really_mean_it}, 'and confirms, as the monitors refuse it otherwise');
+
+done_testing();

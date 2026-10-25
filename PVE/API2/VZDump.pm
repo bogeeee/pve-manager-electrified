@@ -45,7 +45,7 @@ __PACKAGE__->register_method({
             . " is used). The 'tmpdir', 'dumpdir', 'script' and 'job-id' parameters are restricted"
             . " to the 'root\@pam' user. The 'prune-backups' setting requires 'Datastore.Allocate'"
             . " on the backup storage. The 'bwlimit', 'performance' and 'ionice' parameters require"
-            . " 'Sys.Modify' on '/'.",
+            . " 'Sys.Modify' on '/'. The 'stop' parameter requires 'Sys.Modify' on '/nodes/{node}'",
         user => 'all',
     },
     protected => 1,
@@ -109,6 +109,7 @@ __PACKAGE__->register_method({
         my $skiplist = [map { @$_ } values $vmids_per_node->%*];
 
         if ($param->{stop}) {
+            $rpcenv->check($user, "/nodes/$nodename", ['Sys.Modify']);
             PVE::VZDump::stop_running_backups();
             return 'OK' if !scalar(@{$local_vmids});
         }
@@ -304,6 +305,9 @@ __PACKAGE__->register_method({
 
         if (PVE::Storage::parse_volume_id($volume, 1)) {
             my (undef, undef, $ownervm) = PVE::Storage::parse_volname($storage_cfg, $volume);
+            if (!defined($ownervm)) {
+                die "unable to extract configuration for '$volume' - not a guest backup\n";
+            }
             $rpcenv->check($authuser, "/vms/$ownervm", ['VM.Backup']);
         }
 

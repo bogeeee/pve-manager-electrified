@@ -35,6 +35,7 @@ HELPERS =			\
 	pve-sdn-commit
 
 MIGRATIONS =			\
+	pve-cephx-rotate-service-keys		\
 	pve-lvm-disable-autoactivation		\
 	pve-rbd-storage-configure-keyring
 

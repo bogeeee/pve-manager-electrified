@@ -102,10 +102,16 @@ Ext.define('PVE.qemu.MachineInputPanel', {
         }
 
         if (me.isWindows) {
-            if (values.machine === '__default__') {
-                values.version = 'pc-i440fx-5.1';
-            } else if (values.machine === 'q35') {
-                values.version = 'pc-q35-5.1';
+            if (values.machine === '__default__' || values.machine === 'q35') {
+                let effective = PVE.Utils.qemu_implicit_machine_version(
+                    values.machine,
+                    values.creationQemu,
+                    values.arch,
+                );
+                values.effectiveVersion = effective + ' ' + gettext('(implicit)');
+                me.lookup('effectiveVersion').setVisible(true);
+                me.lookup('implicitVersionHint').setVisible(true);
+                me.setAdvancedVisible(true);
             }
         }
 
@@ -175,6 +181,24 @@ Ext.define('PVE.qemu.MachineInputPanel', {
                     },
                 },
             },
+        },
+        {
+            xtype: 'displayfield',
+            name: 'effectiveVersion',
+            fieldLabel: gettext('Current Version'),
+            reference: 'effectiveVersion',
+            submitValue: false,
+            hidden: true,
+        },
+        {
+            xtype: 'displayfield',
+            reference: 'implicitVersionHint',
+            userCls: 'pmx-hint',
+            hidden: true,
+            value: gettext(
+                'No fixed version is set; the version is chosen automatically based on when the VM' +
+                    ' was created. Pinning a specific version is recommended.',
+            ),
         },
         {
             xtype: 'displayfield',
@@ -249,6 +273,11 @@ Ext.define('PVE.qemu.MachineEdit', {
                 };
                 values.isWindows = PVE.Utils.is_windows(conf.ostype);
                 values.arch = PVE.qemu.Architecture.getGuestArchitecture(conf.arch, me.nodename);
+                if (conf.meta) {
+                    let meta = PVE.Parser.parsePropertyString(conf.meta);
+                    values.creationQemu = meta['creation-qemu'];
+                }
+
                 me.setValues(values);
             },
         });

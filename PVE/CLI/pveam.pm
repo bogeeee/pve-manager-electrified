@@ -77,7 +77,9 @@ __PACKAGE__->register_method({
             next if $section eq 'all';
             next if $param->{section} && $section ne $param->{section};
             foreach my $template (sort keys %{ $list->{$section} }) {
-                print sprintf("%-15s %s\n", $section, $template);
+                my $arch = $list->{$section}->{$template}->{architecture} // 'unknown';
+                # keep the template in the second column for existing scripts, append the arch
+                print sprintf("%-15s %-60s %s\n", $section, $template, $arch);
             }
         }
         return undef;

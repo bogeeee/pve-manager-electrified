@@ -31,6 +31,7 @@ use PVE::API2::Ceph::MDS;
 use PVE::API2::Ceph::MGR;
 use PVE::API2::Ceph::MON;
 use PVE::API2::Ceph::OSD;
+use PVE::API2::Cluster::Ceph;
 
 use base qw(PVE::CLIHandler);
 
@@ -257,7 +258,8 @@ EOF
 
         if ($repo eq "manual") {
             my $apt_cache = AptPkg::Cache->new() || die "unable to initialize AptPkg::Cache\n";
-            my @ceph_versions = $apt_cache->{'ceph-common:amd64'}->{'VersionList'}->@*;
+            my $arch = PVE::Tools::get_host_dpkg_arch();
+            my @ceph_versions = $apt_cache->{"ceph-common:$arch"}->{'VersionList'}->@*;
             my $latest_available = $ceph_versions[0]->{'VerStr'};
             my $selected_version =
                 PVE::Ceph::Releases::get_ceph_release_info($cephver)->{'release'};
@@ -402,8 +404,355 @@ my $format_osddetails = sub {
     }
 };
 
+my sub wrapped_lines {
+    my ($text, $first_width, $next_width) = @_;
+    $next_width //= $first_width;
+    my $lines = [''];
+    for my $word (split(/\s+/, $text)) {
+        my $width = $#$lines ? $next_width : $first_width;
+        if (length($lines->[-1]) + length($word) + 1 > $width) {
+            push @$lines, $word;
+        } else {
+            $lines->[-1] .= (length($lines->[-1]) ? ' ' : '') . $word;
+        }
+    }
+    return $lines;
+}
+
+my sub print_wrapped_bullet {
+    my ($text) = @_;
+
+    # 92 plus the four-space continuation indent stays inside the 100 columns the rest of
+    # the 'pveceph auth status' output uses
+    my $lines = wrapped_lines($text, 92);
+    print "  * $lines->[0]\n";
+    print "    $_\n" for $lines->@[1 .. $#$lines];
+}
+
+my sub print_wrapped_values {
+    my ($label, $values) = @_;
+    my $prefix = "  $label: ";
+    my $indent = ' ' x length($prefix);
+    my $width = 100 - length($prefix);
+    my $lines = [''];
+    for my $value (@$values) {
+        my $separator = length($lines->[-1]) ? ', ' : '';
+        if (length($lines->[-1]) + length($separator) + length($value) > $width) {
+            push @$lines, $value;
+        } else {
+            $lines->[-1] .= "$separator$value";
+        }
+    }
+    print "$prefix$lines->[0]\n";
+    print "$indent$_\n" for $lines->@[1 .. $#$lines];
+}
+
+# Long entity lists are unhelpful in a terminal; the JSON output has all of them.
+my $AUTH_STATUS_ENTITY_LIMIT = 24;
+
+sub format_auth_status {
+    my ($data, $schema, $options) = @_;
+
+    $options->{'output-format'} //= 'text';
+    if ($options->{'output-format'} ne 'text') {
+        PVE::CLIFormatter::print_api_result($data, $schema, undef, $options);
+        return;
+    }
+
+    print "Cephx key cipher status\n";
+
+    my $entities = $data->{entities} // {};
+    my $details = $entities->{details} // {};
+    my $attention = {};
+    my %ciphers;
+    my $has_pending = 0;
+    for my $class (qw(service client)) {
+        my $by_cipher = $entities->{$class} // {};
+        for my $cipher (keys %$by_cipher) {
+            for my $entity ($by_cipher->{$cipher}->@*) {
+                my $detail = $details->{$entity} // {};
+                $ciphers{$cipher} = 1;
+                $has_pending ||= defined($detail->{'pending-cipher'});
+                next if $cipher eq 'aes256k' && !defined($detail->{'pending-cipher'});
+                $attention->{$entity} = { 'current-cipher' => $cipher, %$detail };
+            }
+        }
+    }
+    # Homogeneous inventories need counts, not repeated names. Partial reads and mixed or
+    # staged keys still need named exceptions, without implying a migration direction.
+    $attention = {}
+        if $entities->{complete}
+        && $entities->{'pending-keys-known'}
+        && !$has_pending
+        && scalar(keys %ciphers) == 1
+        && !$ciphers{unknown};
+    my @attention = sort {
+        defined($attention->{$b}->{'pending-cipher'}) <=>
+            defined($attention->{$a}->{'pending-cipher'})
+            || ($attention->{$b}->{'current-cipher'} eq 'unknown')
+            <=> ($attention->{$a}->{'current-cipher'} eq 'unknown')
+            || $a cmp $b
+    } keys %$attention;
+    if (@attention || !$entities->{complete}) {
+        printf(
+            "\nKeys needing attention (%d listed %s)\n",
+            scalar(@attention),
+            @attention == 1 ? 'identity' : 'identities',
+        );
+    }
+    print "  full inventory unavailable; the listed keys may be incomplete\n"
+        if !$entities->{complete};
+    my $shown = @attention > $AUTH_STATUS_ENTITY_LIMIT ? $AUTH_STATUS_ENTITY_LIMIT : @attention;
+    for my $entity (@attention[0 .. $shown - 1]) {
+        my $detail = $attention->{$entity};
+        my $current = $detail->{'current-cipher'} // 'unknown';
+        printf(
+            "  %s: current %s%s, pending %s\n",
+            $entity,
+            $current,
+            $current ne 'aes256k' && $current ne 'unknown' ? ' (old)' : '',
+            $detail->{'pending-cipher'}
+                // ($entities->{'pending-keys-known'} ? 'none' : 'unknown'),
+        );
+    }
+    printf("  ... %d more identities needing attention; see the full JSON inventory below\n",
+        @attention - $shown)
+        if @attention > $shown;
+
+    my $nodes = $data->{nodes} // {};
+    my $old_kernels = grep {
+        defined($_->{'supports-aes256k'}) && !$_->{'supports-aes256k'}
+    } values %$nodes;
+    my $unknown_kernels = !scalar(keys %$nodes)
+        || grep { !defined($_->{'supports-aes256k'}) } values %$nodes;
+
+    print "\nNext step\n";
+    if ($old_kernels || $unknown_kernels) {
+        my $issue = $old_kernels ? ($unknown_kernels ? 'old or unknown' : 'old') : 'unknown';
+        my $summary =
+            scalar(keys %$nodes)
+            ? "Some reported node kernels are $issue."
+            : 'No node kernel versions were reported.';
+        print_wrapped_bullet("$summary Verify uname -r on affected nodes; kernel"
+            . " RBD/CephFS clients need a running kernel 7.0 or newer before key rotation."
+            . " This does not block userspace-only keys.");
+    }
+    for my $line (($data->{conclusion} // [])->@*) {
+        # Keep suggested commands intact so they can be copied without joining wrapped lines.
+        if ($line =~ m{^(?:/usr/share/pve-manager/migrations/|pveceph auth status$)}) {
+            print "  $line\n";
+        } else {
+            print_wrapped_bullet($line);
+        }
+    }
+
+    print "\nListed current keys (Ceph identities, not guests, mounts, or sessions)\n";
+    printf(
+        "  source: %s%s\n",
+        $entities->{source} // 'unknown',
+        $entities->{complete} ? '' : ' (partial inventory)',
+    );
+    for my $class (qw(service client)) {
+        my $by_cipher = $entities->{$class} // {};
+        my @counts = map { scalar($by_cipher->{$_}->@*) . " $_" } sort keys %$by_cipher;
+        push @counts, $entities->{complete} ? 'none' : 'unknown, none named' if !@counts;
+        print_wrapped_values($class, \@counts);
+    }
+    printf("  pending keys: %s\n",
+        $entities->{'pending-keys-known'} ? ($entities->{'pending-keys'} // 0) : 'unknown');
+    print "  Full key inventories:\n  pveceph auth status --output-format json-pretty\n";
+
+    my $checks = $data->{checks} // {};
+    print "\nCephx health checks\n";
+    print "  unknown: health checks could not be read\n" if !$data->{'checks-known'};
+    print "  none active\n" if $data->{'checks-known'} && !scalar(keys %$checks);
+    for my $name (sort keys %$checks) {
+        my $check = $checks->{$name};
+        printf(
+            "  [%-4s] %s: %s%s\n",
+            ($check->{severity} // 'unknown') =~ s/^HEALTH_//r,
+            $name,
+            $check->{message} // '',
+            $check->{muted} ? ' (muted)' : '',
+        );
+    }
+
+    my $monmap = $data->{monmap} // {};
+    print "\nCipher settings (mon dump)\n";
+    my $settings = {
+        auth_service_cipher => 'service tickets',
+        auth_preferred_cipher => 'default for new keys',
+        auth_allowed_ciphers => 'permitted for authentication',
+    };
+    for my $key (qw(auth_service_cipher auth_allowed_ciphers auth_preferred_cipher)) {
+        my $value = $monmap->{$key} // 'unknown';
+        printf("  %s: %s (%s)\n",
+            $key,
+            ref($value) eq 'ARRAY' ? join(', ', @$value) : $value,
+            $settings->{$key});
+    }
+    if ($checks->{AUTH_INSECURE_KEYS_CREATABLE}) {
+        print "  The default for new keys does not restrict which key types may be created.\n";
+    }
+
+    my $quorum = $data->{quorum} // {};
+    my $members = $quorum->{members} // [];
+    print "\nMonitor quorum\n";
+    print_wrapped_values('members', scalar(@$members) ? $members : ['unknown']);
+    my $quorum_capable = $quorum->{'supports-aes256k'};
+    printf(
+        "  aes256k capable: %s (from %s)\n",
+        defined($quorum_capable) ? ($quorum_capable ? 'yes' : 'no') : 'unknown',
+        $quorum->{'feature-source'} // 'unknown',
+    );
+
+    my $daemons = $data->{daemons} // {};
+    my $versions = {};
+    for my $type (qw(mon mgr osd mds)) {
+        for my $entry (($daemons->{$type} // [])->@*) {
+            my $supported = $entry->{'supports-aes256k'};
+            my $version = $entry->{'version-short'} // $entry->{version};
+            my $label = "$version - "
+                . (
+                    !defined($supported) ? 'aes256k support unknown'
+                    : $supported ? 'supports aes256k'
+                    : 'too old, upgrade/restart required'
+                );
+            push $versions->{$label}->@*, "$entry->{count} $type";
+        }
+    }
+    print "\nReported daemon versions\n";
+    print "  unknown\n" if !scalar(keys %$versions);
+    print_wrapped_values($_, $versions->{$_}) for sort keys %$versions;
+
+    print "\nReported node kernels (kernel RBD/CephFS clients need 7.0 or newer)\n";
+    print "  unknown\n" if !scalar(keys %$nodes);
+    for my $node (sort keys %$nodes) {
+        my $supported = $nodes->{$node}->{'supports-aes256k'};
+        my $source = $nodes->{$node}->{source} // 'no kernel report';
+        $source = 'at Ceph daemon start' if $source eq 'ceph daemon metadata';
+        printf(
+            "  %s: %s (%s)%s\n",
+            $node,
+            $nodes->{$node}->{kernel} // 'unknown',
+            $source,
+            !defined($supported) ? ' - compatibility unknown'
+            : $supported ? ''
+            : ' - too old for aes256k kernel clients',
+        );
+    }
+    print
+        "\nClient refresh, including disconnected clients and external copies, is not verified here.\n";
+}
+
+__PACKAGE__->register_method({
+    name => 'auth_status',
+    path => 'auth-status',
+    method => 'GET',
+    description =>
+        "Show current and pending cephx key ciphers and aes256k migration prerequisites.",
+    protected => 1,
+    permissions => {
+        check => ['perm', '/', ['Sys.Audit', 'Datastore.Audit'], any => 1],
+    },
+    parameters => {
+        additionalProperties => 0,
+        properties => {},
+    },
+    returns => {
+        type => 'object',
+        description => "Whatever could be collected. Anything a Ceph release from before the"
+            . " aes256k cipher does not report is left out rather than guessed at.",
+        properties => {
+            quorum => {
+                type => 'object',
+                description => "Whether the monitor quorum can do aes256k at all, which gates"
+                    . " every migration step.",
+                additionalProperties => 1,
+                properties => {
+                    'supports-aes256k' => {
+                        type => 'boolean',
+                        description => "Every monitor in the quorum advertises the cipher."
+                            . " Absent if the quorum features could not be read, as only they"
+                            . " decide this.",
+                        optional => 1,
+                    },
+                },
+            },
+            monmap => {
+                type => 'object',
+                description => "The cipher settings from 'ceph mon dump', under their Ceph"
+                    . " names. Empty if unavailable or absent on this release.",
+                additionalProperties => 1,
+            },
+            daemons => {
+                type => 'object',
+                description => "Running daemon versions per service type, with whether each"
+                    . " supports aes256k.",
+                additionalProperties => 1,
+            },
+            'daemons-without-aes256k' => {
+                type => 'array',
+                description => "Daemon groups that still need a restart onto a newer binary.",
+                items => { type => 'string' },
+            },
+            entities => {
+                type => 'object',
+                description => "Cephx entities grouped into service and client class and then"
+                    . " by cipher. Never contains any key material.",
+                additionalProperties => 1,
+            },
+            nodes => {
+                type => 'object',
+                description => "Kernel release per node from local uname or remote Ceph daemon"
+                    . " metadata recorded at daemon start. Kernel Ceph clients need kernel 7.0 for aes256k.",
+                additionalProperties => 1,
+            },
+            'checks-known' => {
+                type => 'boolean',
+                description => "Whether the Ceph health checks could be read.",
+            },
+            checks => {
+                type => 'object',
+                description => "The active AUTH_* health checks, with whether they block a"
+                    . " rolling restart.",
+                additionalProperties => 1,
+            },
+            conclusion => {
+                type => 'array',
+                description => "What is left to do, in plain words.",
+                items => { type => 'string' },
+            },
+        },
+    },
+    code => sub {
+        my ($param) = @_;
+
+        PVE::Ceph::Tools::check_ceph_inited();
+
+        # nine mon commands on one handle, and PVE::RADOS kills its helper process on the
+        # first timeout, which would leave every later command failing and the whole report
+        # reading as "nothing could be collected"
+        my $rados = PVE::Ceph::Services::ResilientRados->new(
+            timeout => PVE::Ceph::Tools::get_config('long_rados_timeout'),
+        );
+
+        return PVE::Ceph::Services::get_cephx_auth_status($rados);
+    },
+});
+
 our $cmddef = {
     init => ['PVE::API2::Ceph', 'init', [], { node => $nodename }],
+    auth => {
+        status => [
+            __PACKAGE__,
+            'auth_status',
+            [],
+            {},
+            \&format_auth_status,
+            $PVE::RESTHandler::standard_output_options,
+        ],
+    },
     pool => {
         ls => [
             'PVE::API2::Ceph::Pool',

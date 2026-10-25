@@ -128,6 +128,8 @@ Ext.define('PVE.qemu.CDInputPanel', {
 Ext.define('PVE.qemu.CDEdit', {
     extend: 'Proxmox.window.Edit',
 
+    backgroundDelay: 5,
+
     width: 400,
 
     initComponent: function () {

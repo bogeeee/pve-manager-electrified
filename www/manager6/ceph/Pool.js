@@ -234,7 +234,11 @@ Ext.define('PVE.CephPoolInputPanel', {
     onGetValues: function (values) {
         Object.keys(values || {}).forEach(function (name) {
             if (values[name] === '') {
-                delete values[name];
+                if (name === 'target_size_ratio') {
+                    values[name] = 0;
+                } else {
+                    delete values[name];
+                }
             }
         });
 

@@ -293,6 +293,234 @@ Ext.define('PVE.node.CephServiceController', {
             taskDone: () => view.rstore.load(),
         });
     },
+
+    bulk_restart: function () {
+        let view = this.getView();
+        let type = view.type;
+        let typeUpper = type.toUpperCase();
+
+        let fireRequest = function (force) {
+            let params = { 'service-type': type };
+            if (force) {
+                params.force = 1;
+            }
+            Proxmox.Utils.API2Request({
+                url: `/cluster/ceph/restart-bulk`,
+                method: 'POST',
+                params,
+                waitMsgTarget: view,
+                success: function (response2) {
+                    Ext.create('Proxmox.window.TaskProgress', {
+                        autoShow: true,
+                        upid: response2.result.data,
+                        taskDone: () => view.rstore.load(),
+                    });
+                },
+                failure: (response2) => Ext.Msg.alert(gettext('Error'), response2.htmlStatus),
+            });
+        };
+
+        // $unknown is set when the health could not be read: { text, canForce }. A 403 only
+        // means this user may not read it, the backend still can, so the restart runs as usual
+        // and force stays available. Anything else means the backend will hit the same wall,
+        // and force cannot override a health query that fails.
+        let showConfirm = function (msg, blocking, unknown) {
+            let blockers = Object.keys(blocking).sort();
+            let fatal = blockers.some((k) => blocking[k].severity === 'HEALTH_ERR');
+            let health = '';
+            if (blockers.length) {
+                let items = blockers
+                    .map(
+                        (k) =>
+                            '<li>' +
+                            Ext.String.htmlEncode(blocking[k].summary?.message || k) +
+                            '</li>',
+                    )
+                    .join('');
+                health =
+                    '<p>' +
+                    (fatal
+                        ? gettext(
+                              'These health checks block the restart and Force cannot override' +
+                                  ' them:',
+                          )
+                        : gettext(
+                              'These health checks block the restart unless Force is enabled:',
+                          )) +
+                    `<ul>${items}</ul></p>`;
+            } else if (unknown) {
+                health = `<p>${unknown.text}</p>`;
+            }
+
+            let forceUseful = unknown ? unknown.canForce : blockers.length && !fatal;
+            let confirm = Ext.create('Ext.window.MessageBox', { closeAction: 'destroy' });
+            confirm.promptContainer.add({
+                xtype: 'proxmoxcheckbox',
+                name: 'force',
+                hidden: !forceUseful,
+                boxLabel: gettext('Force: proceed past the blocking health checks'),
+                padding: '3 0 0 0',
+            });
+            confirm.show({
+                title: gettext('Confirm Cluster-wide Rolling Restart'),
+                icon: Ext.Msg.WARNING,
+                msg: msg + health,
+                buttons: Ext.Msg.YESNO,
+                defaultFocus: 'no',
+                callback: function (btn) {
+                    let force = confirm.promptContainer
+                        .down('proxmoxcheckbox[name=force]')
+                        .getValue();
+                    confirm.destroy();
+                    if (btn === 'yes') {
+                        fireRequest(force);
+                    }
+                },
+            });
+        };
+
+        let confirmWithMessage = function (msg) {
+            Proxmox.Utils.API2Request({
+                url: '/cluster/ceph/status',
+                method: 'GET',
+                waitMsgTarget: view,
+                success: function (response) {
+                    if (view.destroyed) {
+                        return;
+                    }
+                    let checks = response.result.data?.health?.checks || {};
+                    let blocking = {};
+                    for (const [k, v] of Object.entries(checks)) {
+                        if (v['blocks-restart']?.[type]) {
+                            blocking[k] = v;
+                        }
+                    }
+                    showConfirm(msg, blocking, undefined);
+                },
+                failure: function (response) {
+                    if (view.destroyed) {
+                        return;
+                    }
+                    let unknown =
+                        response.status === 403
+                            ? {
+                                  text: gettext(
+                                      'The cluster health was not checked, reading it needs the' +
+                                          ' Sys.Audit privilege. The restart itself is allowed,' +
+                                          ' and if a health check blocks it the task log names' +
+                                          ' the check.',
+                                  ),
+                                  canForce: true,
+                              }
+                            : {
+                                  text: Ext.String.format(
+                                      gettext(
+                                          'The cluster health could not be read ({0}). A restart' +
+                                              ' is likely to be refused for the same reason, so' +
+                                              ' check the cluster status first.',
+                                      ),
+                                      Ext.String.htmlEncode(response.htmlStatus || response.status),
+                                  ),
+                                  canForce: false,
+                              };
+                    showConfirm(msg, {}, unknown);
+                },
+            });
+        };
+
+        // Try to fetch the cluster-wide daemon list so the confirmation can enumerate the
+        // affected hosts. The /cluster/ceph/metadata endpoint requires Sys.Audit or
+        // Datastore.Audit; a user holding only Sys.Modify gets 403 here, in which case we
+        // fall back to a generic confirmation that does not list daemons but still
+        // requires explicit consent. Other errors (network, 5xx) surface normally so the
+        // operator knows something is actually broken.
+        Proxmox.Utils.API2Request({
+            url: '/cluster/ceph/metadata',
+            method: 'GET',
+            params: { scope: 'all' },
+            waitMsgTarget: view,
+            failure: function (response) {
+                if (view.destroyed) {
+                    return;
+                }
+                if (response.status === 403) {
+                    let msg = Ext.String.format(
+                        gettext(
+                            'This will restart all {0} daemons across the entire cluster,' +
+                                " one by one. Each daemon is restarted only when Ceph's" +
+                                " 'ok-to-stop' check passes.",
+                        ),
+                        typeUpper,
+                    );
+                    confirmWithMessage(msg);
+                    return;
+                }
+                Ext.Msg.alert(gettext('Error'), response.htmlStatus);
+            },
+            success: function (response) {
+                if (view.destroyed) {
+                    return;
+                }
+                let typeData = response.result.data[type] || {};
+                let entries = [];
+                for (const [id, _info] of Object.entries(typeData)) {
+                    // metadata IDs are 'name@host'
+                    let parts = id.split('@');
+                    if (parts.length === 2) {
+                        entries.push({ name: parts[0], host: parts[1] });
+                    }
+                }
+                entries.sort(
+                    (a, b) => a.host.localeCompare(b.host) || a.name.localeCompare(b.name),
+                );
+
+                if (entries.length === 0) {
+                    Ext.Msg.alert(
+                        gettext('Nothing to do'),
+                        Ext.String.format(
+                            gettext('No {0} daemons found in the cluster.'),
+                            typeUpper,
+                        ),
+                    );
+                    return;
+                }
+
+                // Encode host/daemon names: Ceph and pmxcfs naming rules are strict
+                // enough that XSS is unrealistic in practice, but the rest of this
+                // file uses Ext.htmlEncode for any user/cluster-supplied string in an
+                // HTML body so stay consistent.
+                let planHtml =
+                    '<ul>' +
+                    entries
+                        .map((e, i) => {
+                            let host = Ext.String.htmlEncode(e.host);
+                            let name = Ext.String.htmlEncode(e.name);
+                            return `<li>[${i + 1}/${entries.length}] ${host}: ${type}.${name}</li>`;
+                        })
+                        .join('') +
+                    '</ul>';
+                let estMinutes = Math.max(2, entries.length * 2);
+
+                let intro = Ext.String.format(
+                    ngettext(
+                        'This will restart {0} {1} daemon across the entire cluster, in this order:',
+                        'This will restart {0} {1} daemons across the entire cluster, one by one, in this order:',
+                        entries.length,
+                    ),
+                    entries.length,
+                    typeUpper,
+                );
+                let outro = Ext.String.format(
+                    gettext(
+                        "Approximately 2 minutes per daemon (total {0} minutes, depending on cluster recovery speed). Each daemon is restarted only when Ceph's 'ok-to-stop' check passes.",
+                    ),
+                    estMinutes,
+                );
+
+                confirmWithMessage(`${intro}${planHtml}${outro}`);
+            },
+        });
+    },
 });
 
 Ext.define(
@@ -339,10 +567,14 @@ Ext.define(
                 iconCls: 'fa fa-refresh',
                 action: 'restart',
                 disabled: true,
-                enableFn: (rec) => rec.data.state !== 'stopped',
                 handler: 'onChangeService',
             },
             '-',
+            {
+                text: gettext('Cluster-wide Bulk Restart'),
+                iconCls: 'fa fa-refresh',
+                handler: 'bulk_restart',
+            },
             {
                 text: gettext('Create'),
                 reference: 'createButton',

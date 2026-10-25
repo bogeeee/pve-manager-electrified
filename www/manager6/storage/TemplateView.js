@@ -40,16 +40,44 @@ Ext.define(
 
             Proxmox.Utils.monStoreErrors(me, store);
 
+            // Hide templates that cannot run natively here (foreign arch needs slow emulation);
+            // the toolbar checkbox reveals them. Entries without a known architecture stay shown.
+            var archFilter = new Ext.util.Filter({
+                id: 'template-arch',
+                filterFn: function (rec) {
+                    var nodeArch = Proxmox.NodeArch;
+                    var arch = rec.data.architecture;
+                    return !nodeArch || !arch || arch === nodeArch;
+                },
+            });
+            store.addFilter(archFilter);
+
             Ext.apply(me, {
                 store: store,
                 selModel: sm,
                 tbar: [
-                    '->',
                     gettext('Search'),
                     {
                         xtype: 'pveRecordSearchField',
+                        width: 300,
+                        emptyText: gettext('Name, Description'),
                         searchFields: ['package', 'headline'],
                         targetStore: store,
+                    },
+                    '->',
+                    {
+                        xtype: 'proxmoxcheckbox',
+                        boxLabel: gettext('Show all architectures'),
+                        value: false,
+                        listeners: {
+                            change: function (checkbox, value) {
+                                if (value) {
+                                    store.removeFilter(archFilter);
+                                } else {
+                                    store.addFilter(archFilter);
+                                }
+                            },
+                        },
                     },
                 ],
                 features: [groupingFeature],
@@ -60,7 +88,7 @@ Ext.define(
                         dataIndex: 'type',
                     },
                     {
-                        header: gettext('Package'),
+                        header: gettext('Name'),
                         flex: 1,
                         dataIndex: 'package',
                     },
@@ -68,6 +96,35 @@ Ext.define(
                         header: gettext('Version'),
                         width: 80,
                         dataIndex: 'version',
+                    },
+                    {
+                        header: gettext('Architecture'),
+                        width: 110,
+                        dataIndex: 'architecture',
+                        renderer: function (value, metaData) {
+                            if (!value) {
+                                return gettext('unknown');
+                            }
+                            let nodeArch = Proxmox.NodeArch;
+                            if (nodeArch && value !== nodeArch) {
+                                let notice = Ext.String.format(
+                                    gettext(
+                                        "Template architecture '{0}' differs from this node's" +
+                                            " '{1}'. It does not run natively here and needs" +
+                                            ' user-mode emulation on the host (binfmt_misc with' +
+                                            ' qemu-user-static).',
+                                    ),
+                                    value,
+                                    nodeArch,
+                                );
+                                metaData.tdAttr = `data-qtip="${Ext.String.htmlEncode(notice)}"`;
+                                return (
+                                    `<i class="fa fa-info-circle info-blue"></i> ` +
+                                    Ext.String.htmlEncode(value)
+                                );
+                            }
+                            return Ext.String.htmlEncode(value);
+                        },
                     },
                     {
                         header: gettext('Description'),
@@ -92,6 +149,7 @@ Ext.define(
                 'type',
                 'package',
                 'version',
+                'architecture',
                 'headline',
                 'infopage',
                 'description',

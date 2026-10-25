@@ -142,6 +142,7 @@ Ext.define('PVE.window.DirMapEditWindow', {
                     },
                     name: 'name',
                     allowBlank: false,
+                    vtype: 'ConfigId',
                 },
                 {
                     xtype: 'pveNodeSelector',

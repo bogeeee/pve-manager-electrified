@@ -12,6 +12,11 @@ Ext.define('PVE.ha.NodeAffinityRulesView', {
 
     columns: [
         {
+            header: gettext('Affinity'),
+            width: 75,
+            dataIndex: 'affinity',
+        },
+        {
             header: gettext('Strict'),
             width: 75,
             dataIndex: 'strict',

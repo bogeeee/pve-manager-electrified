@@ -217,6 +217,7 @@ Ext.define('PVE.window.PCIMapEditWindow', {
                     },
                     name: 'id',
                     allowBlank: false,
+                    vtype: 'ConfigId',
                 },
                 {
                     xtype: 'displayfield',

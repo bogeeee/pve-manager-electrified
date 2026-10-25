@@ -2,6 +2,7 @@ package PVE::CLI::pvesh;
 
 use strict;
 use warnings;
+use Clone qw(clone);
 use HTTP::Status qw(:constants :is status_message);
 use String::ShellQuote;
 use PVE::JSONSchema qw(get_standard_option);
@@ -257,8 +258,6 @@ sub extract_path_info {
     return $info;
 }
 
-my $path_properties = {};
-
 my $api_path_property = {
     description => "API path.",
     type => 'string',
@@ -268,30 +267,100 @@ my $api_path_property = {
     },
 };
 
-my $uri_param = {};
-if (my $info = extract_path_info($uri_param)) {
-    foreach my $key (keys %{ $info->{parameters}->{properties} }) {
-        next if defined($uri_param->{$key});
-        $path_properties->{$key} = $info->{parameters}->{properties}->{$key};
+sub remove_schema_properties {
+    my ($schema, $to_remove) = @_;
+
+    if (my $props = $schema->{properties}) {
+        delete $props->{$_} for $to_remove->@*;
+    } elsif (my $nested = ($schema->{allOf} // $schema->{oneOf})) {
+        remove_schema_properties($_, $to_remove) for $nested->@*;
     }
 }
 
-$path_properties->{api_path} = $api_path_property;
-$path_properties->{noproxy} = {
-    description => "Disable automatic proxying.",
-    type => 'boolean',
-    optional => 1,
+my $uri_param = {};
+my $path_schema = { additionalProperties => 0, properties => {} };
+# We validate against a copy of the target method's schema, so we also need its method level
+# attributes. Without the 'resolve_type' callback a oneOf schema's type property would be
+# mandatory here, even though the endpoint itself lets clients omit it.
+my %path_method_info;
+if (my $info = extract_path_info($uri_param)) {
+    $path_schema = clone($info->{parameters});
+    remove_schema_properties($path_schema, [keys $uri_param->%*]);
+    if (my $resolve_type = $info->{resolve_type}) {
+        # the path parameters are not part of our schema, so add them back for the callback
+        $path_method_info{resolve_type} = sub {
+            my ($param) = @_;
+            return $resolve_type->({ $uri_param->%*, $param->%* });
+        };
+    }
+}
+
+my $our_properties = {
+    api_path => $api_path_property,
+    noproxy => {
+        description => "Disable automatic proxying.",
+        type => 'boolean',
+        optional => 1,
+    },
 };
+
+my sub merge_properties {
+    my ($from, $to) = @_;
+
+    if ($to->{properties} || !($to->{allOf} || $to->{oneOf})) {
+        # Plain parameter schemas may omit an empty property map.
+        my $props = $to->{properties} //= {};
+        $props->{$_} = $from->{$_} for keys $from->%*;
+        return;
+    }
+
+    $from = {
+        additionalProperties => 0,
+        properties => $from,
+    };
+
+    if (my $all_of = $to->{allOf}) {
+        push $all_of->@*, $from;
+    } elsif ($to->{oneOf}) {
+        my $old = { $to->%* };
+        $to->%* = (allOf => [$old, $from]);
+    }
+}
+
+merge_properties($our_properties, $path_schema);
 
 my $extract_std_options = 1;
 
+# Look for a property, but don't descend into oneOfs
+sub find_unconditional_schema_property {
+    my ($schema, $key) = @_;
+
+    if (my $props = $schema->{properties}) {
+        return $props->{$key};
+    } elsif (my $all_of = $schema->{allOf}) {
+        for my $subschema ($all_of->@*) {
+            my $p = find_unconditional_schema_property($subschema, $key);
+            return $p if defined($p);
+        }
+    }
+    return;
+}
+
 my $cond_add_standard_output_properties = sub {
-    my ($props) = @_;
+    my ($schema) = @_;
 
-    my $keys =
-        [grep { !defined($props->{$_}) } keys %$PVE::RESTHandler::standard_output_options];
+    my $keys = [
+        grep { !find_unconditional_schema_property($schema, $_) }
+            keys %$PVE::RESTHandler::standard_output_options
+    ];
 
-    return PVE::RESTHandler::add_standard_output_properties($props, $keys);
+    return $schema if !$keys->@*;
+
+    my $standard_props = PVE::RESTHandler::add_standard_output_properties(undef, $keys);
+
+    $schema = { $schema->%* };
+    merge_properties($standard_props, $schema);
+    return $schema;
 };
 
 my $handle_streamed_response = sub {
@@ -396,10 +465,8 @@ __PACKAGE__->register_method({
     path => 'ls',
     method => 'GET',
     description => "List child objects on <api_path>.",
-    parameters => {
-        additionalProperties => 0,
-        properties => $cond_add_standard_output_properties->($path_properties),
-    },
+    parameters => $cond_add_standard_output_properties->($path_schema),
+    %path_method_info,
     returns => { type => 'null' },
     code => sub {
         my ($param) = @_;
@@ -453,10 +520,8 @@ __PACKAGE__->register_method({
     path => 'get',
     method => 'GET',
     description => "Call API GET on <api_path>.",
-    parameters => {
-        additionalProperties => 0,
-        properties => $cond_add_standard_output_properties->($path_properties),
-    },
+    parameters => $cond_add_standard_output_properties->($path_schema),
+    %path_method_info,
     returns => { type => 'null' },
     code => sub {
         my ($param) = @_;
@@ -472,10 +537,8 @@ __PACKAGE__->register_method({
     path => 'set',
     method => 'PUT',
     description => "Call API PUT on <api_path>.",
-    parameters => {
-        additionalProperties => 0,
-        properties => $cond_add_standard_output_properties->($path_properties),
-    },
+    parameters => $cond_add_standard_output_properties->($path_schema),
+    %path_method_info,
     returns => { type => 'null' },
     code => sub {
         my ($param) = @_;
@@ -491,10 +554,8 @@ __PACKAGE__->register_method({
     path => 'create',
     method => 'POST',
     description => "Call API POST on <api_path>.",
-    parameters => {
-        additionalProperties => 0,
-        properties => $cond_add_standard_output_properties->($path_properties),
-    },
+    parameters => $cond_add_standard_output_properties->($path_schema),
+    %path_method_info,
     returns => { type => 'null' },
     code => sub {
         my ($param) = @_;
@@ -510,10 +571,8 @@ __PACKAGE__->register_method({
     path => 'delete',
     method => 'DELETE',
     description => "Call API DELETE on <api_path>.",
-    parameters => {
-        additionalProperties => 0,
-        properties => $cond_add_standard_output_properties->($path_properties),
-    },
+    parameters => $cond_add_standard_output_properties->($path_schema),
+    %path_method_info,
     returns => { type => 'null' },
     code => sub {
         my ($param) = @_;

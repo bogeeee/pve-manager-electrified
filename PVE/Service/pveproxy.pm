@@ -277,6 +277,7 @@ sub get_index {
         token => $token,
         console => $args->{console},
         nodename => $nodename,
+        arch => PVE::Tools::get_host_dpkg_arch(),
         debug => $debug,
         version => "$version",
         wtversion => $wtversion,

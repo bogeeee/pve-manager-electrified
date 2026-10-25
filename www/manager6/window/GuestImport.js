@@ -369,6 +369,10 @@ Ext.define('PVE.window.GuestImport', {
                         let defaultBridge = values.defaultBridge;
                         delete values.defaultBridge;
 
+                        if (!values.pool) {
+                            delete values.pool;
+                        }
+
                         let config = { ...view.vmConfig };
                         Ext.apply(config, values);
 
@@ -517,7 +521,13 @@ Ext.define('PVE.window.GuestImport', {
                             value: 512,
                             allowBlank: true,
                         },
-                        { xtype: 'displayfield' }, // spacer
+                        {
+                            xtype: 'pvePoolSelector',
+                            fieldLabel: gettext('Resource Pool'),
+                            name: 'pool',
+                            value: '',
+                            allowBlank: true,
+                        },
                         { xtype: 'displayfield' }, // spacer
                         {
                             xtype: 'pveDiskStorageSelector',

@@ -60,7 +60,7 @@ Ext.define('PVE.sdn.ControllerView', {
 
         let remove_btn = Ext.create('Proxmox.button.StdRemoveButton', {
             selModel: sm,
-            baseurl: '/cluster/sdn/controllers/',
+            baseurl: '/cluster/sdn/controllers',
             callback: () => store.load(),
         });
 

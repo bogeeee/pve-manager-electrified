@@ -444,20 +444,6 @@ sub update_qemu_status {
     PVE::PullMetric::update($pull_txn, 'qemu', $vmstatus, $ctime);
 }
 
-sub remove_stale_lxc_consoles {
-
-    my $vmstatus = PVE::LXC::vmstatus();
-    my $pidhash = PVE::LXC::find_lxc_console_pids();
-
-    foreach my $vmid (keys %$pidhash) {
-        next if defined($vmstatus->{$vmid});
-        syslog('info', "remove stale lxc-console for CT $vmid");
-        foreach my $pid (@{ $pidhash->{$vmid} }) {
-            kill(9, $pid);
-        }
-    }
-}
-
 my $rebalance_error_count = {};
 
 my $NO_REBALANCE;
@@ -847,10 +833,6 @@ sub update_status {
     eval { update_storage_status($status_cfg, $pull_txn); };
     $err = $@;
     syslog('err', "storage status update error: $err") if $err;
-
-    eval { remove_stale_lxc_consoles(); };
-    $err = $@;
-    syslog('err', "lxc console cleanup error: $err") if $err;
 
     eval { rotate_authkeys(); };
     $err = $@;

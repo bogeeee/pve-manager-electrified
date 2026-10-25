@@ -94,6 +94,7 @@ Ext.define('PVE.qemu.EFIDiskEdit', {
     extend: 'Proxmox.window.Edit',
 
     isAdd: true,
+    backgroundDelay: 5,
     subject: gettext('EFI Disk'),
 
     width: 450,

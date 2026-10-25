@@ -8,6 +8,9 @@ Ext.define('PVE.form.IPRefSelector', {
 
     ref_type: undefined, // undefined = any [undefined, 'ipset' or 'alias']
 
+    // list of references that should not be offered, e.g. because they are already in use
+    excludeRefs: [],
+
     valueField: 'scopedref',
     displayField: 'ref',
     notFoundIsValid: true,
@@ -54,6 +57,7 @@ Ext.define('PVE.form.IPRefSelector', {
                 property: 'ref',
                 direction: 'ASC',
             },
+            filters: [(rec) => !me.excludeRefs.includes(rec.data.scopedref)],
         });
 
         var columns = [];

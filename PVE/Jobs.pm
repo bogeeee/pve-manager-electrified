@@ -5,6 +5,7 @@ use warnings;
 use JSON;
 
 use PVE::Cluster qw(cfs_lock_file cfs_read_file cfs_register_file);
+use PVE::File;
 use PVE::Job::Registry;
 use PVE::Jobs::VZDump;
 use PVE::Jobs::RealmSync;
@@ -109,11 +110,16 @@ my $get_job_task_status = sub {
 
     my ($task, $filename) = PVE::Tools::upid_decode($state->{upid}, 1);
     die "unable to parse worker upid - $state->{upid}\n" if !$task;
-    die "no such task\n" if !-f $filename;
 
     my $pstart = PVE::ProcFSTools::read_proc_starttime($task->{pid});
     if ($pstart && $pstart == $task->{pstart}) {
         return; # still running
+    }
+
+    # the task log might be gone, e.g. after a crash, do not let that block the job forever
+    if (!PVE::File::file_exists($filename)) {
+        warn "missing task log for $state->{upid}\n";
+        return "task log not found";
     }
 
     return PVE::Tools::upid_read_status($state->{upid});

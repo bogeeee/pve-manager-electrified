@@ -151,7 +151,7 @@ Ext.define('PVE.lxc.DNS', {
                 defaultValue: '',
                 editor: caps.vms['VM.Config.Network'] ? 'PVE.lxc.DNSEdit' : undefined,
                 renderer: function (value) {
-                    return value || gettext('use host settings');
+                    return Ext.htmlEncode(value) || gettext('use host settings');
                 },
             },
             nameserver: {
@@ -159,7 +159,7 @@ Ext.define('PVE.lxc.DNS', {
                 defaultValue: '',
                 editor: caps.vms['VM.Config.Network'] ? 'PVE.lxc.DNSEdit' : undefined,
                 renderer: function (value) {
-                    return value || gettext('use host settings');
+                    return Ext.htmlEncode(value) || gettext('use host settings');
                 },
             },
         };

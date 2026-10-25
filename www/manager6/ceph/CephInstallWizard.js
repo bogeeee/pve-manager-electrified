@@ -33,28 +33,41 @@ Ext.define('PVE.ceph.CephVersionSelector', {
     editable: false,
     forceSelection: true,
 
-    store: {
-        fields: [
-            'release',
-            'version',
-            {
-                name: 'display',
-                calculate: (d) => `${d.release} (${d.version})`,
+    // node whose installable Ceph releases are offered
+    nodename: undefined,
+
+    initComponent: function () {
+        let me = this;
+
+        if (!me.nodename) {
+            throw 'no nodename given';
+        }
+
+        // the node's ceph/releases endpoint is the single source of truth for what can be
+        // installed here, already filtered for the node's architecture and Proxmox VE release
+        me.store = Ext.create('Ext.data.Store', {
+            autoLoad: true,
+            fields: [
+                'release',
+                'version',
+                'available',
+                'unsupported',
+                {
+                    name: 'display',
+                    calculate: (d) => `${d.release} (${d.version})`,
+                },
+            ],
+            proxy: {
+                type: 'proxmox',
+                url: `/api2/json/nodes/${me.nodename}/ceph/releases`,
             },
-        ],
-        proxy: {
-            type: 'memory',
-            reader: {
-                type: 'json',
-            },
-        },
-        data: [
-            { release: 'squid', version: '19.2' },
-            {
-                release: 'tentacle',
-                version: '20.2',
-            },
-        ],
+            filters: [{ filterFn: (rec) => rec.get('available') }],
+            sorters: [
+                { sorterFn: (a, b) => parseFloat(a.get('version')) - parseFloat(b.get('version')) },
+            ],
+        });
+
+        me.callParent();
     },
 });
 
@@ -73,6 +86,26 @@ Ext.define('PVE.ceph.CephHighestVersionDisplay', {
         let me = this;
 
         me.callParent(arguments);
+
+        // build the major-version to release-name map from the backend, so this display stays
+        // in sync with the install selector and pveceph instead of a hardcoded copy
+        Proxmox.Utils.API2Request({
+            method: 'GET',
+            url: `/nodes/${me.nodename}/ceph/releases`,
+            waitMsgTarget: me,
+            success: (response) => {
+                let major2release = {};
+                for (const entry of response.result.data) {
+                    major2release[parseInt(entry.version, 10)] = entry.release;
+                }
+                me.showNewestClusterVersion(major2release);
+            },
+            failure: (response) => Ext.Msg.alert(gettext('Error'), response.htmlStatus),
+        });
+    },
+
+    showNewestClusterVersion: function (major2release) {
+        let me = this;
 
         Proxmox.Utils.API2Request({
             method: 'GET',
@@ -102,17 +135,6 @@ Ext.define('PVE.ceph.CephHighestVersionDisplay', {
                         maxversiontext = data.version.str;
                     }
                 }
-                // FIXME: get from version selector store
-                const major2release = {
-                    13: 'luminous',
-                    14: 'nautilus',
-                    15: 'octopus',
-                    16: 'pacific',
-                    17: 'quincy',
-                    18: 'reef',
-                    19: 'squid',
-                    20: 'tentacle',
-                };
                 let release = major2release[maxversion[0]] || 'unknown';
                 let newestVersionTxt = `${Ext.String.capitalize(release)} (${maxversiontext})`;
 
@@ -308,6 +330,9 @@ Ext.define('PVE.ceph.CephInstallWizard', {
                             labelWidth: 150,
                             padding: '0 10 0 0',
                             submitValue: false,
+                            cbind: {
+                                nodename: '{nodename}',
+                            },
                             bind: {
                                 value: '{cephRelease}',
                             },
@@ -332,7 +357,7 @@ Ext.define('PVE.ceph.CephInstallWizard', {
                                         true,
                                         true,
                                     );
-                                    let releaseIsTechPreview = !!record.data.preview;
+                                    let releaseIsTechPreview = !!record.data.unsupported;
                                     wizard
                                         .getViewModel()
                                         .set('selectedReleaseIsTechPreview', releaseIsTechPreview);

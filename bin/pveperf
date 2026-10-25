@@ -28,7 +28,7 @@ sub test_bogomips {
     open(TMP, "/proc/cpuinfo");
 
     while (my $line = <TMP>) {
-        if ($line =~ m/^bogomips\s*:\s*(\d+\.\d+)\s*$/) {
+        if ($line =~ m/^bogomips\s*:\s*(\d+\.\d+)\s*$/i) {
             $bogomips += $1;
         }
     }

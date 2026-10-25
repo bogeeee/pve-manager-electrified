@@ -26,6 +26,7 @@ Ext.define('PVE.qemu.BootOrderPanel', {
             let grid = me.lookup('grid');
             let marker = me.lookup('marker');
             let emptyWarning = me.lookup('emptyWarning');
+            let rngPxeWarning = me.lookup('rngPxeWarning');
 
             marker.originalValue = undefined;
 
@@ -43,6 +44,14 @@ Ext.define('PVE.qemu.BootOrderPanel', {
                         view.inUpdate = false;
                         marker.checkDirty();
                         emptyWarning.setHidden(val !== '');
+
+                        let showRngPxeWarning =
+                            view.vmconfig?.bios === 'ovmf' &&
+                            !view.vmconfig?.rng0 &&
+                            val?.includes('net');
+
+                        rngPxeWarning.setHidden(!showRngPxeWarning);
+
                         grid.getView().refresh();
                     },
                 },
@@ -237,6 +246,13 @@ Ext.define('PVE.qemu.BootOrderPanel', {
             reference: 'emptyWarning',
             userCls: 'pmx-hint',
             value: gettext('Warning: No devices selected, the VM will probably not boot!'),
+        },
+        {
+            xtype: 'displayfield',
+            reference: 'rngPxeWarning',
+            userCls: 'pmx-hint',
+            hidden: true,
+            value: gettext('For PXE boot with OVMF, you must add a VirtIO RNG device!'),
         },
         {
             // for dirty marking and 'reset' function

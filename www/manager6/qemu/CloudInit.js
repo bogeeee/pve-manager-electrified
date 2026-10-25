@@ -296,7 +296,7 @@ Ext.define('PVE.qemu.CloudInit', {
             if (match) {
                 val = me.getObjectValue('ipconfig' + match[1], '', pending);
             }
-            return val;
+            return Ext.htmlEncode(val);
         };
         for (i = 0; i < 32; i++) {
             // we want to show an entry for every network device

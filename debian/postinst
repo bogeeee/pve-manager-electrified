@@ -26,7 +26,7 @@ set_lvm_conf() {
     export LVM_SUPPRESS_FD_WARNINGS=1
 
     OLD_VALUE="$(lvmconfig --typeconfig diff devices/global_filter || true)"
-    NEW_VALUE='global_filter=["r|/dev/zd.*|","r|/dev/rbd.*|"]'
+    NEW_VALUE='global_filter=["r|/dev/zd.*|","r|/dev/rbd.*|","r|/dev/nbd.*|"]'
 
     # update global_filter if:
     # it is empty and there is no marker OR exactly the one we set before 8.1.4

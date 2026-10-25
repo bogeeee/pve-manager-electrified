@@ -8,6 +8,7 @@ use File::stat ();
 use IO::File;
 use File::Basename;
 use Encode qw(decode);
+use URI qw();
 
 use LWP::UserAgent;
 
@@ -204,7 +205,7 @@ my $apt_package_return_props = {
     Arch => {
         type => 'string',
         description => 'Package Architecture.',
-        enum => [qw(armhf arm64 amd64 ppc64el risc64 s390x all)],
+        enum => [qw(armhf arm64 amd64 ppc64el riscv64 s390x all)],
     },
     Description => {
         type => 'string',
@@ -336,8 +337,9 @@ __PACKAGE__->register_method({
             # setup proxy for apt
 
             my $aptconf = "// no proxy configured\n";
-            if ($dcconf->{http_proxy}) {
-                $aptconf = "Acquire::http::Proxy \"$dcconf->{http_proxy}\";\n";
+            if (my $http_proxy = $dcconf->{http_proxy}) {
+                my $http_proxy_uri = URI->new($http_proxy);
+                $aptconf = "Acquire::http::Proxy \"${http_proxy_uri}\";\n";
             }
             my $aptcfn = "/etc/apt/apt.conf.d/76pveproxy";
             PVE::Tools::file_set_contents($aptcfn, $aptconf);
@@ -852,6 +854,7 @@ __PACKAGE__->register_method({
             libpve-network-perl
             openvswitch-switch
             proxmox-backup-file-restore
+            proxmox-enterprise-support-keyring
             proxmox-firewall
             proxmox-kernel-helper
             proxmox-offline-mirror-helper

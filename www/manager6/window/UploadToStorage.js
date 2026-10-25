@@ -14,11 +14,10 @@ Ext.define('PVE.window.UploadToStorage', {
         vztmpl: ['.tar.gz', '.tar.xz', '.tar.zst'],
     },
 
-    // accepted for file selection, will be renamed to real extension
-    extensionAliases: {
-        import: {
-            '.img': '.raw',
-        },
+    // accepted for file selection, but the extension does not tell the image format, so the user
+    // has to select it and it gets appended as real extension
+    formatAliases: {
+        import: ['.img'],
     },
 
     cbindData: function (initialConfig) {
@@ -27,7 +26,7 @@ Ext.define('PVE.window.UploadToStorage', {
 
         me.url = `/nodes/${me.nodename}/storage/${me.storage}/upload`;
 
-        let fileSelectorExt = ext.concat(Object.keys(me.extensionAliases[me.content] ?? {}));
+        let fileSelectorExt = ext.concat(me.formatAliases[me.content] ?? []);
 
         return {
             extensions: fileSelectorExt.join(', '),
@@ -40,6 +39,7 @@ Ext.define('PVE.window.UploadToStorage', {
             size: '-',
             mimetype: '-',
             filename: '',
+            needsFormat: false,
         },
     },
 
@@ -154,12 +154,12 @@ Ext.define('PVE.window.UploadToStorage', {
             const me = this;
             const vm = me.getViewModel();
             const view = me.getView();
-            let name = input.value.replace(/^.*(\/|\\)/, '');
-            for (const [alias, real] of Object.entries(view.extensionAliases[view.content] ?? {})) {
-                if (name.endsWith(alias)) {
-                    name += real;
-                }
-            }
+            const name = input.value.replace(/^.*(\/|\\)/, '');
+            const aliases = view.formatAliases[view.content] ?? [];
+            const needsFormat = aliases.some((alias) => name.endsWith(alias));
+            me.selectedName = name;
+            vm.set('needsFormat', needsFormat);
+            me.lookup('imageFormat').setValue(null);
             const fileInput = input.fileInputEl.dom;
             vm.set('filename', name);
             vm.set(
@@ -167,6 +167,8 @@ Ext.define('PVE.window.UploadToStorage', {
                 (fileInput.files[0] && Proxmox.Utils.format_size(fileInput.files[0].size)) || '-',
             );
             vm.set('mimetype', (fileInput.files[0] && fileInput.files[0].type) || '-');
+            // browsers hide the real path behind 'C:\fakepath\', so only show the file name
+            input.setRawValue(fileInput.files[0]?.name ?? '');
         },
 
         hashChange: function (field, value) {
@@ -176,6 +178,12 @@ Ext.define('PVE.window.UploadToStorage', {
                 checksum.setValue('');
             } else {
                 checksum.setDisabled(false);
+            }
+        },
+
+        formatChange: function (field, format) {
+            if (format) {
+                this.getViewModel().set('filename', `${this.selectedName}.${format}`);
             }
         },
     },
@@ -219,6 +227,21 @@ Ext.define('PVE.window.UploadToStorage', {
                         regex: '{filenameRegex}',
                     },
                     regexText: gettext('Wrong file extension'),
+                },
+                {
+                    xtype: 'pveDiskFormatSelector',
+                    reference: 'imageFormat',
+                    fieldLabel: gettext('Format'),
+                    allowBlank: false,
+                    hidden: true,
+                    disabled: true,
+                    bind: {
+                        hidden: '{!needsFormat}',
+                        disabled: '{!needsFormat}',
+                    },
+                    listeners: {
+                        change: 'formatChange',
+                    },
                 },
                 {
                     xtype: 'displayfield',

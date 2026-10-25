@@ -1367,19 +1367,12 @@ Ext.define('PVE.Utils', {
             return Ext.htmlEncode(Proxmox.Utils.format_task_description(type, id));
         },
 
-        render_optional_url: function (value) {
-            if (value && value.match(/^https?:\/\//)) {
-                return '<a target="_blank" href="' + value + '">' + value + '</a>';
-            }
-            return value;
-        },
-
         render_san: function (value) {
             var names = [];
             if (Ext.isArray(value)) {
                 value.forEach(function (val) {
                     if (!Ext.isNumber(val)) {
-                        names.push(val);
+                        names.push(Ext.htmlEncode(val));
                     }
                 });
                 return names.join('<br>');
@@ -1827,6 +1820,28 @@ Ext.define('PVE.Utils', {
             }
 
             return true;
+        },
+
+        qemu_implicit_machine_version: function (machineType, creationQemu, arch) {
+            let baseVersion = '5.1';
+            let m = creationQemu?.match(/^(\d+)\.(\d+)/);
+            if (m) {
+                let major = parseInt(m[1], 10);
+                let minor = parseInt(m[2], 10);
+                if (major > 9 || (major === 9 && minor >= 1)) {
+                    baseVersion = `${major}.${minor}`;
+                }
+            }
+
+            let base;
+            if (machineType === 'q35') {
+                base = 'pc-q35';
+            } else {
+                let defaultMachine = PVE.qemu.Architecture.defaultMachines[arch];
+                base = defaultMachine === 'virt' ? 'virt' : 'pc-i440fx';
+            }
+
+            return `${base}-${baseVersion}`;
         },
 
         cleanEmptyObjectKeys: function (obj) {
