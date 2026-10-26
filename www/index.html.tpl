@@ -27,7 +27,7 @@
     <script type="text/javascript" src="/u2f-api.js"></script>
     <script type="text/javascript" src="/qrcode.min.js"></script>
     <script type="text/javascript">
-    Proxmox = $PROXMOXSTATE$;
+    Proxmox = $PROXMOXSTATE$; // Note: The proxmoxstate template has been moved to the file proxmoxState.json.tpl.
     </script>
     <script type="text/javascript" src="/proxmoxlib.js?ver=$CACHEBREAKER$"></script>
     <script type="text/javascript" src="/proxmoxlib_bugfixes.js?ver=$CACHEBREAKER$"></script>
