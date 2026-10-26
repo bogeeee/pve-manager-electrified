@@ -1,7 +1,7 @@
 # Note: For plugin developers, see also
 This document if for developing pve-manager-electried **it's self**. If you want to add features, you may more likely want to develop a plugin! See the [Plugin development guide](docs/plugin-development.md) instead.
 
-# Install an IDE on a dev machine (which is a different machine than the PVE server)
+# Install an IDE on a dev machine (which is a different machine than the PVE target server)
 As an IDE, ...
 - ~~either use vscode with the "Remote SSH" plugin and connect the /root/proxmox/pve-manager-electrified project folder on the PVE server. This way, you can debug the nodejsserver seamlessly.~~
 - or better use a Jetbrains IDE and configure an automatic deployment  (Tools->Deployment). Enable "delete target items".
@@ -31,6 +31,19 @@ Normally, you run (on the first time):
 and later:  
 `make IDE_faster_develop_nodejsserver`  
   these deploy everything on the target and run it.
+  
+# Troubleshooting
+When the build scripts fail, make sure the build tools on the target PVE server are up to date:
+
+````shell
+apt update
+cd ~/proxmox/pve-manager-electrified
+
+# Uninstall pvee package. Just in case it deadlocks the follwing
+apt install -y pve-manager-electrified- pve-manager+
+
+mk-build-deps --install
+````
 
 
 #Publish to apt repo
