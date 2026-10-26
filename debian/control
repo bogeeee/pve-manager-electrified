@@ -115,7 +115,7 @@ Conflicts: vlan, vzdump,
 Replaces: vlan, vzdump,
 #
 # After major upgrade: Don't forget to set provides: pve-manager version! x.0.0 should be enough
-Provides: vlan, vzdump, pve-manager (=9.0.0)
+Provides: vlan, vzdump, pve-manager (=9.2.24)
 #
 Breaks: libpve-network-perl (<< 0.5-1), pve-manager
 Description: Proxmox Virtual Environment Management Tools
