@@ -1,3 +1,11 @@
+pve-manager-electrified (9.17.0) trixie; urgency=medium
+  * Bugfix: Client does not retrieve file changes / keeps seeing the old version, if connection was lost for a short while.
+  * Bugfix+improve rename node action
+  * ensure PveRootCertificateIsRegistered. Needed for the upcoming feature of forwarding the restfuncsClient to other cluster nodes.
+  * Npm audit / fix package versions
+  * Proxmox 9.2.24 features merged
+ -- PVE-electrified crew <crew@pve-electrified.net>  Mon, 26 Oct 2026 00:00:18 +0200
+
 pve-manager-electrified (9.16.1) trixie; urgency=medium
   * Fix dependency
  -- PVE-electrified crew <crew@pve-electrified.net>  Sat, 04 Jul 2026 00:00:18 +0200
