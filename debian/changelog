@@ -1,3 +1,7 @@
+pve-manager-electrified (9.17.3) trixie; urgency=medium
+  * Dark theme fix 2 for "Only running" button / guest label
+ -- PVE-electrified crew <crew@pve-electrified.net>  Tue, 03 Nov 2026 00:00:20 +0200
+
 pve-manager-electrified (9.17.2) trixie; urgency=medium
   * Dark theme fix for "Only running" button / guest label
  -- PVE-electrified crew <crew@pve-electrified.net>  Tue, 03 Nov 2026 00:00:19 +0200
