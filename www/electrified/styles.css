@@ -264,9 +264,15 @@
     padding-right: 8px;
     user-select: none;
 }
-.toolbar-running-label a {
+
+.toolbar-running-label a, .anchor_noUnderline {
     text-decoration: none;
     color: initial;
+}
+@media (prefers-color-scheme: dark) {
+    .toolbar-running-label a, .anchor_noUnderline {
+        color: #f2f2f2
+    }
 }
 
 .bp6-dialog-body h2 {

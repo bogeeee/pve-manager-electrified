@@ -119,7 +119,7 @@ export const ReactResourceTree = watchedComponent((props: {classicResourceTree: 
                     return <a onClick={(event) => {
                         event.stopPropagation() /* don't select the guest / jump to guest config */;
                         item.openConsole();
-                    }} style={{color: "initial"}}>{innerSpan}</a>
+                    }} className="anchor_noUnderline">{innerSpan}</a>
                 }
             }
             return innerSpan ;
