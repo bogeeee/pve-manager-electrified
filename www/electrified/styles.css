@@ -265,12 +265,12 @@
     user-select: none;
 }
 
-.toolbar-running-label a, .anchor_noUnderline {
+.toolbar-running-label a, .anchor_noUnderline, .anchor_noUnderline:hover {
     text-decoration: none;
     color: initial;
 }
 @media (prefers-color-scheme: dark) {
-    .toolbar-running-label a, .anchor_noUnderline {
+    .toolbar-running-label a, .anchor_noUnderline, .anchor_noUnderline:hover {
         color: #f2f2f2
     }
 }
